@@ -37,5 +37,6 @@ if [[ "$(hostname)" != "hl2021" ]] ; then
 fi
 
 cp -r /mnt/c/Users/dt/AppData/Roaming/nvda/scratchpad/globalPlugins/* ./from-scratchpad
+git add .
 
 

@@ -12,4 +12,5 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
         ui.message(versionInfo.version)
 
         
+
         
