@@ -1,35 +1,51 @@
 
-
-add-on hello world  
-	- focus event 
-	- nvda.ini  revert? 
-	- log nvdaobject 
-	- browsers only 
-	- stdout  / logging 
-	- NVDA Python Console 
-mathcat  
-	- does mathcat use ssml? 
-	- license unclear.  mit and/or gpl. 
-focusEntered: Focus has moved inside this object; i.e. it is an ancestor of the focus object
-Tree Interceptor
+handle arrows not just tab 
+get data-ssl from the DOM 
+parse SSML 
+PhonemeCommand 
+	- "Note that this is not well supported by synthesizers." 
+speakSsml() 
+	- does it handle phoneme? 
+announce "link" or "button" or whatever, as usual. 
+bug?  my phoneme doesn't appear in the speech viewer. 
+handle browsers only 
+handle live regions 
+handle this: focusEntered: Focus has moved inside this object; i.e. it is an ancestor of the focus object
 propagate ? 
-ssml in nvda currently 	- do apps other than browsers use ssml? 
-suppress speech that would have happened (then add my own) 
-what can I accomplish that wouldn't be accomplished through a user-defined dictionary which uses SSML? 
-possibility of using ssml in add-on the way I want 
-	- synth needs to support SSML? 
+handle diff ssml for accName and innert text.  where to put those two ssml docs?  
+notes from ETS CSUN talk 
+	- example from pic 2025-03-13
+		- it's a <label> for a radio button AFAICS 
+		- <label for="...">the pre-<span data-ssml='{"sub": "alias": "m r n A"}}'>mRNA</span> is cleaved...</label> 
+			- all others on this slide are sub/alias.  no say-as-characeters, no phonemes. 
+	- binary example 10110 
+	- phone number spaces?  can't remember if they mentioned. 
+	- other speakers email addrs in pic.  
+what happens inside role=application?  
+caret browsing 
+big picture: what can I accomplish that wouldn't be accomplished through a user-defined dictionary which uses SSML? 
+am I playing nice w/ other plugins? 
 websocket between add-on and bext 
 bext, websocket, smuggling out the dom 
 possible to get a native app to use ssml?  if so, how? 
-ssml in json as per csun talk 
+Tree Interceptor   might let me get closer to the dom 
+deal w/ my license b/c I'm copying from mathcatforpython and it seems to be largely gpl 
+ssml in json (AOT xml) as per csun talk 
 handle forms mode 
-handle list things eg. links, form fields, headings?  
+handle nvda commands that "list things" eg. list links, form fields, headings?  
 plugin script property: speakOnDemand
 i18n 
-consequences for braille output 
+don't interfere with braille output 
+	- chatgpt says that it's common to temporarily disable speech then call nextHandler then restore speech.  monkey patch speech.speak w/ a no-op func. 
+f: onecore announced wound/wound correctly.  other synths didn't.  all 3 synths in supportedCommands had PhonemeCommand.
+f: mathcat code: "# as of 7/23, oneCore voices do not implement the CharacterModeCommand despite it being in supported_commands" 
+	- verified by experiment 2025-03-22 
 
+------------- old but not useless below this line ----------- 
 
-
+mathcat  
+	- does mathcat use ssml? 
+	- license unclear.  mit and/or gpl. 
 
 
 sleep mode: CAPS+s
