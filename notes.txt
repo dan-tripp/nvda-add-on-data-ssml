@@ -1,8 +1,9 @@
 
 
 add-on hello world  
-	- shortcut to reload plugins 
 	- focus event 
+	- nvda.ini  revert? 
+	- log nvdaobject 
 	- browsers only 
 	- stdout  / logging 
 	- NVDA Python Console 
@@ -31,7 +32,7 @@ consequences for braille output
 
 
 
-sleep mode: NVDA+s
+sleep mode: CAPS+s
 
 
 
