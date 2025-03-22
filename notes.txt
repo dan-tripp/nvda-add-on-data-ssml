@@ -1,13 +1,17 @@
 
 
 add-on hello world  
-	- https://download.nvaccess.org/documentation/developerGuide.html
+	- shortcut to reload plugins 
+	- focus event 
+	- browsers only 
 	- stdout  / logging 
 	- NVDA Python Console 
 mathcat  
 	- does mathcat use ssml? 
 	- license unclear.  mit and/or gpl. 
-nvda architecture 
+focusEntered: Focus has moved inside this object; i.e. it is an ancestor of the focus object
+Tree Interceptor
+propagate ? 
 ssml in nvda currently 	- do apps other than browsers use ssml? 
 suppress speech that would have happened (then add my own) 
 what can I accomplish that wouldn't be accomplished through a user-defined dictionary which uses SSML? 

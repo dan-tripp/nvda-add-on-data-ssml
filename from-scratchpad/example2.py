@@ -7,12 +7,14 @@ import versionInfo
 
 
 class GlobalPlugin(globalPluginHandler.GlobalPlugin):
-    @script(gesture="kb:NVDA+shift+v")
-    def script_announceNVDAVersion(self, gesture):
-        ui.message(versionInfo.version)
+    #@script(gesture="kb:NVDA+shift+v")
+    #def script_announceNVDAVersion(self, gesture):
+    #    ui.message(versionInfo.version)
 
-        
+    def event_gainFocus(self, obj, nextHandler):
+        import tones
+        tones.beep(300, 100)
+        nextHandler()
 
 
 
-        
