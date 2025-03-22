@@ -31,6 +31,8 @@ consequences for braille output
 
 
 
+sleep mode: NVDA+s
+
 
 
 
