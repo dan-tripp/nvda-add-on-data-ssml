@@ -1,3 +1,32 @@
 
 
+add-on hello world  
+	- https://download.nvaccess.org/documentation/developerGuide.html
+	- stdout  / logging 
+	- NVDA Python Console 
+mathcat  
+	- does mathcat use ssml? 
+	- license unclear.  mit and/or gpl. 
+nvda architecture 
+ssml in nvda currently 	- do apps other than browsers use ssml? 
+suppress speech that would have happened (then add my own) 
+what can I accomplish that wouldn't be accomplished through a user-defined dictionary which uses SSML? 
+possibility of using ssml in add-on the way I want 
+	- synth needs to support SSML? 
+websocket between add-on and bext 
+bext, websocket, smuggling out the dom 
+possible to get a native app to use ssml?  if so, how? 
+ssml in json as per csun talk 
+handle forms mode 
+handle list things eg. links, form fields, headings?  
+plugin script property: speakOnDemand
+i18n 
+consequences for braille output 
+
+
+
+
+
+
+
 
