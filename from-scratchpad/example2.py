@@ -16,8 +16,11 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 
 	def event_gainFocus(self, obj, nextHandler):
 		try:
+			#log.info(f'data-ssml: {obj.name} {obj.description}')
+			#log.info(f'data-ssml: {dir(obj)}')
+			if obj.description:
+				log.info(f'data-ssml: got description: {obj.description} (for name = "{obj.name}")')
 			tones.beep(200, 20)
-			log.info(f'data-ssml: {obj.name}')
 			nextHandler()
 		except Exception as e:
 			log.exception(e)
