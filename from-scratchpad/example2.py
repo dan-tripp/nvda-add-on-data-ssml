@@ -37,8 +37,10 @@ def custom_synth_speak(speechSequence, *args, **kwargs):
 	modified_sequence = []
 	for element in speechSequence:
 		if isinstance(element, str):
-			element = element.replace('\u200C\u200D', ' start ')
-			element = element.replace('\u200D\u200C', ' end ')
+			startSequence = '\u200C\u200D\u2060\u2062\u2063'
+			endSequence = startSequence[::-1]
+			element = element.replace(startSequence, ' start ')
+			element = element.replace(endSequence, ' end ')
 		modified_sequence.append(element)
 	return original_synth_speak(modified_sequence, *args, **kwargs)
 
