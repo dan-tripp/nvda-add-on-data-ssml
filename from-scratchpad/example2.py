@@ -115,6 +115,7 @@ def decodeAllStrsOctal(str_):
 		startMarkerStartPos = str_.find(START_MARKER_OCTAL, searchStartPos)
 		if startMarkerStartPos == -1:
 			r.append(str_[searchStartPos:])
+			break
 		ssmlStartPos = startMarkerStartPos + len(START_MARKER_OCTAL)
 		endMarkerStartPos = str_.find(END_MARKER_OCTAL, ssmlStartPos)
 		if endMarkerStartPos == -1:
@@ -127,7 +128,7 @@ def decodeAllStrsOctal(str_):
 				r.append(decodedSsml)
 			except Exception as e:
 				log.exception(e)
-				logInfo(f'encoed string was: {encodedSsml}')
+				logInfo(f'encoded string was: {encodedSsml}')
 
 		searchStartPos = endMarkerStartPos + len(END_MARKER_OCTAL)
 
