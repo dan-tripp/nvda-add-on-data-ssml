@@ -91,11 +91,12 @@ def decodeSingleStrOctal(str_):
 	return decoded_bytes.decode('utf-8')
 
 
+# returns a list where each element is a string or a speech command.  
 def decodeAllStrsOctal(str_):
 	START_MARKER_OCTAL = '\u2062\u2063'
 	END_MARKER_OCTAL = '\u2063\u2062'
 
-	if 1: # tdr 
+	if 0: # tdr 
 		if (START_MARKER_OCTAL in str_) != (END_MARKER_OCTAL in str_):
 			logInfo('markers bad')
 		elif (START_MARKER_OCTAL in str_) and (END_MARKER_OCTAL in str_):
@@ -104,30 +105,33 @@ def decodeAllStrsOctal(str_):
 		else:
 			pass
 
-	results = []
-	start_index = 0
+	if (START_MARKER_OCTAL in str_) != (END_MARKER_OCTAL in str_):
+		raise Exception(f'markers bad.  str was: {str_}')
+
+	r = []
+	searchStartPos = 0
 
 	while True:
-		start_pos = str_.find(START_MARKER_OCTAL, start_index)
-		if start_pos == -1:
-			break
-		start_pos += len(START_MARKER_OCTAL)
-		end_pos = str_.find(END_MARKER_OCTAL, start_pos)
-		if end_pos == -1:
-			break
+		startMarkerStartPos = str_.find(START_MARKER_OCTAL, searchStartPos)
+		if startMarkerStartPos == -1:
+			r.append(str_[searchStartPos:])
+		ssmlStartPos = startMarkerStartPos + len(START_MARKER_OCTAL)
+		endMarkerStartPos = str_.find(END_MARKER_OCTAL, ssmlStartPos)
+		if endMarkerStartPos == -1:
+			raise Exception(f'markers bad.  end marker not found.  str was: {str_}')
 
-		encoded_block = str_[start_pos:end_pos]
-		if encoded_block:
+		encodedSsml = str_[ssmlStartPos:endMarkerStartPos]
+		if encodedSsml:
 			try:
-				decoded = decodeSingleStrOctal(encoded_block)
-				results.append(decoded)
+				decodedSsml = decodeSingleStrOctal(encodedSsml)
+				r.append(decodedSsml)
 			except Exception as e:
-				results.append(f"[decode error: error: {e}, encoded string: '{encoded_block}' ]")
 				log.exception(e)
+				logInfo(f'encoed string was: {encodedSsml}')
 
-		start_index = end_pos + len(END_MARKER_OCTAL)
+		searchStartPos = endMarkerStartPos + len(END_MARKER_OCTAL)
 
-	return results
+	return r
 
 
 # Matches the javascript encoding side.  If you change that then change this, and vice versa. 
@@ -157,15 +161,9 @@ def custom_synth_speak(speechSequence, *args, **kwargs):
 	modified_sequence = []
 	for element in speechSequence:
 		if isinstance(element, str):
-			USE_BASE64 = 0
-			if USE_BASE64:
-				dataSsmls = decodeSsmlEncodedAsBase64(element)
-			else:
-				#dataSsmls = decodeSsmlZeroWidthCharsBinary(element)
-				dataSsmls = decodeAllStrsOctal(element)
-			#logInfo(f'here 3: string "{element}" => ssmls {dataSsmls}')
-			#logInfo(f'here 4: str len "{len(element)}"')
-		modified_sequence.append(element)
+			modified_sequence.extend(decodeAllStrsOctal(element))
+		else:
+			modified_sequence.append(element)
 	return original_synth_speak(modified_sequence, *args, **kwargs)
 
 
