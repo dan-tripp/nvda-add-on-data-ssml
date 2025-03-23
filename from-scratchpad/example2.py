@@ -9,7 +9,7 @@ from logHandler import log
 import speech
 import tones 
 import gettext
-from synthDriverHandler import getSynth
+import synthDriverHandler
 
 _ = gettext.gettext
 
@@ -29,25 +29,24 @@ from speech.commands import (
 def logInfo(str_):
 	log.info(f'data-ssml: {datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")} {str_}')
 
-original_speak = speech.speak
+original_synth_speak = synthDriverHandler.getSynth().speak
 
-def custom_speak(speechSequence, *args, **kwargs):
-	logInfo(f'here 3 {str(speechSequence)}')
+# this works, to a point: it seems to intercept all speech incl. arrow keys.  challenge is: how to smuggle data-ssml into here. unlike the focus event, here I have no accName/accDesc. 
+def custom_synth_speak(speechSequence, *args, **kwargs):
+	logInfo(f'here 2. {str(speechSequence)}')
 	modified_sequence = []
 	for element in speechSequence:
 		if isinstance(element, str):
-			logInfo(f'here 4. '+element)
+			logInfo(f'here 3.')
 			element = "sub"
 		modified_sequence.append(element)
-	return original_speak(modified_sequence, *args, **kwargs)
+	return original_synth_speak(modified_sequence, *args, **kwargs)
 
 class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 
 	def __init__(self, *args, **kwargs):
-		logInfo(f'here.')
 		super().__init__(*args, **kwargs)
-		speech.speak = custom_speak
-		logInfo(f'here 2.')
+		synthDriverHandler.getSynth().speak = custom_synth_speak
 
 	#@script(gesture="kb:NVDA+shift+v")
 	#def script_announceNVDAVersion(self, gesture):
@@ -66,7 +65,6 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 			if obj.description:
 				if 0:
 					logInfo(f'got description: {obj.description} (for name = "{obj.name}")')
-					#synth = getSynth()
 					#log.info(f'data-ssml: supported commands: {str(synth.supportedCommands)}')
 				#speech.speakMessage(obj.description)
 				ipa = obj.description
