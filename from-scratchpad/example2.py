@@ -1,6 +1,6 @@
 # Developer guide example 3
 
-import datetime
+import datetime, re, base64
 import globalPluginHandler
 from scriptHandler import script
 import ui
@@ -30,34 +30,24 @@ def logInfo(str_):
 	log.info(f'data-ssml: {datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")} {str_}')
 
 # Matches the javascript encoding side.  If you change that then change this, and vice versa. 
-START_MARKER = '\u2060\u2062\u2063'
-END_MARKER = '\u2063\u2062\u2060'
-ZERO_CHAR = '\u200C'
-ONE_CHAR = '\u200D'
+START_MARKER_RE = '\[ssml-start\]'
+END_MARKER_RE = '\[ssml-end\]'
 
-def decodeSsmlZeroWidthChars(str_):
-	results = []
-	start_index = 0
+def decodeSsmlEncodedAsBase64(str_):
+    decoded_payloads = []
+    pattern = re.compile(f'{START_MARKER_RE}(.*?){END_MARKER_RE}')
+    
+    for match in pattern.finditer(str_):
+        base64_str = match.group(1)
+        try:
+            decoded_bytes = base64.b64decode(base64_str)
+            decoded_text = decoded_bytes.decode('utf-8')
+            decoded_payloads.append(decoded_text)
+        except Exception as e:
+            decoded_payloads.append(f"[decode error: {e}]")
 
-	while True:
-		start_pos = str_.find(START_MARKER, start_index)
-		if start_pos == -1:
-			break
-		start_pos += len(START_MARKER)
-		end_pos = str_.find(END_MARKER, start_pos)
-		if end_pos == -1:
-			break
+    return decoded_payloads
 
-		encoded = str_[start_pos:end_pos]
-		if encoded:
-			bits = ''.join('0' if c == ZERO_CHAR else '1' for c in encoded)
-			byte_values = [int(bits[i:i+8], 2) for i in range(0, len(bits), 8)]
-			decoded_str = bytes(byte_values).decode('utf-8')
-			results.append(decoded_str)
-
-		start_index = end_pos + len(END_MARKER)
-
-	return results
 
 original_synth_speak = synthDriverHandler.getSynth().speak
 
@@ -67,8 +57,9 @@ def custom_synth_speak(speechSequence, *args, **kwargs):
 	modified_sequence = []
 	for element in speechSequence:
 		if isinstance(element, str):
-			dataSsmls = decodeSsmlZeroWidthChars(element)
+			dataSsmls = decodeSsmlEncodedAsBase64(element)
 			logInfo(f'here 3: string "{element}" => ssmls {dataSsmls}')
+			logInfo(f'here 4: str len "{len(element)}"')
 		modified_sequence.append(element)
 	return original_synth_speak(modified_sequence, *args, **kwargs)
 
