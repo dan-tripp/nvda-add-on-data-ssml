@@ -82,7 +82,7 @@ def decodeSingleStrOctal(str_):
 	byte_length = (number.bit_length() + 7) // 8
 	decoded_bytes = number.to_bytes(byte_length, 'big') if byte_length > 0 else b''
 
-	if 1: 
+	if 0: 
 		logInfo(f'input string: "{str_}"')
 		logInfo(f"Base8 string: {base8_str}")
 		logInfo(f"Integer: {number}")
@@ -99,7 +99,8 @@ def decodeAllStrsOctal(str_):
 		if (START_MARKER_OCTAL in str_) != (END_MARKER_OCTAL in str_):
 			logInfo('markers bad')
 		elif (START_MARKER_OCTAL in str_) and (END_MARKER_OCTAL in str_):
-			logInfo('markers good')
+			pass
+			#logInfo('markers good')
 		else:
 			pass
 
@@ -162,8 +163,8 @@ def custom_synth_speak(speechSequence, *args, **kwargs):
 			else:
 				#dataSsmls = decodeSsmlZeroWidthCharsBinary(element)
 				dataSsmls = decodeAllStrsOctal(element)
-			logInfo(f'here 3: string "{element}" => ssmls {dataSsmls}')
-			logInfo(f'here 4: str len "{len(element)}"')
+			#logInfo(f'here 3: string "{element}" => ssmls {dataSsmls}')
+			#logInfo(f'here 4: str len "{len(element)}"')
 		modified_sequence.append(element)
 	return original_synth_speak(modified_sequence, *args, **kwargs)
 

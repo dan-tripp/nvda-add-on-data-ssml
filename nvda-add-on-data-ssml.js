@@ -51,14 +51,7 @@ function encodeSsmlAsZeroWidthCharsOctal(str_) {
         '\u202D'  // 7
     ];
 
-	//dict = Array(8).fill('\u200D'); // tdr 
-	/* 
-	u180E bad
-	u200C good 
-	u200D good
-	*/
-
-    let result = '';
+	let result = '';
     for (let digit of base8Digits) {
         result += dict[digit];
     }
@@ -78,8 +71,10 @@ function encodeSsmlAsZeroWidthCharsOctal(str_) {
 		 */
 	}
 
-	let resultReadable = [...result].map(c => `\\u${c.codePointAt(0).toString(16).padStart(4, '0')}`).join(''); // tdr 
-	console.log(`data-ssml encoding: ${JSON.stringify({str_, base8Digits, resultReadable})}`); // tdr 
+	if(false) {
+		let resultReadable = [...result].map(c => `\\u${c.codePointAt(0).toString(16).padStart(4, '0')}`).join(''); // tdr 
+		console.log(`data-ssml encoding: ${JSON.stringify({str_, base8Digits, resultReadable})}`); // tdr 
+	}
 
     return result;
 }
