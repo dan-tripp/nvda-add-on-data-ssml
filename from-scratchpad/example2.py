@@ -65,7 +65,7 @@ def decodeSsmlZeroWidthCharsBinary(str_):
 
 def decodeSingleStrOctal(str_):
 	zero_width_char_map = {
-		'\u180E': '0',
+		'\u200E': '0',
 		'\u200C': '1',
 		'\u200D': '2',
 		'\u2060': '3',
@@ -118,7 +118,8 @@ def decodeAllStrsOctal(str_):
 				decoded = decodeSingleStrOctal(encoded_block)
 				results.append(decoded)
 			except Exception as e:
-				results.append(f"[decode error: {e}]")
+				results.append(f"[decode error: error: {e}, encoded string: '{encoded_block}' ]")
+				log.exception(e)
 
 		start_index = end_pos + len(END_MARKER_OCTAL)
 

@@ -41,7 +41,7 @@ function encodeSsmlAsZeroWidthCharsOctal(str_) {
     base8Digits.reverse();
 
     let dict = [
-        '\u180E', // 0
+        '\u200E', // 0
         '\u200C', // 1
         '\u200D', // 2
         '\u2060', // 3
@@ -51,7 +51,7 @@ function encodeSsmlAsZeroWidthCharsOctal(str_) {
         '\u202D'  // 7
     ];
 
-	dict = Array(8).fill('\u200D'); // tdr 
+	//dict = Array(8).fill('\u200D'); // tdr 
 	/* 
 	u180E bad
 	u200C good 
@@ -63,15 +63,18 @@ function encodeSsmlAsZeroWidthCharsOctal(str_) {
         result += dict[digit];
     }
 
-	if(true) { // tdr 
-		result = '\u200C\u200D\u2060\u2061\uFEFF\u202C\u202D'.repeat(9999);
-		result = result.substring(0, 90);
+	if(false) { // tdr 
+		result = '\u200E\u200C\u200D\u2060\u2061\uFEFF\u202C\u202D'.repeat(9999);
+		result = result.substring(0, 110);
 		/*
 		all at len 70: bad 
 		all but first at len 70: good 
 		all but first at len 90: good
 		all but first at len 110: bad 
 		all but first at len 100: bad
+
+		all now w/ 8 incl new u200E at len 90: good  
+		" at len 110: bad. 
 		 */
 	}
 
