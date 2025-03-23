@@ -65,7 +65,7 @@ def decodeSsmlZeroWidthCharsBinary(str_):
 
 def decodeSingleStrOctal(str_):
 	zero_width_char_map = {
-		'\u200E': '0',
+		'\uFFF9': '0',
 		'\u200C': '1',
 		'\u200D': '2',
 		'\u2060': '3',
@@ -76,16 +76,19 @@ def decodeSingleStrOctal(str_):
 	}
 
 	base8_str = ''.join(zero_width_char_map[c] for c in str_ if c in zero_width_char_map)
-
 	number = int(base8_str, 8)
 
-	byte_array = []
-	while number > 0:
-		byte_array.insert(0, number & 0xFF)
-		number >>= 8
+	# Calculate the number of bytes needed
+	byte_length = (number.bit_length() + 7) // 8
+	decoded_bytes = number.to_bytes(byte_length, 'big') if byte_length > 0 else b''
 
-	r = bytes(byte_array).decode('utf-8')
-	return r
+	if 1: 
+		logInfo(f'input string: "{str_}"')
+		logInfo(f"Base8 string: {base8_str}")
+		logInfo(f"Integer: {number}")
+		logInfo(f"Decoded bytes (hex): {decoded_bytes.hex()}")
+
+	return decoded_bytes.decode('utf-8')
 
 
 def decodeAllStrsOctal(str_):

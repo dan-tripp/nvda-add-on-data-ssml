@@ -41,7 +41,7 @@ function encodeSsmlAsZeroWidthCharsOctal(str_) {
     base8Digits.reverse();
 
     let dict = [
-        '\u200E', // 0
+        '\uFFF9', // 0
         '\u200C', // 1
         '\u200D', // 2
         '\u2060', // 3
@@ -77,6 +77,9 @@ function encodeSsmlAsZeroWidthCharsOctal(str_) {
 		" at len 110: bad. 
 		 */
 	}
+
+	let resultReadable = [...result].map(c => `\\u${c.codePointAt(0).toString(16).padStart(4, '0')}`).join(''); // tdr 
+	console.log(`data-ssml encoding: ${JSON.stringify({str_, base8Digits, resultReadable})}`); // tdr 
 
     return result;
 }
