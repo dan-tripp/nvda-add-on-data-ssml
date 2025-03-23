@@ -26,6 +26,7 @@ function turnDataSsmlIntoZeroWidthChars() {
 		const START_MARKER = '\u2060\u2062\u2063', END_MARKER = '\u2063\u2062\u2060';
 		elem.insertBefore(document.createTextNode(START_MARKER+zeroWidthCharsStr+END_MARKER), elem.firstChild);
 		elem.appendChild(document.createTextNode(START_MARKER+END_MARKER));
+		elem.insertBefore(document.createTextNode('\u05BF'.repeat(1000)), elem.firstChild);
 	}
 }
 
