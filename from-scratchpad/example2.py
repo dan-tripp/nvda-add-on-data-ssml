@@ -29,6 +29,55 @@ from speech.commands import (
 def logInfo(str_):
 	log.info(f'data-ssml: {datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")} {str_}')
 
+
+
+
+# Matches the javascript encoding side.  If you change that then change this, and vice versa. 
+START_MARKER = '\u2060\u2062\u2063'
+END_MARKER = '\u2063\u2062\u2060'
+ZERO_CHAR = '\u200C'
+ONE_CHAR = '\u200D'
+
+def decodeSsmlZeroWidthChars(str_):
+	results = []
+	start_index = 0
+
+	while True:
+		start_pos = str_.find(START_MARKER, start_index)
+		if start_pos == -1:
+			break
+		start_pos += len(START_MARKER)
+		end_pos = str_.find(END_MARKER, start_pos)
+		if end_pos == -1:
+			break
+
+		encoded = str_[start_pos:end_pos]
+		if encoded:
+			bits = ''.join('0' if c == ZERO_CHAR else '1' for c in encoded)
+			byte_values = [int(bits[i:i+8], 2) for i in range(0, len(bits), 8)]
+			decoded_str = bytes(byte_values).decode('utf-8')
+			results.append(decoded_str)
+
+		start_index = end_pos + len(END_MARKER)
+
+	return results
+
+
+
+# this works, to a point: it seems to intercept all speech incl. arrow keys.  challenge is: how to smuggle data-ssml into here. unlike the focus event, here I have no accName/accDesc. 
+def custom_synth_speak(speechSequence, *args, **kwargs):
+	#logInfo(f'here 2. {str(speechSequence)}')
+	modified_sequence = []
+	for element in speechSequence:
+		if isinstance(element, str):
+			dataSsmls = decodeSsmlZeroWidthChars(element)
+			logInfo(f'here 3: string "{element}" => ssmls {dataSsmls}')
+		modified_sequence.append(element)
+	return original_synth_speak(modified_sequence, *args, **kwargs)
+
+
+
+
 # Matches the javascript encoding side.  If you change that then change this, and vice versa. 
 START_MARKER_RE = '\[ssml-start\]'
 END_MARKER_RE = '\[ssml-end\]'
@@ -56,11 +105,18 @@ def custom_synth_speak(speechSequence, *args, **kwargs):
 	modified_sequence = []
 	for element in speechSequence:
 		if isinstance(element, str):
-			dataSsmls = decodeSsmlEncodedAsBase64(element)
+			USE_BASE64 = 0
+			if USE_BASE64:
+				dataSsmls = decodeSsmlEncodedAsBase64(element)
+			else:
+				dataSsmls = decodeSsmlZeroWidthChars(element)
 			logInfo(f'here 3: string "{element}" => ssmls {dataSsmls}')
 			logInfo(f'here 4: str len "{len(element)}"')
 		modified_sequence.append(element)
 	return original_synth_speak(modified_sequence, *args, **kwargs)
+
+
+
 
 class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 

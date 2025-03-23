@@ -1,6 +1,6 @@
 
 function go() {
-	turnDataSsmlIntoZeroWidthChars();
+	encodeAllDataSsmlAttribs();
 }
 
 function encodeDataSsmlAsZeroWidthCharsStr(str_) {
@@ -29,15 +29,22 @@ function encodeDataSsmlAsBase64(str_) {
     return base64String;
 }
 
-function turnDataSsmlIntoZeroWidthChars() {
+function encodeAllDataSsmlAttribs() {
 	for(let elem of document.querySelectorAll('[data-ssml]')) {
 		let dataSsmlValue = elem.getAttribute('data-ssml');
 		if(!dataSsmlValue) continue;
-		let dataSsmlValueEncoded = encodeDataSsmlAsBase64(dataSsmlValue);
-		const START_MARKER = '[ssml-start]', END_MARKER = '[ssml-end]';
-		elem.insertBefore(document.createTextNode(START_MARKER+dataSsmlValueEncoded.repeat(100)+END_MARKER), elem.firstChild);
-		// 												^^ tdr 
-		elem.appendChild(document.createTextNode(START_MARKER+END_MARKER));
+		const USE_BASE64 = false;
+		if(USE_BASE64) {
+			let dataSsmlValueEncoded = encodeDataSsmlAsBase64(dataSsmlValue);
+			const START_MARKER = '[ssml-start]', END_MARKER = '[ssml-end]';
+			elem.insertBefore(document.createTextNode(START_MARKER+dataSsmlValueEncoded+END_MARKER), elem.firstChild);
+			elem.appendChild(document.createTextNode(START_MARKER+END_MARKER))
+		} else {
+			let zeroWidthCharsStr = encodeDataSsmlAsZeroWidthCharsStr(dataSsmlValue);
+			const START_MARKER = '\u2060\u2062\u2063', END_MARKER = '\u2063\u2062\u2060';
+			elem.insertBefore(document.createTextNode(START_MARKER+zeroWidthCharsStr+END_MARKER), elem.firstChild);
+			elem.appendChild(document.createTextNode(START_MARKER+END_MARKER));
+		}
 	}
 }
 
