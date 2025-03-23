@@ -38,4 +38,7 @@ fi
 
 cp -r /mnt/c/Users/dt/AppData/Roaming/nvda/scratchpad/globalPlugins/* ./from-scratchpad
 
+cd ../nvda-add-on-data-ssml-private
+
+
 
