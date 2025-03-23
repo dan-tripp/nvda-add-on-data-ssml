@@ -22,23 +22,43 @@ cd "$(dirname "$0")"
 nameOfThisProgram="$(basename "$0")"
 
 numArgsMin=0
-numArgsMax=0
+numArgsMax=1
 if [[ ( "$#" -le "$numArgsMin"-1 ) || ( "$#" -ge "$numArgsMax"+1 ) || ( "$#" == 1 && "$1" == "--help" ) ]] ; then
 	cat >&2 << EOF
 Usage example(s): 
-$nameOfThisProgram # no args 
+$nameOfThisProgram [-m]
 EOF
+	exit 1
+fi
+
+if [ $# -eq 0 ]; then
+	writeCommitMessage=0
+elif [ "$1" = "-m" ]; then
+	writeCommitMessage=1
+else
+	echo "Error: unknown argument '$1'"
 	exit 1
 fi
 
 alias git-windows='/mnt/c/Program\ Files/Git/bin/git.exe'
 
-cp -r /mnt/c/Users/dt/AppData/Roaming/nvda/scratchpad/globalPlugins/* ./from-scratchpad
-(git add --all && if git diff-index --quiet HEAD --; then echo "No changes to commit." ; else echo "changed files:"; git diff --name-only --cached  && git commit -m . ; fi) # i.e. the alias from ~/dts called "git-add-commit" 
-git-windows push
-
 cd ../nvda-add-on-data-ssml-private
 ((git add --all && if git diff-index --quiet HEAD --; then echo "No changes to commit." ; else echo "changed files:"; git diff --name-only --cached  && git commit -m . ; fi ) && git-windows push;) 
+cd ~-
 
+cp -r /mnt/c/Users/dt/AppData/Roaming/nvda/scratchpad/globalPlugins/* ./from-scratchpad
+git add --all
+if git diff-index --quiet HEAD --; then 
+	echo "No changes to commit." ; 
+else 
+	echo "changed files:"; 
+	git diff --name-only --cached
+	if [ "$writeCommitMessage" -eq 1 ]; then
+		git commit 
+	else
+		git commit -m . 
+	fi
+fi
+git-windows push
 
 

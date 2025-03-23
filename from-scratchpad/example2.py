@@ -1,6 +1,6 @@
 # Developer guide example 3
 
-import datetime, re, base64
+import datetime, re, base64, json
 import globalPluginHandler
 from scriptHandler import script
 import ui
@@ -90,6 +90,15 @@ def decodeSingleStrOctal(str_):
 
 	return decoded_bytes.decode('utf-8')
 
+def turnSsmlIntoSpeechCommandList(ssmlAsJsonStr_, nonSsmlStr_):
+	ssmlAsDict = json.loads(ssmlAsJsonStr_)
+	if len(ssmlAsDict) != 1: raise Exception()
+	if 'sub' not in ssmlAsDict: raise Exception()
+	subVal = ssmlAsDict['sub']
+	if 'alias' not in subVal: raise Exception()
+	aliasVal = subVal['alias']
+	r = [aliasVal]
+	return r
 
 # returns a list where each element is a string or a speech command.  
 def decodeAllStrsOctal(str_):
@@ -125,7 +134,8 @@ def decodeAllStrsOctal(str_):
 		if encodedSsml:
 			try:
 				decodedSsml = decodeSingleStrOctal(encodedSsml)
-				r.append(decodedSsml)
+				nonSsmlStr = "temporary" # tdr 
+				r.extend(turnSsmlIntoSpeechCommandList(decodedSsml, nonSsmlStr))
 			except Exception as e:
 				log.exception(e)
 				logInfo(f'encoded string was: {encodedSsml}')
