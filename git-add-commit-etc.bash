@@ -31,12 +31,13 @@ EOF
 	exit 1
 fi
 
+alias git-windows='/mnt/c/Program\ Files/Git/bin/git.exe'
+
 cp -r /mnt/c/Users/dt/AppData/Roaming/nvda/scratchpad/globalPlugins/* ./from-scratchpad
 (git add --all && if git diff-index --quiet HEAD --; then echo "No changes to commit." ; else echo "changed files:"; git diff --name-only --cached  && git commit -m . ; fi) # i.e. the alias from ~/dts called "git-add-commit" 
-
+git-windows push
 
 cd ../nvda-add-on-data-ssml-private
-alias git-windows='/mnt/c/Program\ Files/Git/bin/git.exe'
 ((git add --all && if git diff-index --quiet HEAD --; then echo "No changes to commit." ; else echo "changed files:"; git diff --name-only --cached  && git commit -m . ; fi ) && git-windows push;) 
 
 
