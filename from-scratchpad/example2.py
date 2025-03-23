@@ -51,7 +51,6 @@ def decodeSsmlEncodedAsBase64(str_):
 
 original_synth_speak = synthDriverHandler.getSynth().speak
 
-# this works, to a point: it seems to intercept all speech incl. arrow keys.  challenge is: how to smuggle data-ssml into here. unlike the focus event, here I have no accName/accDesc. 
 def custom_synth_speak(speechSequence, *args, **kwargs):
 	#logInfo(f'here 2. {str(speechSequence)}')
 	modified_sequence = []
