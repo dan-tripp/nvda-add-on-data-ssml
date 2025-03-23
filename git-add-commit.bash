@@ -36,7 +36,7 @@ cp -r /mnt/c/Users/dt/AppData/Roaming/nvda/scratchpad/globalPlugins/* ./from-scr
 
 
 cd ../nvda-add-on-data-ssml-private
-alias git-windows='/mnt/c/Program Files/Git/bin/git.exe'
+alias git-windows='/mnt/c/Program\ Files/Git/bin/git.exe'
 ((git add --all && if git diff-index --quiet HEAD --; then echo "No changes to commit." ; else echo "changed files:"; git diff --name-only --cached  && git commit -m . ; fi ) && git-windows push;) 
 
 
