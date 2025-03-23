@@ -38,7 +38,7 @@ END_MARKER = '\u2063\u2062\u2060'
 ZERO_CHAR = '\u200C'
 ONE_CHAR = '\u200D'
 
-def decodeSsmlZeroWidthChars(str_):
+def decodeSsmlZeroWidthCharsBinary(str_):
 	results = []
 	start_index = 0
 
@@ -63,19 +63,66 @@ def decodeSsmlZeroWidthChars(str_):
 	return results
 
 
+def decodeSingleStrOctal(str_):
+	zero_width_char_map = {
+		'\u180E': '0',
+		'\u200C': '1',
+		'\u200D': '2',
+		'\u2060': '3',
+		'\u2061': '4',
+		'\uFEFF': '5',
+		'\u202C': '6',
+		'\u202D': '7'
+	}
 
-# this works, to a point: it seems to intercept all speech incl. arrow keys.  challenge is: how to smuggle data-ssml into here. unlike the focus event, here I have no accName/accDesc. 
-def custom_synth_speak(speechSequence, *args, **kwargs):
-	#logInfo(f'here 2. {str(speechSequence)}')
-	modified_sequence = []
-	for element in speechSequence:
-		if isinstance(element, str):
-			dataSsmls = decodeSsmlZeroWidthChars(element)
-			logInfo(f'here 3: string "{element}" => ssmls {dataSsmls}')
-		modified_sequence.append(element)
-	return original_synth_speak(modified_sequence, *args, **kwargs)
+	base8_str = ''.join(zero_width_char_map[c] for c in str_ if c in zero_width_char_map)
+
+	number = int(base8_str, 8)
+
+	byte_array = []
+	while number > 0:
+		byte_array.insert(0, number & 0xFF)
+		number >>= 8
+
+	r = bytes(byte_array).decode('utf-8')
+	return r
 
 
+def decodeAllStrsOctal(str_):
+	START_MARKER_OCTAL = '\u2062\u2063'
+	END_MARKER_OCTAL = '\u2063\u2062'
+
+	if 1: # tdr 
+		if (START_MARKER_OCTAL in str_) != (END_MARKER_OCTAL in str_):
+			logInfo('markers bad')
+		elif (START_MARKER_OCTAL in str_) and (END_MARKER_OCTAL in str_):
+			logInfo('markers good')
+		else:
+			pass
+
+	results = []
+	start_index = 0
+
+	while True:
+		start_pos = str_.find(START_MARKER_OCTAL, start_index)
+		if start_pos == -1:
+			break
+		start_pos += len(START_MARKER_OCTAL)
+		end_pos = str_.find(END_MARKER_OCTAL, start_pos)
+		if end_pos == -1:
+			break
+
+		encoded_block = str_[start_pos:end_pos]
+		if encoded_block:
+			try:
+				decoded = decodeSingleStrOctal(encoded_block)
+				results.append(decoded)
+			except Exception as e:
+				results.append(f"[decode error: {e}]")
+
+		start_index = end_pos + len(END_MARKER_OCTAL)
+
+	return results
 
 
 # Matches the javascript encoding side.  If you change that then change this, and vice versa. 
@@ -109,7 +156,8 @@ def custom_synth_speak(speechSequence, *args, **kwargs):
 			if USE_BASE64:
 				dataSsmls = decodeSsmlEncodedAsBase64(element)
 			else:
-				dataSsmls = decodeSsmlZeroWidthChars(element)
+				#dataSsmls = decodeSsmlZeroWidthCharsBinary(element)
+				dataSsmls = decodeAllStrsOctal(element)
 			logInfo(f'here 3: string "{element}" => ssmls {dataSsmls}')
 			logInfo(f'here 4: str len "{len(element)}"')
 		modified_sequence.append(element)
