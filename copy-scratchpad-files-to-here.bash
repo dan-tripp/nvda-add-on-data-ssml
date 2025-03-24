@@ -31,6 +31,4 @@ EOF
 	exit 1
 fi
 
-./copy-scratchpad-files-to-here.bash
-
-
+cp /mnt/c/Users/dt/AppData/Roaming/nvda/scratchpad/globalPlugins/*.* .
