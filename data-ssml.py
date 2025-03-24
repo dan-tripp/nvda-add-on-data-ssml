@@ -137,8 +137,3 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 	def __init__(self, *args, **kwargs):
 		super().__init__(*args, **kwargs)
 		synthDriverHandler.getSynth().speak = custom_synth_speak
-
-
-
-
-
