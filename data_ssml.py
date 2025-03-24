@@ -62,8 +62,7 @@ def turnSsmlIntoSpeechCommandList(ssmlAsJsonStr_, nonSsmlStr_):
 		r = [aliasVal]
 		return r
 	elif key == 'say-as':
-		interpretAsVal = val['interpret-as']
-		if interpretAsVal != 'characters': raise Exception()
+		if val != 'characters': raise Exception()
 		r = [CharacterModeCommand(True), nonSsmlStr_, CharacterModeCommand(False)]
 		return r
 	else:

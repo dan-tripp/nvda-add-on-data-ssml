@@ -58,9 +58,11 @@ here's something in a link <a href="#" data-ssml='{"sub": {"alias": "100 prime"}
 -->
 
 initialisms:<br>
-<span data-ssml='{"say-as": {"interpret-as": "characters"}}'>ETA</span><br>
-<span data-ssml='{"say-as": {"interpret-as": "characters"}}'>FAQ</span><br>
-<!-- ^^ both: under espeak, not pronounced as letters --> 
+<!-- ETA and FAQ are, under espeak, (wrongly) not pronounced as letters --> 
+<span data-ssml='{"say-as": "characters"}'>ETA</span><br>
+<span data-ssml='{"say-as": "characters"}'>FAQ</span><br>
+<span>ETA</span><br>
+<span>FAQ</span><br>
 
 
 <!--
