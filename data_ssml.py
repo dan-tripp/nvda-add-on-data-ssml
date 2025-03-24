@@ -56,7 +56,8 @@ def decodeSingleStr(str_):
 def turnSsmlIntoSpeechCommandList(ssmlAsJsonStr_, nonSsmlStr_):
 	ssmlAsDict = json.loads(ssmlAsJsonStr_)
 	if len(ssmlAsDict) != 1: raise Exception()
-	if 'sub' not in ssmlAsDict: raise Exception()
+	key = next(iter(ssmlAsDict))
+	if key not in ('sub',): raise Exception()
 	subVal = ssmlAsDict['sub']
 	if 'alias' not in subVal: raise Exception()
 	aliasVal = subVal['alias']
@@ -109,6 +110,7 @@ def decodeAllStrs(str_):
 			except Exception as e:
 				log.exception(e)
 				logInfo(f'encoded string was: {encodedSsml}')
+				raise
 		else:
 			logInfo(f'empty encoded string i.e. macro end marker.')
 			searchStartPos = endMarkerStartPos + len(END_MARKER)

@@ -1,4 +1,4 @@
-import sys, types, unittest
+import sys, types, unittest, traceback
 from unittest import mock
 
 class Test1(unittest.TestCase):
@@ -28,8 +28,24 @@ class Test1(unittest.TestCase):
 
 		sys.modules["speech.commands"] = mock_speech_commands
 
+
+		class MockLog:
+			def info(self, msg):
+				print(f"[log info] {msg}")
+
+			def exception(self, exc):
+				print(f"[log exception]:")
+				traceback.print_exception(type(exc), exc, exc.__traceback__, file=sys.stdout)
+				print(f"[end log exception]")
+
+		mock_logHandler = types.ModuleType("logHandler")
+		mock_logHandler.log = MockLog()
+
+		sys.modules["logHandler"] = mock_logHandler
+
+
 		for mod in [
-			"globalPluginHandler", "speech", "ui", "logHandler", "synthDriverHandler"
+			"globalPluginHandler", "speech", "ui", "synthDriverHandler"
 		]:
 			if mod not in sys.modules:
 				sys.modules[mod] = unittest.mock.MagicMock()
