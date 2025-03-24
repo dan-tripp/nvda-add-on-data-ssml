@@ -64,7 +64,7 @@ class Test1(unittest.TestCase):
 		global data_ssml
 		import data_ssml
 
-	def testSsmlSubAttribute(self):
+	def testSsmlSub(self):
 		ssmlAsJson = "{\"sub\": {\"alias\": \"100 prime\"}}"
 		encodedSsmlAsJson = "\u200c\u202d\u2060\u200c\ufff9\u2061\u202d\u200c\ufeff\u202c\ufeff\u2060\ufff9\u2061\u200d\u200c\ufff9\u202d\u200d\u200c\ufff9\ufff9\u202d\ufeff\u2061\u2061\u200d\u2060\ufff9\u200d\u202c\u202c\u200c\ufeff\u200c\u2060\ufff9\u200d\u202d\u200c\u2061\u2061\u200d\u200c\u202c\u2061\u200d\ufff9\ufff9\u2061\u200d\u200c\u2061\u200d\u2060\ufff9\ufff9\u202c\ufff9\u200c\ufff9\ufff9\u202d\ufff9\u200c\u202c\u200d\u2060\u200d\u200d\u202c\u202c\ufeff\u2061\ufeff\u200c\ufff9\u2061\u202d\u202c\ufeff\u202d\ufeff"
         
@@ -86,7 +86,7 @@ class Test1(unittest.TestCase):
 		self.assertEqual(decodedSpeechCommands, ["preamble1", "100 prime", "between", "100 prime", "postamble2"])
 
 
-	def testSsmlSayAsAttribute(self):
+	def testSsmlSayAs(self):
 		ssmlAsJson = '{"say-as": "characters"}'
 		encodedSsmlAsJson = "\u2060\u202c\u202c\u200d\u200c\u200c\u202c\u2060\u2060\ufff9\u200d\u202d\u2061\u2061\ufeff\ufeff\u2060\ufff9\u200d\u202d\u200c\u2061\u2061\u200d\u200c\u202c\u2061\u200d\ufff9\ufff9\u2061\u200d\u2060\ufff9\u202c\u202c\u2061\u200c\u2061\u200c\u2060\u2061\u2061\u202c\ufff9\ufeff\u2061\u2060\u2060\ufeff\ufff9\u202c\u200d\ufeff\u202c\u200d\u2060\u2061\u202c\u200d\u200c\u200c\u202d\ufeff"
         
@@ -99,7 +99,7 @@ class Test1(unittest.TestCase):
 		decodedSpeechCommands = data_ssml.decodeAllStrs(encoded)
 		self.assertEqual(decodedSpeechCommands, [CharacterModeCommand(True), 'FAQ', CharacterModeCommand(False)])
 
-
+	
 
 
 

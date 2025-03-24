@@ -60,13 +60,15 @@ def turnSsmlIntoSpeechCommandList(ssmlAsJsonStr_, nonSsmlStr_):
 	if key == 'sub':
 		aliasVal = val['alias']
 		r = [aliasVal]
-		return r
 	elif key == 'say-as':
 		if val != 'characters': raise Exception()
 		r = [CharacterModeCommand(True), nonSsmlStr_, CharacterModeCommand(False)]
-		return r
+	elif key == 'ph':
+		phonemeIpa = val
+		r = [PhonemeCommand(phonemeIpa, text=nonSsmlStr_)]
 	else:
 		raise Exception()
+	return r
 
 # Matches the javascript encoding side.  If you change that then change this, and vice versa. 
 START_MARKER = '\u2062\u2063'

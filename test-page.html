@@ -46,7 +46,7 @@ window.addEventListener("load", function(event) {
 <a href="#" data-ssml='{"sub": "alias": "3 prime"}}'>3'</a><br>
 -->
 
-start<br>
+<h2>start</h2>
 here in text we have <span data-ssml='{"sub": {"alias": "3 prime"}}'>3'</span>, without a focusable element.<br> 
 here's something in a link <a href="#" data-ssml='{"sub": {"alias": "4 prime"}}'>4'</a> - yes.<br> 
 
@@ -57,7 +57,7 @@ here in text we have <span data-ssml='{"sub": {"alias": "99 prime"}}'>3333333'</
 here's something in a link <a href="#" data-ssml='{"sub": {"alias": "100 prime"}}'>44444444'</a> - yes.<br> 
 -->
 
-initialisms:<br>
+<h2>initialisms</h2>
 <!-- ETA and FAQ are, under espeak, (wrongly) not pronounced as letters --> 
 <span data-ssml='{"say-as": "characters"}'>ETA</span><br>
 <span data-ssml='{"say-as": "characters"}'>FAQ</span><br>
@@ -65,14 +65,13 @@ initialisms:<br>
 <span>FAQ</span><br>
 
 
-
-<!--
-<a href="#" aria-describedby="first-desc">wound</a><br>
-<div style="display: none" id="first-desc">waʊnd</div>
--->
-
-<a href="#" aria-describedby="desc-4">wound</a><br>
-<div style="display: none" id="desc-4">wuːnd</div>
+<h2>phonemes (test w/ synth onecore only, I think)</h2>
+<a href="#" data-ssml='{"ph": "waʊnd"}'>wound</a> phoneme 1<br>
+<a href="#" data-ssml='{"ph": "wuːnd"}'>wound</a> phoneme 2<br>
+<a href="#">wound</a> no phoneme<br>
+<a href="#" data-ssml='{"ph": "lɛd"}'>lead</a> as in "metal"<br>
+<a href="#" data-ssml='{"ph": "liːd"}'>lead</a> as in "guide"<br>
+<a href="#">lead</a> no SSML<br>
 
 <a href="#">second</a><br>
 <a href="#">third</a><br>
