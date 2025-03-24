@@ -1,20 +1,31 @@
 import sys, types, unittest, traceback
 from unittest import mock
 
+class BeepCommand: pass
+class PitchCommand: pass
+class VolumeCommand: pass
+class RateCommand: pass
+class LangChangeCommand: pass
+class BreakCommand: pass
+
+class CharacterModeCommand:
+	def __init__(self, mode):
+		self.mode = mode
+
+	def __eq__(self, other):
+		return isinstance(other, CharacterModeCommand) and self.mode == other.mode
+
+	def __repr__(self):
+		return f"CharacterModeCommand(mode={self.mode!r})"
+
+class PhonemeCommand: pass
+class IndexCommand: pass
+
+
 class Test1(unittest.TestCase):
 	@classmethod
 	def setUpClass(cls):
 		mock_speech_commands = types.ModuleType("speech.commands")
-
-		class BeepCommand: pass
-		class PitchCommand: pass
-		class VolumeCommand: pass
-		class RateCommand: pass
-		class LangChangeCommand: pass
-		class BreakCommand: pass
-		class CharacterModeCommand: pass
-		class PhonemeCommand: pass
-		class IndexCommand: pass
 
 		mock_speech_commands.BeepCommand = BeepCommand
 		mock_speech_commands.PitchCommand = PitchCommand
@@ -53,7 +64,7 @@ class Test1(unittest.TestCase):
 		global data_ssml
 		import data_ssml
 
-	def test1(self):
+	def testSsmlSubAttribute(self):
 		ssmlAsJson = "{\"sub\": {\"alias\": \"100 prime\"}}"
 		encodedSsmlAsJson = "\u200c\u202d\u2060\u200c\ufff9\u2061\u202d\u200c\ufeff\u202c\ufeff\u2060\ufff9\u2061\u200d\u200c\ufff9\u202d\u200d\u200c\ufff9\ufff9\u202d\ufeff\u2061\u2061\u200d\u2060\ufff9\u200d\u202c\u202c\u200c\ufeff\u200c\u2060\ufff9\u200d\u202d\u200c\u2061\u2061\u200d\u200c\u202c\u2061\u200d\ufff9\ufff9\u2061\u200d\u200c\u2061\u200d\u2060\ufff9\ufff9\u202c\ufff9\u200c\ufff9\ufff9\u202d\ufff9\u200c\u202c\u200d\u2060\u200d\u200d\u202c\u202c\ufeff\u2061\ufeff\u200c\ufff9\u2061\u202d\u202c\ufeff\u202d\ufeff"
         
@@ -73,6 +84,21 @@ class Test1(unittest.TestCase):
 		encoded = "preamble1" + start + encodedSsmlAsJson + end + "123" + start + end + "between" + start + encodedSsmlAsJson + end + "456" + start + end + "postamble2"
 		decodedSpeechCommands = data_ssml.decodeAllStrs(encoded)
 		self.assertEqual(decodedSpeechCommands, ["preamble1", "100 prime", "between", "100 prime", "postamble2"])
+
+
+	def testSsmlSayAsAttribute(self):
+		ssmlAsJson = '{"say-as": {"interpret-as": "characters"}}'
+		encodedSsmlAsJson = "\u2060\u202c\u202c\u200d\u200c\u200c\u202c\u2060\u2060\ufff9\u200d\u202d\u2061\u2061\ufeff\ufeff\u2060\ufff9\u200d\u202d\u200c\u2061\u2061\u200d\u200c\u202c\u2061\u200d\ufff9\u200c\u202d\u2060\u200c\ufff9\u2061\u202c\u2061\ufeff\ufeff\u202c\u2060\ufeff\ufff9\u202c\u200d\ufeff\u202c\u200d\u2060\u2061\ufff9\u202d\u200c\u200c\u2061\ufeff\u2060\ufeff\ufff9\u200d\u202c\ufeff\u2061\u200c\u2060\u2061\u202c\u200d\u200c\ufff9\u202d\u200d\u200c\ufff9\ufff9\u200d\u200c\u200c\u2061\u2060\u2060\u200d\ufff9\u202c\ufff9\ufeff\u202c\u200d\u2060\ufff9\u200d\u202c\u200c\ufeff\u202c\u2061\u2060\u200c\u200d\u202d\u200c\u200c\u202c\u2060\u200c\ufff9\u2061\u202d\u202c\ufeff\u202d\ufeff"
+        
+		decodedEncodedSsmlAsJson = data_ssml.decodeSingleStr(encodedSsmlAsJson)
+		self.assertEqual(decodedEncodedSsmlAsJson, ssmlAsJson)
+		
+		start = data_ssml.START_MARKER; end = data_ssml.END_MARKER
+
+		encoded = start + encodedSsmlAsJson + end + 'FAQ' + start + end
+		decodedSpeechCommands = data_ssml.decodeAllStrs(encoded)
+		self.assertEqual(decodedSpeechCommands, [CharacterModeCommand(True), 'FAQ', CharacterModeCommand(False)])
+
 
 
 

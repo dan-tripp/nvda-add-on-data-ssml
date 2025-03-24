@@ -56,13 +56,18 @@ def decodeSingleStr(str_):
 def turnSsmlIntoSpeechCommandList(ssmlAsJsonStr_, nonSsmlStr_):
 	ssmlAsDict = json.loads(ssmlAsJsonStr_)
 	if len(ssmlAsDict) != 1: raise Exception()
-	key = next(iter(ssmlAsDict))
-	if key not in ('sub',): raise Exception()
-	subVal = ssmlAsDict['sub']
-	if 'alias' not in subVal: raise Exception()
-	aliasVal = subVal['alias']
-	r = [aliasVal]
-	return r
+	key = next(iter(ssmlAsDict)); val = ssmlAsDict[key]
+	if key == 'sub':
+		aliasVal = val['alias']
+		r = [aliasVal]
+		return r
+	elif key == 'say-as':
+		interpretAsVal = val['interpret-as']
+		if interpretAsVal != 'characters': raise Exception()
+		r = [CharacterModeCommand(True), nonSsmlStr_, CharacterModeCommand(False)]
+		return r
+	else:
+		raise Exception()
 
 # Matches the javascript encoding side.  If you change that then change this, and vice versa. 
 START_MARKER = '\u2062\u2063'
