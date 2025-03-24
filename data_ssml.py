@@ -2,12 +2,8 @@
 
 import datetime, re, base64, json
 import globalPluginHandler
-from scriptHandler import script
-import ui
-import versionInfo
 from logHandler import log
 import speech
-import tones 
 import gettext
 import synthDriverHandler
 
@@ -30,7 +26,7 @@ def logInfo(str_):
 	log.info(f'data-ssml: {datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")} {str_}')
 
 
-def decodeSingleStrOctal(str_):
+def decodeSingleStr(str_):
 	zero_width_char_map = {
 		'\uFFF9': '0',
 		'\u200C': '1',
@@ -67,11 +63,12 @@ def turnSsmlIntoSpeechCommandList(ssmlAsJsonStr_, nonSsmlStr_):
 	r = [aliasVal]
 	return r
 
+# Matches the javascript encoding side.  If you change that then change this, and vice versa. 
+START_MARKER = '\u2062\u2063'
+END_MARKER = '\u2063\u2062'
+
 # returns a list where each element is a string or a speech command.  
-def decodeAllStrsOctal(str_):
-	# Matches the javascript encoding side.  If you change that then change this, and vice versa. 
-	START_MARKER = '\u2062\u2063'
-	END_MARKER = '\u2063\u2062'
+def decodeAllStrs(str_):
 
 	startMarkerCount = str_.count(START_MARKER)
 	endMarkerCount = str_.count(END_MARKER)
@@ -85,7 +82,9 @@ def decodeAllStrsOctal(str_):
 	while True:
 		startMarkerStartPos = str_.find(START_MARKER, searchStartPos)
 		if startMarkerStartPos == -1:
-			r.append(str_[searchStartPos:])
+			nonSsmlStr = str_[searchStartPos:]
+			if nonSsmlStr:
+				r.append(nonSsmlStr)
 			break
 		prevSsmlStr = str_[searchStartPos:startMarkerStartPos]
 		if prevSsmlStr:
@@ -99,20 +98,20 @@ def decodeAllStrsOctal(str_):
 		if encodedSsml:
 			logInfo(f'non-empty encoded string i.e. macro start marker with ssml.')
 			try:
-				decodedSsml = decodeSingleStrOctal(encodedSsml)
+				decodedSsml = decodeSingleStr(encodedSsml)
 				logInfo(f'decodedSsml: {decodedSsml}')
-				nextMacroStartPos = str_.find(START_MARKER, endMarkerStartPos)
-				if nextMacroStartPos == -1: raise Exception()
+				nextStartMarkerStartPos = str_.find(START_MARKER, endMarkerStartPos)
+				if nextStartMarkerStartPos == -1: raise Exception()
 				endMarkerEndPos = endMarkerStartPos + len(END_MARKER)
-				nonSsmlStr = str_[searchStartPos:nextMacroStartPos]
+				nonSsmlStr = str_[endMarkerEndPos:nextStartMarkerStartPos]
 				r.extend(turnSsmlIntoSpeechCommandList(decodedSsml, nonSsmlStr))
+				searchStartPos = nextStartMarkerStartPos
 			except Exception as e:
 				log.exception(e)
 				logInfo(f'encoded string was: {encodedSsml}')
 		else:
 			logInfo(f'empty encoded string i.e. macro end marker.')
-
-		searchStartPos = endMarkerStartPos + len(END_MARKER)
+			searchStartPos = endMarkerStartPos + len(END_MARKER)
 
 	return r
 
@@ -123,7 +122,7 @@ def custom_synth_speak(speechSequence, *args, **kwargs):
 	modifiedSpeechSequence = []
 	for element in speechSequence:
 		if isinstance(element, str):
-			modifiedSpeechSequence.extend(decodeAllStrsOctal(element))
+			modifiedSpeechSequence.extend(decodeAllStrs(element))
 		else:
 			modifiedSpeechSequence.append(element)
 	logInfo(f'original speech sequence: {speechSequence}')

@@ -33,4 +33,6 @@ fi
 
 ./copy-scratchpad-files-to-here.bash
 
+python3 unit_tests.py 
 
+ 

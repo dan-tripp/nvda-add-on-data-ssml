@@ -71,9 +71,9 @@ function encodeSsmlAsZeroWidthCharsOctal(str_) {
 		 */
 	}
 
-	if(false) {
-		let resultReadable = [...result].map(c => `\\u${c.codePointAt(0).toString(16).padStart(4, '0')}`).join(''); // tdr 
-		console.log(`data-ssml encoding: ${JSON.stringify({str_, base8Digits, resultReadable})}`); // tdr 
+	if(true) {
+		let resultReadable = [...result].map(c => `\\u${c.codePointAt(0).toString(16).padStart(4, '0')}`).join('');
+		console.log(`data-ssml encoding: ${JSON.stringify({str_, base8Digits, resultReadable})}`);
 	}
 
     return result;
