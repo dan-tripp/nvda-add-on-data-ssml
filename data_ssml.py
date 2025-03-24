@@ -66,6 +66,11 @@ def turnSsmlIntoSpeechCommandList(ssmlAsJsonStr_, nonSsmlStr_):
 	elif key == 'ph':
 		phonemeIpa = val
 		r = [PhonemeCommand(phonemeIpa, text=nonSsmlStr_)]
+		INSERT_HACK_PAUSE_AFTER = 1
+		if INSERT_HACK_PAUSE_AFTER:
+			# inspired by 1) the line in MathCAT.py which says "There needs to be a space after the phoneme command" (a comment I don't understand), 2) by my observation in NVDA's speech viewer that there wasn't a space when tabbing to a link w/ a phoneme eg. speech viewer said "woundlink", 3) by my aural observation that NVDA's announcement sounded like "woundlink" (i.e. with no space).
+			r.insert(0, RateCommand(-30))
+			r.append(RateCommand(0))
 	else:
 		raise Exception()
 	return r
