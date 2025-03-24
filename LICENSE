@@ -1,3 +1,7 @@
+
+FIX THIS: this project includes code from MathCATForPython (https://github.com/NSoiffer/MathCATForPython/blob/main/addon/globalPlugins/MathCAT/MathCAT.py) - part or all of which might have been released under the GPL, not MIT license.  It's unclear to me.
+
+
 MIT License
 
 Copyright (c) 2025 Dan Tripp
