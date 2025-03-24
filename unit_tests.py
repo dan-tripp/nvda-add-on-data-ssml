@@ -43,12 +43,22 @@ class Test1(unittest.TestCase):
         
 		decodedEncodedSsmlAsJson = data_ssml.decodeSingleStr(encodedSsmlAsJson)
 		self.assertEqual(decodedEncodedSsmlAsJson, ssmlAsJson)
+		
+		start = data_ssml.START_MARKER; end = data_ssml.END_MARKER
 
-		encodedSsmlInMacroContext = data_ssml.START_MARKER + encodedSsmlAsJson + data_ssml.END_MARKER + "123456" + data_ssml.START_MARKER + data_ssml.END_MARKER
-		decodedSpeechCommands = data_ssml.decodeAllStrs(encodedSsmlInMacroContext)
+		encoded = start + encodedSsmlAsJson + end + "123456" + start + end
+		decodedSpeechCommands = data_ssml.decodeAllStrs(encoded)
 		self.assertEqual(decodedSpeechCommands, ["100 prime"])
-        
-        
+
+		encoded = "preamble" + start + encodedSsmlAsJson + end + "123456" + start + end + "postamble"
+		decodedSpeechCommands = data_ssml.decodeAllStrs(encoded)
+		self.assertEqual(decodedSpeechCommands, ["preamble", "100 prime", "postamble"])
+
+		encoded = "preamble1" + start + encodedSsmlAsJson + end + "123" + start + end + "between" + start + encodedSsmlAsJson + end + "456" + start + end + "postamble2"
+		decodedSpeechCommands = data_ssml.decodeAllStrs(encoded)
+		self.assertEqual(decodedSpeechCommands, ["preamble1", "100 prime", "between", "100 prime", "postamble2"])
+
+
 
 
 if __name__ == "__main__":
