@@ -150,8 +150,11 @@ def patchCurrentSynthIfNecessary():
 	global g_synthNamesPatched
 	currentSynthName = synthDriverHandler.getSynth().name
 	if currentSynthName not in g_synthNamesPatched:
+		logInfo(f'patching synth "{currentSynthName}".')
 		g_synthNamesPatched.add(currentSynthName)
 		patchCurrentSynth()
+	else:
+		logInfo(f'patch of synth "{currentSynthName}" not necessary.')
 
 class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 
@@ -161,6 +164,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		patchCurrentSynthIfNecessary()
 
 	def onSynthChanged(self, *args, **kwargs):
+		logInfo('synth changed.')
 		patchCurrentSynthIfNecessary()
 		
 
