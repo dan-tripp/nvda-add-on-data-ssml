@@ -57,7 +57,7 @@ here in text we have <span data-ssml='{"sub": {"alias": "99 prime"}}'>3333333'</
 here's something in a link <a href="#" data-ssml='{"sub": {"alias": "100 prime"}}'>44444444'</a> - yes.<br> 
 -->
 
-<h2>initialisms (test w/ synth=espeak only, I think)</h2>
+<h2>initialisms (bug only exists w/ synth=espeak)</h2>
 <h3>with SSML "say-as"</h3>
 <span data-ssml='{"say-as": "characters"}'>ETA</span><br>
 <span data-ssml='{"say-as": "characters"}'>FAQ</span><br>
@@ -66,7 +66,7 @@ here's something in a link <a href="#" data-ssml='{"sub": {"alias": "100 prime"}
 <span>FAQ</span><br>
 
 
-<h2>phonemes (test w/ synth=onecore only, I think)</h2>
+<h2>phonemes (fix only works w/ synth=onecore)</h2>
 <a href="#" data-ssml='{"ph": "wuːnd"}'>wound</a> as in "injury"<br>
 <a href="#" data-ssml='{"ph": "waʊnd"}'>wound</a> as in "wrapped"<br>
 <a href="#">wound</a> no SSML<br>

@@ -129,23 +129,39 @@ def decodeAllStrs(str_):
 	return r
 
 
-original_synth_speak = synthDriverHandler.getSynth().speak
+g_synthNamesPatched = set()
 
-def custom_synth_speak(speechSequence, *args, **kwargs):
-	modifiedSpeechSequence = []
-	for element in speechSequence:
-		if isinstance(element, str):
-			modifiedSpeechSequence.extend(decodeAllStrs(element))
-		else:
-			modifiedSpeechSequence.append(element)
-	logInfo(f'original speech sequence: {speechSequence}')
-	logInfo(f'modified speech sequence: {modifiedSpeechSequence}')
-	logInfo(f'speech sequence changed: {modifiedSpeechSequence != speechSequence}')
-	return original_synth_speak(modifiedSpeechSequence, *args, **kwargs)
+def patchCurrentSynth():
+	currentSynthOrigSpeakFunc = synthDriverHandler.getSynth().speak
+	def patchedSpeakFunc(speechSequence, *args, **kwargs):
+		modifiedSpeechSequence = []
+		for element in speechSequence:
+			if isinstance(element, str):
+				modifiedSpeechSequence.extend(decodeAllStrs(element))
+			else:
+				modifiedSpeechSequence.append(element)
+		logInfo(f'original speech sequence: {speechSequence}')
+		logInfo(f'modified speech sequence: {modifiedSpeechSequence}')
+		logInfo(f'speech sequence changed: {modifiedSpeechSequence != speechSequence}')
+		return currentSynthOrigSpeakFunc(modifiedSpeechSequence, *args, **kwargs)
+	synthDriverHandler.getSynth().speak = patchedSpeakFunc
 
+def patchCurrentSynthIfNecessary():
+	global g_synthNamesPatched
+	currentSynthName = synthDriverHandler.getSynth().name
+	if currentSynthName not in g_synthNamesPatched:
+		g_synthNamesPatched.add(currentSynthName)
+		patchCurrentSynth()
 
 class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 
 	def __init__(self, *args, **kwargs):
 		super().__init__(*args, **kwargs)
-		synthDriverHandler.getSynth().speak = custom_synth_speak
+		synthDriverHandler.synthChanged.register(self.onSynthChanged) 
+		patchCurrentSynthIfNecessary()
+
+	def onSynthChanged(self, *args, **kwargs):
+		patchCurrentSynthIfNecessary()
+		
+
+
