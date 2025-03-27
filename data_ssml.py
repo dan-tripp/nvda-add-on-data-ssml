@@ -27,31 +27,36 @@ def logInfo(str_):
 
 
 def decodeSingleStr(str_):
-	zero_width_char_map = {
-		'\uFFF9': '0',
-		'\u200C': '1',
-		'\u200D': '2',
-		'\u2060': '3',
-		'\u2061': '4',
-		'\uFEFF': '5',
-		'\u202C': '6',
-		'\u202D': '7'
-	}
+	encodingChars = [
+		'\uFFF9', 
+		'\u200C', 
+		'\u200D',
+		'\u2060',
+		'\u2061',
+		'\uFEFF',
+		'\u200B',
+		'\u2064',
+	]
+	# '\u17B4' # didn't make it through chrome.  showed up as some characters.  I don't get it. 
+	# '\u202C' # seems to get filtered out by firefox 
+	# '\u202D' # seems to get filtered out by firefox 
 
-	base8_str = ''.join(zero_width_char_map[c] for c in str_ if c in zero_width_char_map)
-	number = int(base8_str, 8)
+	n = len(encodingChars)
+	baseNStr = ''.join(str(encodingChars.index(c)) for c in str_)
+	number = int(baseNStr, n)
 
-	# Calculate the number of bytes needed
-	byte_length = (number.bit_length() + 7) // 8
-	decoded_bytes = number.to_bytes(byte_length, 'big') if byte_length > 0 else b''
+	assert n == 8 # b/c of the line below 
+	numBytes = (number.bit_length() + 7) // n
+	bytes = number.to_bytes(numBytes, 'big') if numBytes > 0 else b''
 
 	if 0: 
 		logInfo(f'input string: "{str_}"')
-		logInfo(f"Base8 string: {base8_str}")
+		logInfo(f"Base8 string: {baseNStr}")
 		logInfo(f"Integer: {number}")
-		logInfo(f"Decoded bytes (hex): {decoded_bytes.hex()}")
+		logInfo(f"Decoded bytes (hex): {bytes.hex()}")
 
-	return decoded_bytes.decode('utf-8')
+	r = bytes.decode('utf-8')
+	return r
 
 def turnSsmlIntoSpeechCommandList(ssmlAsJsonStr_, nonSsmlStr_):
 	ssmlAsDict = json.loads(ssmlAsJsonStr_)
@@ -66,9 +71,10 @@ def turnSsmlIntoSpeechCommandList(ssmlAsJsonStr_, nonSsmlStr_):
 	elif key == 'ph':
 		phonemeIpa = val
 		r = [PhonemeCommand(phonemeIpa, text=nonSsmlStr_)]
-		INSERT_HACK_PAUSE_AFTER = 1
+		INSERT_HACK_PAUSE_AFTER = 0
 		if INSERT_HACK_PAUSE_AFTER:
 			# inspired by 1) the line in MathCAT.py which says "There needs to be a space after the phoneme command" (a comment I don't understand), 2) by my observation in NVDA's speech viewer that there wasn't a space when tabbing to a link w/ a phoneme eg. speech viewer said "woundlink", 3) by my aural observation that NVDA's announcement sounded like "woundlink" (i.e. with no space).
+			# later: disabled b/c that problem stopped happening.  maybe b/c of new encoding chars ~ 2025-03-27 00:41. 
 			r.insert(0, RateCommand(-30))
 			r.append(RateCommand(0))
 	else:
@@ -110,6 +116,7 @@ def decodeAllStrs(str_):
 		if encodedSsml:
 			logInfo(f'non-empty encoded string i.e. macro start marker with ssml.')
 			try:
+				logInfo(f'encodedSsml: {encodedSsml}')
 				decodedSsml = decodeSingleStr(encodedSsml)
 				logInfo(f'decodedSsml: {decodedSsml}')
 				nextStartMarkerStartPos = str_.find(START_MARKER, endMarkerStartPos)
@@ -135,12 +142,12 @@ def patchCurrentSynth():
 	currentSynthOrigSpeakFunc = synthDriverHandler.getSynth().speak
 	def patchedSpeakFunc(speechSequence, *args, **kwargs):
 		modifiedSpeechSequence = []
+		logInfo(f'original speech sequence: {speechSequence}')
 		for element in speechSequence:
 			if isinstance(element, str):
 				modifiedSpeechSequence.extend(decodeAllStrs(element))
 			else:
 				modifiedSpeechSequence.append(element)
-		logInfo(f'original speech sequence: {speechSequence}')
 		logInfo(f'modified speech sequence: {modifiedSpeechSequence}')
 		logInfo(f'speech sequence changed: {modifiedSpeechSequence != speechSequence}')
 		return currentSynthOrigSpeakFunc(modifiedSpeechSequence, *args, **kwargs)

@@ -40,20 +40,20 @@ function encodeSsmlAsZeroWidthCharsOctal(str_) {
     }
     base8Digits.reverse();
 
-    let dict = [
-        '\uFFF9', // 0
-        '\u200C', // 1
-        '\u200D', // 2
-        '\u2060', // 3
-        '\u2061', // 4
-        '\uFEFF', // 5
-        '\u202C', // 6
-        '\u202D'  // 7
+    let encodingChars = [
+		'\uFFF9', 
+		'\u200C', 
+		'\u200D',
+		'\u2060',
+		'\u2061',
+		'\uFEFF',
+		'\u200B',
+		'\u2064',
     ];
 
 	let result = '';
     for (let digit of base8Digits) {
-        result += dict[digit];
+        result += encodingChars[digit];
     }
 
 	if(false) { // tdr 

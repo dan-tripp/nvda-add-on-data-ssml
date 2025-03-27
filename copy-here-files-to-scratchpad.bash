@@ -31,4 +31,4 @@ EOF
 	exit 1
 fi
 
-cp *.py /mnt/c/Users/dt/AppData/Roaming/nvda/scratchpad/globalPlugins/
+cp data_ssml.py /mnt/c/Users/dt/AppData/Roaming/nvda/scratchpad/globalPlugins/

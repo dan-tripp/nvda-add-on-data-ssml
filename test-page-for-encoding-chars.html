@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width">
+	<title>test page</title>
+
+	<style>
+
+p { line-height: 1.5; }
+
+/* thanks https://www.tpgi.com/the-anatomy-of-visually-hidden/#where-we-came-in */
+.visually-hidden:not(:focus):not(:active) {
+    clip-path: inset(50%);
+    height: 1px;
+    overflow: hidden;
+    position: absolute;
+    white-space: nowrap;
+    width: 1px;
+}
+
+
+	</style>
+
+	<script>
+
+window.addEventListener("load", function(event) {
+	let repeat = 20;
+    let chars = [
+        '\u200B',
+        '\u2064',
+    ];
+    let main = document.querySelector("main");
+    for (let c of chars) {
+        let codePoint = c.codePointAt(0).toString(16).toUpperCase().padStart(4, '0');
+        let line = document.createElement("div");
+        line.textContent = `U+${codePoint}: '${c.repeat(repeat)}'`;
+        main.appendChild(line);
+    }
+});
+
+	
+	</script>
+
+	
+
+</head>
+
+
+
+
+<body>
+<main>
+
+
+
+</main>
+
+</body>
+
+</html>
