@@ -29,6 +29,14 @@ def isPowerOfTwo(n_):
     return n_ > 0 and (n_ & (n_ - 1)) == 0
 
 def decodeSingleStr(str_):
+	''' If you change the chars here, you need to also change them in the JS encode function.  
+	And vice versa.  Write comments about these chars here, not there. 
+	chars not used: 
+		\uFFFA: could use.  seems to work. 
+		\u17B4: didn't make it through chrome.  showed up as some characters.  I don't get it. 
+		\u202C: seems to get filtered out by firefox 
+		\u202D: seems to get filtered out by firefox 
+	'''
 	encodingChars = [
 		'\uFFF9', 
 		'\u200C', 
@@ -47,7 +55,6 @@ def decodeSingleStr(str_):
 		'\u206E',
 		'\u206F', 
 	]
-	#encodingChars = encodingChars[:8] # tdr 
 	assert len(set(encodingChars)) == len(encodingChars), "encodingChars contains duplicates"
 
 	n = len(encodingChars)
