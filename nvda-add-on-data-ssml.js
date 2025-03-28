@@ -18,66 +18,68 @@ function encodeSsmlAsZeroWidthCharsBinary(str_) {
     return result;
 }
 
-function encodeSsmlAsZeroWidthCharsOctal(str_) {
+function isPowerOfTwo(n_) {
+	return (n_ & (n_ - 1)) !== 0;
+}
+
+function encodeSsmlAsZeroWidthChars(str_) {
     let encoder = new TextEncoder();
     let utf8Bytes = encoder.encode(str_);
     let bigInt = BigInt(0);
 
-    // Convert all bytes into one big integer
     for (let byte of utf8Bytes) {
         bigInt = (bigInt << BigInt(8)) + BigInt(byte);
     }
 
-    // Convert bigInt to base-8 (octal)
-    let base8Digits = [];
-    if (bigInt === BigInt(0)) {
-        base8Digits.push(0);
-    } else {
-        while (bigInt > 0) {
-            base8Digits.push(Number(bigInt % BigInt(8)));
-            bigInt = bigInt / BigInt(8);
-        }
-    }
-    base8Digits.reverse();
-
     let encodingChars = [
-		'\uFFF9', 
-		'\u200C', 
-		'\u200D',
-		'\u2060',
-		'\u2061',
-		'\uFEFF',
-		'\u200B',
-		'\u2064',
+        '\uFFF9',
+        '\u200C',
+        '\u200D',
+        '\u2060',
+        '\u2061',
+        '\uFEFF',
+        '\u200B',
+        '\u2064',
+        '\uFFFB',
+        '\u180E',
+        '\u206A',
+        '\u206B',
+        '\u206C',
+        '\u206D',
+        '\u206E',
+        '\u206F',
     ];
 
-	let result = '';
-    for (let digit of base8Digits) {
+    let n = encodingChars.length;
+
+    if(isPowerOfTwo(n)) {
+    	throw new Error("Encoding character count must be a power of 2");
+    }
+
+    let baseNDigits = [];
+    if (bigInt === BigInt(0)) {
+        baseNDigits.push(0);
+    } else {
+        while (bigInt > 0) {
+            baseNDigits.push(Number(bigInt % BigInt(n)));
+            bigInt = bigInt / BigInt(n);
+        }
+    }
+    baseNDigits.reverse();
+
+    let result = '';
+    for (let digit of baseNDigits) {
         result += encodingChars[digit];
     }
 
-	if(false) { // tdr 
-		result = '\u200E\u200C\u200D\u2060\u2061\uFEFF\u202C\u202D'.repeat(9999);
-		result = result.substring(0, 110);
-		/*
-		all at len 70: bad 
-		all but first at len 70: good 
-		all but first at len 90: good
-		all but first at len 110: bad 
-		all but first at len 100: bad
-
-		all now w/ 8 incl new u200E at len 90: good  
-		" at len 110: bad. 
-		 */
-	}
-
 	if(true) {
 		let resultReadable = [...result].map(c => `\\u${c.codePointAt(0).toString(16).padStart(4, '0')}`).join('');
-		console.log(`data-ssml encoding: ${JSON.stringify({str_, base8Digits, resultReadable})}`);
+		console.log(`data-ssml encoding: ${JSON.stringify({str_, 'baseNDigits.length': baseNDigits.length, baseNDigits, resultReadable})}`);
 	}
 
     return result;
 }
+
 
 function encodeDataSsmlAsBase64(str_) {
     let encoder = new TextEncoder();
@@ -94,7 +96,7 @@ function encodeAllDataSsmlAttribs() {
 	for(let elem of document.querySelectorAll('[data-ssml]')) {
 		let dataSsmlValue = elem.getAttribute('data-ssml');
 		if(!dataSsmlValue) continue;
-		let encodedSsml = encodeSsmlAsZeroWidthCharsOctal(dataSsmlValue);
+		let encodedSsml = encodeSsmlAsZeroWidthChars(dataSsmlValue);
 		const START_MARKER = '\u2062\u2063', END_MARKER = '\u2063\u2062';
 		elem.insertBefore(document.createTextNode(START_MARKER+encodedSsml+END_MARKER), elem.firstChild);
 		elem.appendChild(document.createTextNode(START_MARKER+END_MARKER));

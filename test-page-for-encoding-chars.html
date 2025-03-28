@@ -25,18 +25,39 @@ p { line-height: 1.5; }
 	<script>
 
 window.addEventListener("load", function(event) {
+    let main = document.querySelector("main");
+
 	let repeat = 20;
     let chars = [
-        '\u200B',
-        '\u2064',
+    '\uFFF9',
+    '\uFFFA',
+    '\uFFFB',
+    '\u061C',
+    '\u070F',
+    '\u180E',
+    '\u206A',
+    '\u206B',
+    '\u206C',
+    '\u206D',
+    '\u206E',
+    '\u206F'
     ];
-    let main = document.querySelector("main");
     for (let c of chars) {
         let codePoint = c.codePointAt(0).toString(16).toUpperCase().padStart(4, '0');
-        let line = document.createElement("div");
-        line.textContent = `U+${codePoint}: '${c.repeat(repeat)}'`;
-        main.appendChild(line);
+        let div = document.createElement("div");
+        div.textContent = `U+${codePoint}: '${c.repeat(repeat)}'`;
+        main.appendChild(div);
     }
+
+
+    //let str = '\uFFFA\uFFFB\u061C\u070F\u180E\u206A\u206B\u206C\u206D\u206E\u206F';
+    let str =   '\uFFFA\uFFFB\u180E\u206A\u206B\u206C\u206D\u206E\u206F';
+	//          <fffa><fffb>      <070f><180e><206a><206b><206c><206d><206e><206f>
+	let div = document.createElement("div");
+	div.textContent = str;
+	main.appendChild(div);
+
+
 });
 
 	

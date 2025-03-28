@@ -25,6 +25,8 @@ from speech.commands import (
 def logInfo(str_):
 	log.info(f'data-ssml: {datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")} {str_}')
 
+def isPowerOfTwo(n_):
+    return n_ > 0 and (n_ & (n_ - 1)) == 0
 
 def decodeSingleStr(str_):
 	encodingChars = [
@@ -36,24 +38,35 @@ def decodeSingleStr(str_):
 		'\uFEFF',
 		'\u200B',
 		'\u2064',
+		'\uFFFB',
+		'\u180E',
+		'\u206A',
+		'\u206B',
+		'\u206C',
+		'\u206D',
+		'\u206E',
+		'\u206F', 
 	]
-	# '\u17B4' # didn't make it through chrome.  showed up as some characters.  I don't get it. 
-	# '\u202C' # seems to get filtered out by firefox 
-	# '\u202D' # seems to get filtered out by firefox 
+	#encodingChars = encodingChars[:8] # tdr 
+	assert len(set(encodingChars)) == len(encodingChars), "encodingChars contains duplicates"
 
 	n = len(encodingChars)
-	baseNStr = ''.join(str(encodingChars.index(c)) for c in str_)
-	number = int(baseNStr, n)
+	if not isPowerOfTwo(n):
+		raise ValueError("Base must be a power of 2")
 
-	assert n == 8 # b/c of the line below 
-	numBytes = (number.bit_length() + 7) // n
+	digitValues = [encodingChars.index(c) for c in str_]
+	number = 0
+	for d in digitValues:
+		number = number * n + d
+
+	numBytes = (number.bit_length() + 7) // 8
+
 	bytes = number.to_bytes(numBytes, 'big') if numBytes > 0 else b''
 
-	if 0: 
-		logInfo(f'input string: "{str_}"')
-		logInfo(f"Base8 string: {baseNStr}")
-		logInfo(f"Integer: {number}")
-		logInfo(f"Decoded bytes (hex): {bytes.hex()}")
+	logInfo(f'input string (len {len(str_)}): "{str_}"')
+	logInfo(f"digitValues: {digitValues}")
+	logInfo(f"Integer: {number}")
+	logInfo(f"Decoded bytes (hex): {bytes.hex()}")
 
 	r = bytes.decode('utf-8')
 	return r
@@ -71,10 +84,10 @@ def turnSsmlIntoSpeechCommandList(ssmlAsJsonStr_, nonSsmlStr_):
 	elif key == 'ph':
 		phonemeIpa = val
 		r = [PhonemeCommand(phonemeIpa, text=nonSsmlStr_)]
-		INSERT_HACK_PAUSE_AFTER = 0
+		INSERT_HACK_PAUSE_AFTER = 1
 		if INSERT_HACK_PAUSE_AFTER:
-			# inspired by 1) the line in MathCAT.py which says "There needs to be a space after the phoneme command" (a comment I don't understand), 2) by my observation in NVDA's speech viewer that there wasn't a space when tabbing to a link w/ a phoneme eg. speech viewer said "woundlink", 3) by my aural observation that NVDA's announcement sounded like "woundlink" (i.e. with no space).
-			# later: disabled b/c that problem stopped happening.  maybe b/c of new encoding chars ~ 2025-03-27 00:41. 
+			# inspired by 1) the line in MathCAT.py which says "There needs to be a space after the phoneme command" (a comment I don't understand), 2) by my aural observation that NVDA's announcement sounded like "woundlink" (i.e. with no space).
+			# hard to say if the cure is worse than the disease here.
 			r.insert(0, RateCommand(-30))
 			r.append(RateCommand(0))
 	else:
@@ -145,6 +158,7 @@ def patchCurrentSynth():
 		logInfo(f'original speech sequence: {speechSequence}')
 		for element in speechSequence:
 			if isinstance(element, str):
+				logInfo(f'patched synth got string len {len(element)}: "{element}"')
 				modifiedSpeechSequence.extend(decodeAllStrs(element))
 			else:
 				modifiedSpeechSequence.append(element)
