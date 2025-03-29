@@ -32,20 +32,30 @@ def decodeSingleStr(str_):
 	''' If you change the chars here, you need to also change them in the JS encode function.  
 	And vice versa.  Write comments about these chars here, not there. 
 	chars not used AKA unused: 
-		\u17B4: didn't make it through chrome.  showed up as some characters.  I don't get it. 
+		\u070F: tempting, but it's not invisible. 
+		\u17B4: didn't make it through chrome.  showed up as some characters in the synth.  I don't get it. 
+		\u17B5: same. 
+		\u202A: got filtered out by firefox. 
+		\u202B: got filtered out by firefox. 
+		\u001C: got filtered out by firefox. 
+		\u001D: got filtered out by firefox. 
+		\u001E: got filtered out by firefox. 
+		\u001F: got filtered out by firefox. 
+		\u0000: got filtered out by firefox. 
 		\u202C: seems to get filtered out by firefox 
 		\u202D: seems to get filtered out by firefox 
 		\u180E: almost worked, but got filtered sometimes, or caused premature string split.  tested on chrome only IIRC. 
 		\u200B: got filtered out on the "repeat 1000" test on our test page for encoding chars.  
+		\u061C: got filtered out by firefox. 
 	'''
-	encodingChars = [
+	ENCODING_CHARS = [
 		'\uFFF9', 
 		'\u200C', 
 		'\u200D',
 		'\u2060',
 		'\u2061',
 		'\uFEFF',
-		'\u061C',
+		'\u2063',
 		'\u2064',
 		'\uFFFB',
 		'\uFFFA',
@@ -56,13 +66,13 @@ def decodeSingleStr(str_):
 		'\u206E',
 		'\u206F', 
 	]
-	assert len(set(encodingChars)) == len(encodingChars), "encodingChars contains duplicates"
+	assert len(set(ENCODING_CHARS)) == len(ENCODING_CHARS), "encodingChars contains duplicates"
 
-	n = len(encodingChars)
+	n = len(ENCODING_CHARS)
 	if not isPowerOfTwo(n):
 		raise ValueError("Base must be a power of 2")
 
-	digitValues = [encodingChars.index(c) for c in str_]
+	digitValues = [ENCODING_CHARS.index(c) for c in str_]
 	number = 0
 	for d in digitValues:
 		number = number * n + d
@@ -103,58 +113,62 @@ def turnSsmlIntoSpeechCommandList(ssmlAsJsonStr_, nonSsmlStr_):
 	return r
 
 # Matches the javascript encoding side.  If you change that then change this, and vice versa. 
-START_MARKER = '\u2062\u2063'
-END_MARKER = '\u2063\u2062'
+MARKER = '\u2062'
+MACRO_END_MARKER = MARKER * 2
 
-# returns a list where each element is a string or a speech command.  
+pattern = re.compile(
+	f'{re.escape(MARKER)}'
+	f'(.*?)'
+	f'{re.escape(MARKER)}'
+	f'(.*?)'
+	f'{re.escape(MACRO_END_MARKER)}',
+	flags=re.DOTALL
+)
+
 def decodeAllStrs(str_):
+	logInfo(f'decodeAllStrs input (len {len(str_)}): {repr(str_)}')
 
-	startMarkerCount = str_.count(START_MARKER)
-	endMarkerCount = str_.count(END_MARKER)
-	macroEndCount = str_.count(START_MARKER+END_MARKER)
-	if not ((startMarkerCount == endMarkerCount) and (startMarkerCount % 2 == 0) and (endMarkerCount/2 == macroEndCount)):
-		raise Exception(f'markers are bad.  str was: "{str_}"')
+	markerCount = str_.count(MARKER)
+	macroEndCount = str_.count(MACRO_END_MARKER)
+
+	if not ((markerCount % 4 == 0) and (markerCount // 4 == macroEndCount)):
+		raise Exception(f'[decodeAllStrs] marker mismatch: {markerCount} singles, {macroEndCount} doubles')
 
 	r = []
-	searchStartPos = 0
+	lastEnd = 0
+	matchCount = 0
 
-	while True:
-		startMarkerStartPos = str_.find(START_MARKER, searchStartPos)
-		if startMarkerStartPos == -1:
-			nonSsmlStr = str_[searchStartPos:]
-			if nonSsmlStr:
-				r.append(nonSsmlStr)
-			break
-		prevSsmlStr = str_[searchStartPos:startMarkerStartPos]
-		if prevSsmlStr:
-			r.append(prevSsmlStr)
-		ssmlStartPos = startMarkerStartPos + len(START_MARKER)
-		endMarkerStartPos = str_.find(END_MARKER, ssmlStartPos)
-		if endMarkerStartPos == -1:
-			raise Exception(f'markers bad.  end marker not found.  str was: {str_}')
+	for match in pattern.finditer(str_):
+		matchCount += 1
+		start, end = match.span()
+		encodedSsml, nonSsmlStr = match.groups()
 
-		encodedSsml = str_[ssmlStartPos:endMarkerStartPos]
-		if encodedSsml:
-			logInfo(f'non-empty encoded string i.e. macro start marker with ssml.')
-			try:
-				logInfo(f'encodedSsml: {encodedSsml}')
-				decodedSsml = decodeSingleStr(encodedSsml)
-				logInfo(f'decodedSsml: {decodedSsml}')
-				nextStartMarkerStartPos = str_.find(START_MARKER, endMarkerStartPos)
-				if nextStartMarkerStartPos == -1: raise Exception()
-				endMarkerEndPos = endMarkerStartPos + len(END_MARKER)
-				nonSsmlStr = str_[endMarkerEndPos:nextStartMarkerStartPos]
-				r.extend(turnSsmlIntoSpeechCommandList(decodedSsml, nonSsmlStr))
-				searchStartPos = nextStartMarkerStartPos
-			except Exception as e:
-				log.exception(e)
-				logInfo(f'encoded string was: {encodedSsml}')
-				raise
-		else:
-			logInfo(f'empty encoded string i.e. macro end marker.')
-			searchStartPos = endMarkerStartPos + len(END_MARKER)
+		logInfo(f'encodedSsml (len {len(encodedSsml)}): {repr(encodedSsml)}')
+		logInfo(f'nonSsmlStr (len {len(nonSsmlStr)}): {repr(nonSsmlStr)}')
+
+		if start > lastEnd:
+			pre = str_[lastEnd:start]
+			logInfo(f'	plain text before match: {repr(pre)}')
+			r.append(pre)
+
+		try:
+			decodedSsml = decodeSingleStr(encodedSsml)
+			logInfo(f'	decodedSsml: {decodedSsml}')
+			r.extend(turnSsmlIntoSpeechCommandList(decodedSsml, nonSsmlStr))
+		except Exception as e:
+			log.exception(e)
+			logInfo(f'	encoded string (raw): {repr(encodedSsml)}')
+			raise
+
+		lastEnd = end
+
+	if lastEnd < len(str_):
+		trailing = str_[lastEnd:]
+		logInfo(f'trailing text after last match: {repr(trailing)}')
+		r.append(trailing)
 
 	return r
+
 
 g_synthNamesPatched = set()
 

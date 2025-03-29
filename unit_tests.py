@@ -65,13 +65,13 @@ class Test1(unittest.TestCase):
 		import data_ssml
 
 	def testSsmlSub(self):
-		ssmlAsJson = "{\"sub\": {\"alias\": \"100 prime\"}}"
-		encodedSsmlAsJson = "\u200c\u202d\u2060\u200c\ufff9\u2061\u202d\u200c\ufeff\u202c\ufeff\u2060\ufff9\u2061\u200d\u200c\ufff9\u202d\u200d\u200c\ufff9\ufff9\u202d\ufeff\u2061\u2061\u200d\u2060\ufff9\u200d\u202c\u202c\u200c\ufeff\u200c\u2060\ufff9\u200d\u202d\u200c\u2061\u2061\u200d\u200c\u202c\u2061\u200d\ufff9\ufff9\u2061\u200d\u200c\u2061\u200d\u2060\ufff9\ufff9\u202c\ufff9\u200c\ufff9\ufff9\u202d\ufff9\u200c\u202c\u200d\u2060\u200d\u200d\u202c\u202c\ufeff\u2061\ufeff\u200c\ufff9\u2061\u202d\u202c\ufeff\u202d\ufeff"
+		ssmlAsJson = '{"sub": {"alias": "100 prime"}}'
+		encodedSsmlAsJson = "\u2064\u206b\u200d\u200d\u2064\u2060\u2064\ufeff\u2063\u200d\u200d\u200d\u2060\u206a\u200d\ufff9\u2064\u206b\u200d\u200d\u2063\u200c\u2063\u206c\u2063\ufffa\u2063\u200c\u2064\u2060\u200d\u200d\u2060\u206a\u200d\ufff9\u200d\u200d\u2060\u200c\u2060\ufff9\u2060\ufff9\u200d\ufff9\u2064\ufff9\u2064\u200d\u2063\ufffa\u2063\u206d\u2063\ufeff\u200d\u200d\u2064\u206d\u2064\u206d"
         
 		decodedEncodedSsmlAsJson = data_ssml.decodeSingleStr(encodedSsmlAsJson)
 		self.assertEqual(decodedEncodedSsmlAsJson, ssmlAsJson)
 		
-		start = data_ssml.START_MARKER; end = data_ssml.END_MARKER
+		start = data_ssml.MARKER; end = data_ssml.MARKER
 
 		encoded = start + encodedSsmlAsJson + end + "123456" + start + end
 		decodedSpeechCommands = data_ssml.decodeAllStrs(encoded)
@@ -88,12 +88,12 @@ class Test1(unittest.TestCase):
 
 	def testSsmlSayAs(self):
 		ssmlAsJson = '{"say-as": "characters"}'
-		encodedSsmlAsJson = "\u2060\u202c\u202c\u200d\u200c\u200c\u202c\u2060\u2060\ufff9\u200d\u202d\u2061\u2061\ufeff\ufeff\u2060\ufff9\u200d\u202d\u200c\u2061\u2061\u200d\u200c\u202c\u2061\u200d\ufff9\ufff9\u2061\u200d\u2060\ufff9\u202c\u202c\u2061\u200c\u2061\u200c\u2060\u2061\u2061\u202c\ufff9\ufeff\u2061\u2060\u2060\ufeff\ufff9\u202c\u200d\ufeff\u202c\u200d\u2060\u2061\u202c\u200d\u200c\u200c\u202d\ufeff"
+		encodedSsmlAsJson = "\u2064\u206b\u200d\u200d\u2064\u2060\u2063\u200c\u2064\ufffa\u200d\u206d\u2063\u200c\u2064\u2060\u200d\u200d\u2060\u206a\u200d\ufff9\u200d\u200d\u2063\u2060\u2063\ufffb\u2063\u200c\u2064\u200d\u2063\u200c\u2063\u2060\u2064\u2061\u2063\ufeff\u2064\u200d\u2064\u2060\u200d\u200d\u2064\u206d"
         
 		decodedEncodedSsmlAsJson = data_ssml.decodeSingleStr(encodedSsmlAsJson)
 		self.assertEqual(decodedEncodedSsmlAsJson, ssmlAsJson)
 		
-		start = data_ssml.START_MARKER; end = data_ssml.END_MARKER
+		start = data_ssml.MARKER; end = data_ssml.MARKER
 
 		encoded = start + encodedSsmlAsJson + end + 'FAQ' + start + end
 		decodedSpeechCommands = data_ssml.decodeAllStrs(encoded)

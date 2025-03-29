@@ -31,14 +31,14 @@ function encodeSsmlAsZeroWidthChars(str_) {
         bigInt = (bigInt << BigInt(8)) + BigInt(byte);
     }
 
-    let encodingChars = [
+    const ENCODING_CHARS = [
 		'\uFFF9', 
 		'\u200C', 
 		'\u200D',
 		'\u2060',
 		'\u2061',
 		'\uFEFF',
-		'\u061C',
+		'\u2063',
 		'\u2064',
 		'\uFFFB',
 		'\uFFFA',
@@ -48,9 +48,9 @@ function encodeSsmlAsZeroWidthChars(str_) {
 		'\u206D',
 		'\u206E',
 		'\u206F', 
-    ];
+	];
 
-    let n = encodingChars.length;
+    let n = ENCODING_CHARS.length;
 
     if(isPowerOfTwo(n)) {
     	throw new Error("Encoding character count must be a power of 2");
@@ -69,7 +69,7 @@ function encodeSsmlAsZeroWidthChars(str_) {
 
     let result = '';
     for (let digit of baseNDigits) {
-        result += encodingChars[digit];
+        result += ENCODING_CHARS[digit];
     }
 
 	if(true) {
@@ -98,9 +98,10 @@ function encodeAllDataSsmlAttribs() {
 		let dataSsmlValue = elem.getAttribute('data-ssml');
 		if(!dataSsmlValue) continue;
 		let encodedSsml = encodeSsmlAsZeroWidthChars(dataSsmlValue);
-		const START_MARKER = '\u2062\u2063', END_MARKER = '\u2063\u2062';
-		elem.insertBefore(document.createTextNode(START_MARKER+encodedSsml+END_MARKER), elem.firstChild);
-		elem.appendChild(document.createTextNode(START_MARKER+END_MARKER));
+		const START_END_MARKER = '\u2062';
+		elem.insertBefore(document.createTextNode(START_END_MARKER+encodedSsml+START_END_MARKER), elem.firstChild);
+		const MACRO_END_MARKER = START_END_MARKER+START_END_MARKER;
+		elem.appendChild(document.createTextNode(MACRO_END_MARKER));
 	}
 }
 
