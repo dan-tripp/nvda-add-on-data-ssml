@@ -33,6 +33,8 @@ EOF
 fi
 
 cd "$(dirname "$0")"
-cp test-page.html ../dan-tripp.github.io 
+cp test-page.html nvda-add-on-data-ssml.js ../dan-tripp.github.io 
 cd ../dan-tripp.github.io 
 git-add-commit-push 
+
+

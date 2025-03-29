@@ -51,7 +51,7 @@ function scrollWithGap(elem, gap = 40) {
 		window.scrollBy({
 			top: isBelow ? rect.bottom - window.innerHeight + gap : rect.top - gap,
 			left: 0,
-			behavior: 'smooth'
+			/* used to do "behavior: 'smooth'" here, but it caused NVDA's focus indicator to not match the browser's focus indicator, which, I think, was not the best for demo videos. */
 		});
 	}
 }
@@ -139,14 +139,15 @@ For the initialisms below, the bad pronouncations without SSML are the worst wit
 
 
 <h2>SSML Phonemes</h2>
-Fix only works w/ synth=onecore.<br>
+Fix only works with synth=onecore.<br>
+<!-- It's unclear where I got these IPAs from, or if they're correct.  at least the IPAs below for "tear" didn't match any of those at https://dictionary.cambridge.org/pronunciation/english/tear --> 
 <a href="#"><span data-ssml='{"ph": "wuːnd"}'>wound</span> as in "injury"</a><br>
 <a href="#"><span data-ssml='{"ph": "waʊnd"}'>wound</span> as in "wrapped"</a><br>
 <a href="#">wound without SSML<br>
-<a href="#"><span data-ssml='{"ph": "lɛd"}'>lead</span> as in "metal"</a><br>
-<a href="#"><span data-ssml='{"ph": "liːd"}'>lead</span> as in "guide"</a><br>
+<a href="#"><span data-ssml='{"ph": "lɛd"}'>lead</span> as in "heavy metal"</a><br>
+<a href="#"><span data-ssml='{"ph": "liːd"}'>lead</span> as in "follow the leader"</a><br>
 <a href="#">lead without SSML<br>
-<a href="#"><span data-ssml='{"ph": "teɚ"}'>tear</span> as in "rip"</a><br>
+<a href="#"><span data-ssml='{"ph": "teɚ"}'>tear</span> as in "rip"</a><br> 
 <a href="#"><span data-ssml='{"ph": "tɪɚ"}'>tear</span> as in "cry"</a><br>
 <a href="#">tear without SSML<br>
 <a href="#"><span data-ssml='{"ph": "bæs"}'>bass</span> as in "fish"</a><br>
