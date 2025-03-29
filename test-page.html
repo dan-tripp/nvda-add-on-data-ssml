@@ -50,6 +50,8 @@ window.addEventListener("load", function(event) {
 <!--
 here is some broken SSML: <span data-ssml='abc'>broken</span>.<br> 
 -->
+here we have no SSML so this 3 will probably be pronounced as just "3".<br>
+same here - no SSML, and this link <a href="#">3'</a> will probably be pronounced as just "3".<br>
 here we have <span data-ssml='{"sub": {"alias": "3 prime"}}'>3'</span>, which will be pronounced "3 prime".<br>
 here's something similar, in a link: <a href="#" data-ssml='{"sub": {"alias": "4 prime"}}'>4'</a> will be pronounced "4 prime".<br> 
 but this - <a href="#" data-ssml='{"sub": {"alias": "4 feet"}}'>4'</a> - will be pronounced "4 feet".<br> 
@@ -61,13 +63,18 @@ here's something in a link <a href="#" data-ssml='{"sub": {"alias": "100 prime"}
 -->
 
 <h2>Say As Characters</h2>
-(The default bad pronouncations mainly seem to exist w/ synth=espeak.  And less so on other synths eg. "ETA".)</h2>
+(For the initialisms below, the default bad pronouncations mainly seem to exist w/ synth=espeak.  And less so on other synths eg. "ETA".)</h2>
 <h3>with SSML "say-as"</h3>
 <span data-ssml='{"say-as": "characters"}'>ETA</span><br>
 <span data-ssml='{"say-as": "characters"}'>FAQ</span><br>
+binary <span data-ssml='{"say-as": "characters"}'>10100</span><br>
+phone number <span data-ssml='{"say-as": "characters"}'>416-555-3792</span><br>
 <h3>with no SSML</h3>
 <span>ETA</span><br>
 <span>FAQ</span><br>
+<span>LOL</span><br>
+non-binary number <span>10100</span><br>
+phone number <span>416 555 3792</span><br>
 
 
 <h2>Phonemes (fix only works w/ synth=onecore)</h2>
