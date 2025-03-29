@@ -32,22 +32,22 @@ function encodeSsmlAsZeroWidthChars(str_) {
     }
 
     let encodingChars = [
-        '\uFFF9',
-        '\u200C',
-        '\u200D',
-        '\u2060',
-        '\u2061',
-        '\uFEFF',
-        '\u200B',
-        '\u2064',
-        '\uFFFB',
-        '\u180E',
-        '\u206A',
-        '\u206B',
-        '\u206C',
-        '\u206D',
-        '\u206E',
-        '\u206F',
+		'\uFFF9', 
+		'\u200C', 
+		'\u200D',
+		'\u2060',
+		'\u2061',
+		'\uFEFF',
+		'\u061C',
+		'\u2064',
+		'\uFFFB',
+		'\uFFFA',
+		'\u206A',
+		'\u206B',
+		'\u206C',
+		'\u206D',
+		'\u206E',
+		'\u206F', 
     ];
 
     let n = encodingChars.length;
@@ -74,7 +74,8 @@ function encodeSsmlAsZeroWidthChars(str_) {
 
 	if(true) {
 		let resultReadable = [...result].map(c => `\\u${c.codePointAt(0).toString(16).padStart(4, '0')}`).join('');
-		console.log(`data-ssml encoding: ${JSON.stringify({str_, 'baseNDigits.length': baseNDigits.length, baseNDigits, resultReadable})}`);
+		console.log(`data-ssml encoding: ${JSON.stringify({str_, 'baseNDigits.length': baseNDigits.length, baseNDigits})}`);
+		console.log(`resultReadable: "${resultReadable}"`);
 	}
 
     return result;

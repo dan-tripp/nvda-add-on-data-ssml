@@ -3,7 +3,7 @@
 <head>
 	<meta charset="UTF-8">
 	<meta name="viewport" content="width=device-width">
-	<title>test page</title>
+	<title>test page for encoding chars</title>
 
 	<style>
 
@@ -27,7 +27,7 @@ p { line-height: 1.5; }
 window.addEventListener("load", function(event) {
     let main = document.querySelector("main");
 
-	let repeat = 20;
+	let repeat = 70;
     let chars = [
     '\uFFF9',
     '\uFFFA',
@@ -40,7 +40,8 @@ window.addEventListener("load", function(event) {
     '\u206C',
     '\u206D',
     '\u206E',
-    '\u206F'
+    '\u206F', 
+	'\u200B'
     ];
     for (let c of chars) {
         let codePoint = c.codePointAt(0).toString(16).toUpperCase().padStart(4, '0');
@@ -49,15 +50,76 @@ window.addEventListener("load", function(event) {
         main.appendChild(div);
     }
 
+    /* to test encoding chars, the process ought to be something like this:
+	- for each char, put it in this test page repeated ~ 1000 times, then read through the page w/ nvda arrow keys and see what the synth gets.  
+		- make sure synth gets the string at all 
+		- make sure the synth gets that repeated char as a string of approx len 100 
+	- this test page does this below. 
+	- reasons
+		- "abc abc abc" etc. reaches the synth in 101-char strings. 
+		- "abcabcabc" etc. reaches the synth in 102-char strings. 
+		- ^^ I tested both on all 3 synths 
+		- when I was using the bad encoding chars u180e, it didn't show up at all when I repeated it 1000 times. 
+	- this page/process doesn't do the thing that originally told me that u180e was bad: when it's used normally (i.e. not repeated, but instead appearing amongst other chars) then sometimes it works fine but sometimes it works badly in the sense that it still appears but split up strings to the synth sometimes.  it always appeared as the last (or last-before-a-space? I forget) char in the first string of the split.  synth got len 96-82 strings then, w/ strings always ending w/ u180e.  
+	*/
+	let strs = [
+	'\u061C', // new 
+	'\uFFF9', 
+	'\u200C', 
+	'\u200D',
+	'\u2060',
+	'\u2061',
+	'\uFEFF',
+	'\u200B', // bad 
+	'\u2064',
+	'\uFFFB',
+	'\u180E', // bad 
+	'\u206A',
+	'\u206B',
+	'\u206C',
+	'\u206D',
+	'\u206E',
+	'\u206F', 
 
+    ];
+	let len = 1000;
+    for (let str of strs) {
+        let div = document.createElement("div");
+		let prefix = [...str].map(cp => cp.codePointAt(0).toString(16).toUpperCase().padStart(4, '0')).join(' ');
+		let strRepeated = '';
+		while(strRepeated.length < len) {
+			strRepeated += str;
+		}
+		strRepeated = strRepeated.substring(0, len);
+        div.textContent = `${prefix}: '${strRepeated}'`;
+		div.textContent = strRepeated;
+        main.appendChild(div);
+    }
+
+	/*
     //let str = '\uFFFA\uFFFB\u061C\u070F\u180E\u206A\u206B\u206C\u206D\u206E\u206F';
     let str =   '\uFFFA\uFFFB\u180E\u206A\u206B\u206C\u206D\u206E\u206F';
 	//          <fffa><fffb>      <070f><180e><206a><206b><206c><206d><206e><206f>
 	let div = document.createElement("div");
 	div.textContent = str;
 	main.appendChild(div);
+	*/
 
+	{
+		let div = document.createElement("div");
+		div.textContent = 'abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc ';
+		main.appendChild(div);
+	}
 
+	{
+		let div = document.createElement("div");
+		div.textContent = 'abcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabc';
+		main.appendChild(div);
+	}
+
+	let div = document.createElement("div");
+	div.textContent = 'end';
+	main.appendChild(div);
 });
 
 	

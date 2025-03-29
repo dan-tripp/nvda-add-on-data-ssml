@@ -31,11 +31,12 @@ def isPowerOfTwo(n_):
 def decodeSingleStr(str_):
 	''' If you change the chars here, you need to also change them in the JS encode function.  
 	And vice versa.  Write comments about these chars here, not there. 
-	chars not used: 
-		\uFFFA: could use.  seems to work. 
+	chars not used AKA unused: 
 		\u17B4: didn't make it through chrome.  showed up as some characters.  I don't get it. 
 		\u202C: seems to get filtered out by firefox 
 		\u202D: seems to get filtered out by firefox 
+		\u180E: almost worked, but got filtered sometimes, or caused premature string split.  tested on chrome only IIRC. 
+		\u200B: got filtered out on the "repeat 1000" test on our test page for encoding chars.  
 	'''
 	encodingChars = [
 		'\uFFF9', 
@@ -44,10 +45,10 @@ def decodeSingleStr(str_):
 		'\u2060',
 		'\u2061',
 		'\uFEFF',
-		'\u200B',
+		'\u061C',
 		'\u2064',
 		'\uFFFB',
-		'\u180E',
+		'\uFFFA',
 		'\u206A',
 		'\u206B',
 		'\u206C',
@@ -155,7 +156,6 @@ def decodeAllStrs(str_):
 
 	return r
 
-
 g_synthNamesPatched = set()
 
 def patchCurrentSynth():
@@ -165,7 +165,8 @@ def patchCurrentSynth():
 		logInfo(f'original speech sequence: {speechSequence}')
 		for element in speechSequence:
 			if isinstance(element, str):
-				logInfo(f'patched synth got string len {len(element)}: "{element}"')
+				#logInfo(f'patched synth got string len {len(element)}: "{element}"')
+				logInfo(f'patched synth got string len {len(element)}: "{repr(element)}"')
 				modifiedSpeechSequence.extend(decodeAllStrs(element))
 			else:
 				modifiedSpeechSequence.append(element)

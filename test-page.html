@@ -46,13 +46,13 @@ window.addEventListener("load", function(event) {
 <a href="#" data-ssml='{"sub": "alias": "3 prime"}}'>3'</a><br>
 -->
 
-<h2>start</h2>
+<h2>Sub / Alias</h2>
 <!--
 here is some broken SSML: <span data-ssml='abc'>broken</span>.<br> 
 -->
-here in text we have <span data-ssml='{"sub": {"alias": "3 prime"}}'>3'</span>, without a focusable element.<br> 
-here's something in a link <a href="#" data-ssml='{"sub": {"alias": "4 prime"}}'>4'</a> - yes.<br> 
-
+here we have <span data-ssml='{"sub": {"alias": "3 prime"}}'>3'</span>, which will be pronounced "3 prime".<br>
+here's something similar, in a link: <a href="#" data-ssml='{"sub": {"alias": "4 prime"}}'>4'</a> will be pronounced "4 prime".<br> 
+but this - <a href="#" data-ssml='{"sub": {"alias": "4 feet"}}'>4'</a> - will be pronounced "4 feet".<br> 
 
 <!--
 misleading subs:<br>
@@ -60,7 +60,8 @@ here in text we have <span data-ssml='{"sub": {"alias": "99 prime"}}'>3333333'</
 here's something in a link <a href="#" data-ssml='{"sub": {"alias": "100 prime"}}'>44444444'</a> - yes.<br> 
 -->
 
-<h2>initialisms (bug mainly exists w/ synth=espeak, exists a little (on "ETA") with other synths maybe)</h2>
+<h2>Say As Characters</h2>
+(The default bad pronouncations mainly seem to exist w/ synth=espeak.  And less so on other synths eg. "ETA".)</h2>
 <h3>with SSML "say-as"</h3>
 <span data-ssml='{"say-as": "characters"}'>ETA</span><br>
 <span data-ssml='{"say-as": "characters"}'>FAQ</span><br>
@@ -69,7 +70,7 @@ here's something in a link <a href="#" data-ssml='{"sub": {"alias": "100 prime"}
 <span>FAQ</span><br>
 
 
-<h2>phonemes (fix only works w/ synth=onecore)</h2>
+<h2>Phonemes (fix only works w/ synth=onecore)</h2>
 <a href="#" data-ssml='{"ph": "wuːnd"}'>wound</a> as in "injury"<br>
 <a href="#" data-ssml='{"ph": "waʊnd"}'>wound</a> as in "wrapped"<br>
 <a href="#">wound</a> no SSML<br>
