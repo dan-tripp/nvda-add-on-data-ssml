@@ -94,7 +94,9 @@ function encodeDataSsmlAsBase64(str_) {
 }
 
 function encodeAllDataSsmlAttribs() {
-	for(let elem of document.querySelectorAll('[data-ssml]')) {
+	let elements = [...document.querySelectorAll('[data-ssml]')]
+		.filter(el => el.getAttribute('data-ssml')?.trim() !== '');
+	for(let elem of elements) {
 		let dataSsmlValue = elem.getAttribute('data-ssml');
 		if(!dataSsmlValue) continue;
 		let encodedSsml = encodeSsmlAsZeroWidthChars(dataSsmlValue);
@@ -102,6 +104,9 @@ function encodeAllDataSsmlAttribs() {
 		elem.insertBefore(document.createTextNode(START_END_MARKER+encodedSsml+START_END_MARKER), elem.firstChild);
 		const MACRO_END_MARKER = START_END_MARKER+START_END_MARKER;
 		elem.appendChild(document.createTextNode(MACRO_END_MARKER));
+		for(let descendentElem of [...elem.querySelectorAll('[data-ssml]')]) {
+			console.warn(`Found data-ssml in a descendent of an element that has a data-ssml attribute.  We will ignore this one (the descendent.)`, descendentElem);
+		}
 	}
 }
 
