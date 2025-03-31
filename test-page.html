@@ -215,6 +215,12 @@ lorem ipsum <br>
 lorem ipsum <br>
 <span class="visually-hidden" id="l1">read more about the <span data-ssml='{"sub": {"alias": "3 prime"}}'>3'</span> end</span><a href="#" aria-labelledby="l1">read more</a>  <br>
 
+
+<h4>phonetic replacement</h4>
+<!-- <label><input type="checkbox">the <span data-ssml='{"sub": {"alias": "3 prime"}}'>3'</span> end</label> would become  --> 
+<label><input type="checkbox">the <span data-ssml='{"sub": {"alias": "3 prime"}}'><span aria-hidden="true">3'</span><span class="visually-hidden"> 3 prime</span></span> end</label>
+<br>
+
 <!--
 <span data-ssml="x">
 	<strong data-ssml="zzz"></strong>	
