@@ -19,6 +19,17 @@ p { line-height: 1.5; }
     width: 1px;
 }
 
+[data-ssml] {
+	background-color: rgb(255, 255, 0); 
+}
+
+[data-ssml]::before {
+	content: "»";
+}
+
+[data-ssml]::after {
+	content: "«";
+}
 
 table.ssml-table {
 	border-collapse: collapse;
@@ -82,6 +93,8 @@ window.addEventListener("load", function(event) {
 -->
 
 <h1>data-ssml NVDA plugin test page</h1>
+
+<p>All elements on this page which have a data-ssml attribute are highlighted in yellow and with "double angle quotation marks", like this: <span data-ssml>abc</span>.</p>
 
 <h2>SSML Sub / Alias</h2>
 <!--
@@ -194,6 +207,13 @@ Fix only works with synth=onecore.<br>
 <button>the <span data-ssml='{"sub": {"alias": "3 prime"}}'>3'</span> end</button><br>
 
 <label><input type="checkbox">the <span data-ssml='{"sub": {"alias": "3 prime"}}'>3'</span> end</label><br>
+
+
+<h4>aria-labelledby:</h4>
+<strong>3'</strong><br>
+lorem ipsum <br>
+lorem ipsum <br>
+<span class="visually-hidden" id="l1">read more about the <span data-ssml='{"sub": {"alias": "3 prime"}}'>3'</span> end</span><a href="#" aria-labelledby="l1">read more</a>  <br>
 
 <!--
 <span data-ssml="x">
