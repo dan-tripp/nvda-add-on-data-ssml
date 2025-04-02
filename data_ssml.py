@@ -6,27 +6,29 @@ from logHandler import log
 import speech
 import gettext
 import synthDriverHandler
+from controlTypes import roleLabels
+from documentBase import textInfos
 
 _ = gettext.gettext
 
 # speech/SSML processing borrowed from NVDA's mathPres/mathPlayer.py
 from speech.commands import (
-    BeepCommand,
-    PitchCommand,
-    VolumeCommand,
-    RateCommand,
-    LangChangeCommand,
-    BreakCommand,
-    CharacterModeCommand,
-    PhonemeCommand,
-    IndexCommand,
+	BeepCommand,
+	PitchCommand,
+	VolumeCommand,
+	RateCommand,
+	LangChangeCommand,
+	BreakCommand,
+	CharacterModeCommand,
+	PhonemeCommand,
+	IndexCommand,
 )
 
 def logInfo(str_):
 	log.info(f'data-ssml: {datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")} {str_}')
 
 def isPowerOfTwo(n_):
-    return n_ > 0 and (n_ & (n_ - 1)) == 0
+	return n_ > 0 and (n_ & (n_ - 1)) == 0
 
 def decodeSingleStr(str_):
 	''' If you change the chars here, you need to also change them in the JS encode function.  
@@ -199,6 +201,27 @@ def patchCurrentSynthIfNecessary():
 	else:
 		logInfo(f'patch of synth "{currentSynthName}" not necessary.')
 
+def a11yTreeToStr(root_, maxDepth=10):
+	lines = []
+	def recurse(node, indent=0):
+		if node is None or indent > maxDepth:
+			return
+		indentStr = "  " * indent
+		try:
+			roleStr = roleLabels[node.role]
+		except (KeyError, IndexError, TypeError):
+			roleStr = f"unknown ({node.role})"
+		name = node.name or ""
+		lines.append(f"{indentStr}{roleStr}: {name}")
+		child = node.firstChild
+		while child:
+			recurse(child, indent + 1)
+			child = child.next
+
+	recurse(root_)
+	return "\n".join(lines)
+
+
 class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 
 	def __init__(self, *args, **kwargs):
@@ -210,6 +233,129 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		logInfo('synth changed.')
 		patchCurrentSynthIfNecessary()
 		
+	def xevent_gainFocus(self, obj, nextHandler): # tdr 
+		logInfo("focus: "+obj.name)
+		try:
+			root = obj.treeInterceptor.rootNVDAObject
+		except Exception as e:
+			root = None
+		if root == None: logInfo('no root')
+		if root != None:
+			try:
+				#speech.speakMessage("Root name: " + root.name)
+				logInfo(a11yTreeToStr(root))
+			except Exception as e:
+				log.exception(e)
+				pass
+
+		nextHandler()
 
 
+if 0:
+	from speech import _speechSequenceBuilder
+
+	_original_speakObject = _speechSequenceBuilder.SpeechSequenceBuilder.speakObject
+
+	def wrapped_speakObject(self, obj, reason=None):
+		try:
+			role = roleLabels.get(obj.role, f"unknown ({obj.role})")
+			name = obj.name or ""
+			logInfo(f"[speakObject] role={role}, name={name}, reason={reason}")
+		except Exception as e:
+			logInfo("[speakObject] error logging object: {e}")
+		return _original_speakObject(self, obj, reason)
+
+	_speechSequenceBuilder.SpeechSequenceBuilder.speakObject = wrapped_speakObject
+
+
+
+def get_all_buffer_nodes(bufTextInfo):
+	nodes = []
+	buf = bufTextInfo.obj.treeInterceptor
+	storyLength = bufTextInfo._getStoryLength()
+	seen = set()
+
+	for offset in range(storyLength):
+		try:
+			obj = bufTextInfo._getNVDAObjectFromOffset(offset)
+			if obj and id(obj) not in seen:
+				seen.add(id(obj))
+				nodes.append(obj)
+		except Exception as e:
+			logInfo(f"Offset {offset}: {e}")
+
+	return nodes
+
+
+
+_original_speakTextInfo = speech.speakTextInfo
+
+_original_speak = speech.speak
+
+def filtering_speak(seq, *args, **kwargs):
+	logInfo('here 1')
+	modified = []
+	for item in seq:
+		logInfo(f'filter speak saw "{item}"')
+		if isinstance(item, str):
+			modified.append(item.replace("line", "goose goose goose"))
+		else:
+			modified.append(item)
+	return _original_speak(modified, *args, **kwargs)
+
+def wrapped_speakTextInfo(info, *args, **kwargs):
+	try:
+		obj = info.NVDAObjectAtStart
+		role = roleLabels.get(obj.role, f"unknown ({obj.role})")
+		name = obj.name or ""
+		logInfo(f"[speakTextInfo] role={role}, name={name}")
+		a11yTreeRoot = obj.treeInterceptor.rootNVDAObject
+		logInfo(f"[speakTextInfo] a11yTreeRoot={a11yTreeRoot.name}")
+
+		if 0:
+			logInfo('start objects')
+			ti = obj.makeTextInfo(textInfos.POSITION_FIRST)
+			allNodes = get_all_buffer_nodes(ti)
+			for node in allNodes:
+				role = roleLabels.get(node.role, f"unknown ({node.role})")
+				logInfo(f"object: role={role}, name={node.name}")
+			logInfo('end objects')
+
+	except Exception as e:
+		logInfo(f"[speakTextInfo] error logging: {e}")
+
+
+	if 0:
+		speech.speak(["goose"])
+		return
+
+	if 0:
+		origReturnVal = _original_speakTextInfo(info, *args, **kwargs)
+		return
+	
+	if 1:
+		try:
+			speech.speak = filtering_speak
+			logInfo('about to call _original_speakTextInfo')
+			return _original_speakTextInfo(info, *args, **kwargs)
+		finally:
+			logInfo('just called _original_speakTextInfo')
+			speech.speak = _original_speak
+
+
+	sequence = speech.getSpeechForObject(obj)
+
+	modifiedSequence = []
+	for item in sequence:
+		if isinstance(item, str):
+			logInfo(f'seen in sequence: "{item}"')
+			modifiedSequence.append(item.replace("line", "goose line goose"))
+		else:
+			modifiedSequence.append(item)	
+
+	speech.speak(modifiedSequence, *args, **kwargs)
+	return
+	return _original_speakTextInfo(info, *args, **kwargs)
+
+speech.speakTextInfo = wrapped_speakTextInfo
 
