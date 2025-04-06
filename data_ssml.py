@@ -178,6 +178,12 @@ def patchCurrentSynth():
 	currentSynthOrigSpeakFunc = synthDriverHandler.getSynth().speak
 	def patchedSpeakFunc(speechSequence, *args, **kwargs):
 		modifiedSpeechSequence = []
+		logInfo(f'g_a11yTreeRoot: {g_a11yTreeRoot.name if g_a11yTreeRoot else None}') # tdr 
+		if 0: # tdr 
+			logInfo(f'a11yTree:\n{a11yTreeToStr(g_a11yTreeRoot)}') # tdr 
+		if 1: # tdr 
+			e = findHidingPlaceElementInA11yTree(g_a11yTreeRoot)
+			logInfo(f'hiding place elem: {e != None}')
 		logInfo(f'original speech sequence: {speechSequence}')
 		for element in speechSequence:
 			if isinstance(element, str):
@@ -201,6 +207,40 @@ def patchCurrentSynthIfNecessary():
 	else:
 		logInfo(f'patch of synth "{currentSynthName}" not necessary.')
 
+def getLastChild(nvdaObj_):
+	child = nvdaObj_.firstChild
+	if not child:
+		return None
+	while child.next:
+		child = child.next
+	return child
+
+def getRole(nvdaObj_):
+	try:
+		return roleLabels[nvdaObj_.role]
+	except (KeyError, IndexError, TypeError):
+		return f"unknown role ({nvdaObj_.role})"
+
+def findHidingPlaceElementInA11yTree(root_):
+	# document > section > text 
+	# document: root_ 
+	# > section: our hiding place div.  in DOM: last child of <body>.  in this tree: last child of document.  
+	# > text: only child of our hiding place div. 
+	# in both chrome and ff.  
+	if not root_: return None
+	documentLastChild = getLastChild(root_)
+	if not documentLastChild: return None
+	if getRole(documentLastChild) != 'section': return None
+	section = documentLastChild
+	sectionFirstChild = section.firstChild
+	if getRole(sectionFirstChild) != 'text': return None
+	text = sectionFirstChild
+	name = text.name
+	textContent = name
+	GUID = '4b9b696c-8fc8-49ca-9bb9-73afc9bd95f7'
+	if GUID in textContent: 
+		return text
+
 def a11yTreeToStr(root_, maxDepth=10):
 	lines = []
 	def recurse(node, indent=0):
@@ -221,6 +261,19 @@ def a11yTreeToStr(root_, maxDepth=10):
 	recurse(root_)
 	return "\n".join(lines)
 
+g_original_speakTextInfo = speech.speakTextInfo
+
+g_a11yTreeRoot = None
+
+def wrapped_speakTextInfo(info, *args, **kwargs):
+	global g_a11yTreeRoot
+	nvdaObjectAtStart = info.NVDAObjectAtStart
+	a11yTreeRoot = nvdaObjectAtStart.treeInterceptor.rootNVDAObject
+	g_a11yTreeRoot = a11yTreeRoot
+	return g_original_speakTextInfo(info, *args, **kwargs)
+
+def patchSpeakTextInfoFunc():
+	speech.speakTextInfo = wrapped_speakTextInfo
 
 class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 
@@ -228,134 +281,33 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		super().__init__(*args, **kwargs)
 		synthDriverHandler.synthChanged.register(self.onSynthChanged) 
 		patchCurrentSynthIfNecessary()
+		patchSpeakTextInfoFunc()
 
 	def onSynthChanged(self, *args, **kwargs):
 		logInfo('synth changed.')
 		patchCurrentSynthIfNecessary()
 		
 	def xevent_gainFocus(self, obj, nextHandler): # tdr 
-		logInfo("focus: "+obj.name)
+		logInfo(f'focus: "{obj.name}"')
 		try:
-			root = obj.treeInterceptor.rootNVDAObject
-		except Exception as e:
-			root = None
-		if root == None: logInfo('no root')
-		if root != None:
-			try:
-				#speech.speakMessage("Root name: " + root.name)
-				logInfo(a11yTreeToStr(root))
-			except Exception as e:
-				log.exception(e)
-				pass
-
+			logInfo(f'attributes: "{obj.attributes}"')
+		except:
+			logInfo(f'no attributes')
 		nextHandler()
 
 
-if 0:
-	from speech import _speechSequenceBuilder
-
-	_original_speakObject = _speechSequenceBuilder.SpeechSequenceBuilder.speakObject
-
-	def wrapped_speakObject(self, obj, reason=None):
+	def event_gainFocus(self, obj, nextHandler): # tdr 
 		try:
-			role = roleLabels.get(obj.role, f"unknown ({obj.role})")
-			name = obj.name or ""
-			logInfo(f"[speakObject] role={role}, name={name}, reason={reason}")
+			cur = obj
+			while cur:
+				role = roleLabels.get(cur.role, str(cur.role))
+				name = cur.name or ""
+				attrs = getattr(cur, "attributes", None)
+				logInfo(f"Focus: role={role}, name={name}, attributes={attrs}")
+				
+				cur = getattr(cur, "parent", None)
+
 		except Exception as e:
-			logInfo("[speakObject] error logging object: {e}")
-		return _original_speakObject(self, obj, reason)
+			logInfo(f"[event_gainFocus] error: {e}")
 
-	_speechSequenceBuilder.SpeechSequenceBuilder.speakObject = wrapped_speakObject
-
-
-
-def get_all_buffer_nodes(bufTextInfo):
-	nodes = []
-	buf = bufTextInfo.obj.treeInterceptor
-	storyLength = bufTextInfo._getStoryLength()
-	seen = set()
-
-	for offset in range(storyLength):
-		try:
-			obj = bufTextInfo._getNVDAObjectFromOffset(offset)
-			if obj and id(obj) not in seen:
-				seen.add(id(obj))
-				nodes.append(obj)
-		except Exception as e:
-			logInfo(f"Offset {offset}: {e}")
-
-	return nodes
-
-
-
-_original_speakTextInfo = speech.speakTextInfo
-
-_original_speak = speech.speak
-
-def filtering_speak(seq, *args, **kwargs):
-	logInfo('here 1')
-	modified = []
-	for item in seq:
-		logInfo(f'filter speak saw "{item}"')
-		if isinstance(item, str):
-			modified.append(item.replace("line", "goose goose goose"))
-		else:
-			modified.append(item)
-	return _original_speak(modified, *args, **kwargs)
-
-def wrapped_speakTextInfo(info, *args, **kwargs):
-	try:
-		obj = info.NVDAObjectAtStart
-		role = roleLabels.get(obj.role, f"unknown ({obj.role})")
-		name = obj.name or ""
-		logInfo(f"[speakTextInfo] role={role}, name={name}")
-		a11yTreeRoot = obj.treeInterceptor.rootNVDAObject
-		logInfo(f"[speakTextInfo] a11yTreeRoot={a11yTreeRoot.name}")
-
-		if 0:
-			logInfo('start objects')
-			ti = obj.makeTextInfo(textInfos.POSITION_FIRST)
-			allNodes = get_all_buffer_nodes(ti)
-			for node in allNodes:
-				role = roleLabels.get(node.role, f"unknown ({node.role})")
-				logInfo(f"object: role={role}, name={node.name}")
-			logInfo('end objects')
-
-	except Exception as e:
-		logInfo(f"[speakTextInfo] error logging: {e}")
-
-
-	if 0:
-		speech.speak(["goose"])
-		return
-
-	if 0:
-		origReturnVal = _original_speakTextInfo(info, *args, **kwargs)
-		return
-	
-	if 1:
-		try:
-			speech.speak = filtering_speak
-			logInfo('about to call _original_speakTextInfo')
-			return _original_speakTextInfo(info, *args, **kwargs)
-		finally:
-			logInfo('just called _original_speakTextInfo')
-			speech.speak = _original_speak
-
-
-	sequence = speech.getSpeechForObject(obj)
-
-	modifiedSequence = []
-	for item in sequence:
-		if isinstance(item, str):
-			logInfo(f'seen in sequence: "{item}"')
-			modifiedSequence.append(item.replace("line", "goose line goose"))
-		else:
-			modifiedSequence.append(item)	
-
-	speech.speak(modifiedSequence, *args, **kwargs)
-	return
-	return _original_speakTextInfo(info, *args, **kwargs)
-
-speech.speakTextInfo = wrapped_speakTextInfo
-
+		nextHandler()
