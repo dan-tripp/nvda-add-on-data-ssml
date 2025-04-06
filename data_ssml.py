@@ -91,27 +91,33 @@ def decodeSingleStr(str_):
 	r = bytes.decode('utf-8')
 	return r
 
+class SsmlError(Exception):
+    pass
+
 def turnSsmlIntoSpeechCommandList(ssmlAsJsonStr_, nonSsmlStr_):
-	ssmlAsDict = json.loads(ssmlAsJsonStr_)
-	if len(ssmlAsDict) != 1: raise Exception()
-	key = next(iter(ssmlAsDict)); val = ssmlAsDict[key]
-	if key == 'sub':
-		aliasVal = val['alias']
-		r = [aliasVal]
-	elif key == 'say-as':
-		if val != 'characters': raise Exception()
-		r = [CharacterModeCommand(True), nonSsmlStr_, CharacterModeCommand(False)]
-	elif key == 'ph':
-		phonemeIpa = val
-		r = [PhonemeCommand(phonemeIpa, text=nonSsmlStr_)]
-		INSERT_HACK_PAUSE_AFTER = 1
-		if INSERT_HACK_PAUSE_AFTER:
-			# inspired by 1) the line in MathCAT.py which says "There needs to be a space after the phoneme command" (a comment I don't understand), 2) by my aural observation that NVDA's announcement sounded like "woundlink" (i.e. with no space).
-			# hard to say if the cure is worse than the disease here.  without it: "lead" is too fast.  with it: "tear" is too slow. 
-			r.insert(0, RateCommand(-30))
-			r.append(RateCommand(0))
-	else:
-		raise Exception()
+	try:
+		ssmlAsDict = json.loads(ssmlAsJsonStr_)
+		if len(ssmlAsDict) != 1: raise SsmlError()
+		key = next(iter(ssmlAsDict)); val = ssmlAsDict[key]
+		if key == 'sub':
+			aliasVal = val['alias']
+			r = [aliasVal]
+		elif key == 'say-as':
+			if val != 'characters': raise SsmlError()
+			r = [CharacterModeCommand(True), nonSsmlStr_, CharacterModeCommand(False)]
+		elif key == 'ph':
+			phonemeIpa = val
+			r = [PhonemeCommand(phonemeIpa, text=nonSsmlStr_)]
+			INSERT_HACK_PAUSE_AFTER = 1
+			if INSERT_HACK_PAUSE_AFTER:
+				# inspired by 1) the line in MathCAT.py which says "There needs to be a space after the phoneme command" (a comment I don't understand), 2) by my aural observation that NVDA's announcement sounded like "woundlink" (i.e. with no space).
+				# hard to say if the cure is worse than the disease here.  without it: "lead" is too fast.  with it: "tear" is too slow. 
+				r.insert(0, RateCommand(-30))
+				r.append(RateCommand(0))
+		else:
+			raise SsmlError()
+	except (json.decoder.JSONDecodeError, SsmlError, KeyError) as e:
+		r = [nonSsmlStr_]
 	return r
 
 # Matches the javascript encoding side.  If you change that then change this, and vice versa. 

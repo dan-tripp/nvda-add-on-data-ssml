@@ -128,9 +128,7 @@ window.addEventListener("load", function(event) {
 <p>All elements on this page which have a data-ssml attribute are highlighted in yellow and with "double angle quotation marks", like this: <span data-ssml>abc</span>.</p>
 
 <h2>SSML Sub / Alias</h2>
-<!--
-here is some broken SSML: <span data-ssml='abc'>broken</span>.<br> 
--->
+
 <ol>
 <li>On this line we have no SSML, so the "3 apostrophe" at the end of the line will be announced as just "3".  3'
 <li>Same on this line.  No SSML here, so the "3 apostrophe" at the end of this line will be announced as just "3", but as a link this time.  <a href="#">3'</a>
@@ -251,7 +249,9 @@ lorem ipsum <br>
 <!-- <label><input type="checkbox">the <span data-ssml='{"sub": {"alias": "3 prime"}}'>3'</span> end</label> would become  --> 
 <label><input type="checkbox">the <span data-ssml='{"sub": {"alias": "3 prime"}}'><span aria-hidden="true">3'</span><span class="visually-hidden"> 3 prime</span></span> end</label>
 <br>
+<br>
 
+here is some broken SSML: <span data-ssml='abc'>broken</span> <span data-ssml=''>broken</span> <span data-ssml='{"sub"}'>broken</span> <span data-ssml='{"sub": {"xyzalias": "3 prime"}}'>broken</span>.<br> 
 
 
 <!--
