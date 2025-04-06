@@ -1,6 +1,6 @@
 # Developer guide example 3
 
-import datetime, re, base64, json
+import datetime, re, base64, json, time
 import globalPluginHandler
 from logHandler import log
 import speech
@@ -127,7 +127,8 @@ pattern = re.compile(
 	flags=re.DOTALL
 )
 
-def decodeAllStrs(str_):
+def decodeAllStrs(str_, hidingPlaceElem_):
+	assert hidingPlaceElem_
 	logInfo(f'decodeAllStrs input (len {len(str_)}): {repr(str_)}')
 
 	markerCount = str_.count(MARKER)
@@ -143,10 +144,10 @@ def decodeAllStrs(str_):
 	for match in pattern.finditer(str_):
 		matchCount += 1
 		start, end = match.span()
-		encodedSsml, nonSsmlStr = match.groups()
+		encodedSsmlIndexInGlobalList, plainText = match.groups()
 
-		logInfo(f'encodedSsml (len {len(encodedSsml)}): {repr(encodedSsml)}')
-		logInfo(f'nonSsmlStr (len {len(nonSsmlStr)}): {repr(nonSsmlStr)}')
+		logInfo(f'encodedSsmlIndexInGlobalList: {repr(encodedSsmlIndexInGlobalList)}')
+		logInfo(f'nonSsmlStr (len {len(plainText)}): {repr(plainText)}')
 
 		if start > lastEnd:
 			pre = str_[lastEnd:start]
@@ -154,12 +155,15 @@ def decodeAllStrs(str_):
 			r.append(pre)
 
 		try:
-			decodedSsml = decodeSingleStr(encodedSsml)
-			logInfo(f'	decodedSsml: {decodedSsml}')
-			r.extend(turnSsmlIntoSpeechCommandList(decodedSsml, nonSsmlStr))
+			decodedToStrSsmlIndexInGlobalList = decodeSingleStr(encodedSsmlIndexInGlobalList)
+			logInfo(f'	decodedToStrSsmlIndexInGlobalList: {decodedToStrSsmlIndexInGlobalList}')
+			idxInGlobalList = int(decodedToStrSsmlIndexInGlobalList)
+			globalList = getGlobalListFromHidingPlaceElem(hidingPlaceElem_)
+			ssmlStr = globalList[idxInGlobalList]
+			r.extend(turnSsmlIntoSpeechCommandList(ssmlStr, plainText))
 		except Exception as e:
 			log.exception(e)
-			logInfo(f'	encoded string (raw): {repr(encodedSsml)}')
+			logInfo(f'	encoded string (raw): {repr(encodedSsmlIndexInGlobalList)}')
 			raise
 
 		lastEnd = end
@@ -171,6 +175,16 @@ def decodeAllStrs(str_):
 
 	return r
 
+def getGlobalListFromHidingPlaceElem(hidingPlaceElem_):
+	assert hidingPlaceElem_
+	hidingPlaceElemTextContent = hidingPlaceElem_.name
+	HIDING_PLACE_GUID = '4b9b696c-8fc8-49ca-9bb9-73afc9bd95f7'
+	pattern = rf'{HIDING_PLACE_GUID}\s*(\[.*?\])'
+	match = re.search(pattern, hidingPlaceElemTextContent)
+	if not match: return None
+	globalListStr = match.group(1)
+	globalListObj = json.loads(globalListStr)
+	return globalListObj
 
 g_synthNamesPatched = set()
 
@@ -178,18 +192,17 @@ def patchCurrentSynth():
 	currentSynthOrigSpeakFunc = synthDriverHandler.getSynth().speak
 	def patchedSpeakFunc(speechSequence, *args, **kwargs):
 		modifiedSpeechSequence = []
-		logInfo(f'g_a11yTreeRoot: {g_a11yTreeRoot.name if g_a11yTreeRoot else None}') # tdr 
+		#logInfo(f'g_a11yTreeRoot: {g_a11yTreeRoot.name if g_a11yTreeRoot else None}') # tdr 
 		if 0: # tdr 
 			logInfo(f'a11yTree:\n{a11yTreeToStr(g_a11yTreeRoot)}') # tdr 
-		if 1: # tdr 
-			e = findHidingPlaceElementInA11yTree(g_a11yTreeRoot)
-			logInfo(f'hiding place elem: {e != None}')
+		hidingPlaceElem = findHidingPlaceElementInA11yTree(g_a11yTreeRoot)
+		logInfo(f'hiding place elem: {hidingPlaceElem != None}')
 		logInfo(f'original speech sequence: {speechSequence}')
 		for element in speechSequence:
-			if isinstance(element, str):
+			if isinstance(element, str) and hidingPlaceElem:
 				#logInfo(f'patched synth got string len {len(element)}: "{element}"')
 				logInfo(f'patched synth got string len {len(element)}: "{repr(element)}"')
-				modifiedSpeechSequence.extend(decodeAllStrs(element))
+				modifiedSpeechSequence.extend(decodeAllStrs(element, hidingPlaceElem))
 			else:
 				modifiedSpeechSequence.append(element)
 		logInfo(f'modified speech sequence: {modifiedSpeechSequence}')
@@ -295,8 +308,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 			logInfo(f'no attributes')
 		nextHandler()
 
-
-	def event_gainFocus(self, obj, nextHandler): # tdr 
+	def yevent_gainFocus(self, obj, nextHandler): # tdr 
 		try:
 			cur = obj
 			while cur:

@@ -22,7 +22,7 @@ function isPowerOfTwo(n_) {
 	return (n_ & (n_ - 1)) !== 0;
 }
 
-function encodeSsmlAsZeroWidthChars(str_) {
+function encodeStrAsZeroWidthChars(str_) {
     let encoder = new TextEncoder();
     let utf8Bytes = encoder.encode(str_);
     let bigInt = BigInt(0);
@@ -74,7 +74,7 @@ function encodeSsmlAsZeroWidthChars(str_) {
 
 	if(true) {
 		let resultReadable = [...result].map(c => `\\u${c.codePointAt(0).toString(16).padStart(4, '0')}`).join('');
-		console.log(`data-ssml encoding: ${JSON.stringify({str_, 'baseNDigits.length': baseNDigits.length, baseNDigits})}`);
+		console.log(`encoded string: ${JSON.stringify({str_, 'baseNDigits.length': baseNDigits.length, baseNDigits})}`);
 		console.log(`resultReadable: "${resultReadable}"`);
 	}
 
@@ -93,13 +93,13 @@ function encodeDataSsmlAsBase64(str_) {
     return base64String;
 }
 
-function encodeAllDataSsmlAttribs() {
+function encodeAllDataSsmlAttribsInlineTechnique() {
 	let elements = [...document.querySelectorAll('[data-ssml]')]
 		.filter(el => el.getAttribute('data-ssml')?.trim() !== '');
 	for(let elem of elements) {
 		let dataSsmlValue = elem.getAttribute('data-ssml');
 		if(!dataSsmlValue) continue;
-		let encodedSsml = encodeSsmlAsZeroWidthChars(dataSsmlValue);
+		let encodedSsml = encodeStrAsZeroWidthChars(dataSsmlValue);
 		const START_END_MARKER = '\u2062';
 		elem.insertBefore(document.createTextNode(START_END_MARKER+encodedSsml+START_END_MARKER), elem.firstChild);
 		const MACRO_END_MARKER = START_END_MARKER+START_END_MARKER;
@@ -108,6 +108,44 @@ function encodeAllDataSsmlAttribs() {
 			console.warn(`Found data-ssml in a descendent of an element that has a data-ssml attribute.  We will ignore this one (the descendent.)`, descendentElem);
 		}
 	}
+}
+
+function encodeAllDataSsmlAttribsGlobalTechnique() {
+	let globalListOfSsmlStrs = encodeAllDataSsmlAttribsGlobalTechnique_encodeEachOccurrenceAsAnIndex();
+	encodeAllDataSsmlAttribsGlobalTechnique_addGlobalHidingPlaceElement(globalListOfSsmlStrs);
+}
+
+function encodeAllDataSsmlAttribsGlobalTechnique_addGlobalHidingPlaceElement(globalListOfSsmlStrs_) {
+	let div = document.createElement("div");
+	const HIDING_PLACE_GUID = '4b9b696c-8fc8-49ca-9bb9-73afc9bd95f7';
+	let globaListAsJson = JSON.stringify(globalListOfSsmlStrs_);
+	div.textContent = `Please ignore. ${HIDING_PLACE_GUID} ${globaListAsJson}`;
+	document.body.appendChild(div);
+}
+
+function encodeAllDataSsmlAttribsGlobalTechnique_encodeEachOccurrenceAsAnIndex() {
+	let globalListOfSsmlStrs = [];
+	let elements = [...document.querySelectorAll('[data-ssml]')]
+		.filter(el => el.getAttribute('data-ssml')?.trim() !== '');
+	for(let elem of elements) {
+		let curSsmlStr = elem.getAttribute('data-ssml');
+		if(!curSsmlStr) continue;
+		globalListOfSsmlStrs.push(curSsmlStr);
+		let indexOfCurSsmlStrInGlobalList = globalListOfSsmlStrs.length-1;
+		let indexOfCurSsmlStrInGlobalListEncoded = encodeStrAsZeroWidthChars(indexOfCurSsmlStrInGlobalList.toString());
+		const MARKER = '\u2062';
+		elem.insertBefore(document.createTextNode(MARKER+indexOfCurSsmlStrInGlobalListEncoded+MARKER), elem.firstChild);
+		const MACRO_END_MARKER = MARKER+MARKER;
+		elem.appendChild(document.createTextNode(MACRO_END_MARKER));
+		for(let descendentElem of [...elem.querySelectorAll('[data-ssml]')]) {
+			console.warn(`Found data-ssml in a descendent of an element that has a data-ssml attribute.  We will ignore this one (the descendent.)`, descendentElem);
+		}
+	}
+	return globalListOfSsmlStrs;
+}
+
+function encodeAllDataSsmlAttribs() {
+	encodeAllDataSsmlAttribsGlobalTechnique();
 }
 
 window.addEventListener("load", function(event) {
