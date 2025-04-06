@@ -130,8 +130,11 @@ function encodeAllDataSsmlAttribsGlobalTechnique_encodeEachOccurrenceAsAnIndex()
 	for(let elem of elements) {
 		let curSsmlStr = elem.getAttribute('data-ssml');
 		if(!curSsmlStr) continue;
-		globalListOfSsmlStrs.push(curSsmlStr);
-		let indexOfCurSsmlStrInGlobalList = globalListOfSsmlStrs.length-1;
+		let indexOfCurSsmlStrInGlobalList = globalListOfSsmlStrs.indexOf(curSsmlStr);
+		if(indexOfCurSsmlStrInGlobalList == -1) {
+			globalListOfSsmlStrs.push(curSsmlStr);
+			indexOfCurSsmlStrInGlobalList = globalListOfSsmlStrs.length-1;
+		}
 		let indexOfCurSsmlStrInGlobalListEncoded = encodeStrAsZeroWidthChars(indexOfCurSsmlStrInGlobalList.toString());
 		const MARKER = '\u2062';
 		elem.insertBefore(document.createTextNode(MARKER+indexOfCurSsmlStrInGlobalListEncoded+MARKER), elem.firstChild);
