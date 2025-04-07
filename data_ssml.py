@@ -163,11 +163,12 @@ pattern = re.compile(
 	flags=re.DOTALL
 )
 
+# This function lazy-calls on findHidingPlaceElementInA11yTree() b/c it takes ~ 13 ms per call.  this amounts to calling that function only for parts of a web page which have our encoded data-ssml. 
 @profile
-def decodeAllStrs(str_, hidingPlaceElem_):
-	assert hidingPlaceElem_
+def decodeAllStrs(str_, hidingPlaceElemRef_):
+	assert(isinstance(hidingPlaceElemRef_, list) and len(hidingPlaceElemRef_) == 1)
 	logInfo(f'decodeAllStrs input (len {len(str_)}): {repr(str_)}')
-
+ 
 	r = []
 	lastEnd = 0
 	matchCount = 0
@@ -192,7 +193,9 @@ def decodeAllStrs(str_, hidingPlaceElem_):
 			logInfo(f'	decodedToStrSsmlIndexInGlobalList: "{decodedToStrSsmlIndexInGlobalList}"')
 			if decodedToStrSsmlIndexInGlobalList:
 				idxInGlobalList = int(decodedToStrSsmlIndexInGlobalList)
-				globalList = getGlobalListFromHidingPlaceElem(hidingPlaceElem_)
+				if hidingPlaceElemRef_[0] == None:
+					hidingPlaceElemRef_[0] = findHidingPlaceElementInA11yTree(g_a11yTreeRoot)
+				globalList = getGlobalListFromHidingPlaceElem(hidingPlaceElemRef_[0])
 				ssmlStr = globalList[idxInGlobalList]
 				r.extend(turnSsmlIntoSpeechCommandList(ssmlStr, textToAffect, origWholeUnmodifiedText))
 				success = True
@@ -239,14 +242,13 @@ def patchCurrentSynth():
 		modifiedSpeechSequence = []
 		#logInfo(f'g_a11yTreeRoot: {g_a11yTreeRoot.name if g_a11yTreeRoot else None}') 
 		#logInfo(f'a11yTree:\n{a11yTreeToStr(g_a11yTreeRoot)}') 
-		hidingPlaceElem = findHidingPlaceElementInA11yTree(g_a11yTreeRoot)
-		logInfo(f'hiding place elem: {hidingPlaceElem != None}')
+		hidingPlaceElemRef = [None]
 		logInfo(f'original speech sequence: {speechSequence}')
 		for element in speechSequence:
-			if isinstance(element, str) and hidingPlaceElem:
+			if isinstance(element, str):
 				#logInfo(f'patched synth got string len {len(element)}: "{element}"')
 				logInfo(f'patched synth got string len {len(element)}: "{repr(element)}"')
-				modifiedSpeechSequence.extend(decodeAllStrs(element, hidingPlaceElem))
+				modifiedSpeechSequence.extend(decodeAllStrs(element, hidingPlaceElemRef))
 			else:
 				modifiedSpeechSequence.append(element)
 		logInfo(f'modified speech sequence: {modifiedSpeechSequence}')
