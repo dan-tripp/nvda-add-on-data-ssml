@@ -1,4 +1,5 @@
-# Developer guide example 3
+
+PROFILE = True
 
 import datetime, re, base64, json, time
 import globalPluginHandler
@@ -27,9 +28,23 @@ from speech.commands import (
 def logInfo(str_):
 	log.info(f'data-ssml: {datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")} {str_}')
 
+def profile(fn):
+	if PROFILE:
+		def wrapped(*args, **kwargs):
+			t0 = time.perf_counter()
+			try:
+				return fn(*args, **kwargs)
+			finally:
+				t1 = time.perf_counter()
+				logInfo(f"profile: {fn.__name__} took {int((t1-t0)*1000)} ms.")
+		return wrapped
+	else:
+		return fn
+
 def isPowerOfTwo(n_):
 	return n_ > 0 and (n_ & (n_ - 1)) == 0
 
+@profile
 def decodeSingleStr(str_):
 	''' If you change the chars here, you need to also change them in the JS encode function.  
 	And vice versa.  Write comments about these chars here, not there. 
@@ -94,6 +109,7 @@ def decodeSingleStr(str_):
 class SsmlError(Exception):
     pass
 
+@profile
 def turnSsmlIntoSpeechCommandList(ssmlAsJsonStr_, nonSsmlStr_, origWholeUnmodifiedText_):
 	try:
 		ssmlAsDict = json.loads(ssmlAsJsonStr_)
@@ -133,6 +149,7 @@ pattern = re.compile(
 	flags=re.DOTALL
 )
 
+@profile
 def decodeAllStrs(str_, hidingPlaceElem_):
 	assert hidingPlaceElem_
 	logInfo(f'decodeAllStrs input (len {len(str_)}): {repr(str_)}')
@@ -203,6 +220,7 @@ g_synthNamesPatched = set()
 
 def patchCurrentSynth():
 	currentSynthOrigSpeakFunc = synthDriverHandler.getSynth().speak
+	@profile
 	def patchedSpeakFunc(speechSequence, *args, **kwargs):
 		modifiedSpeechSequence = []
 		#logInfo(f'g_a11yTreeRoot: {g_a11yTreeRoot.name if g_a11yTreeRoot else None}') 
@@ -246,6 +264,7 @@ def getRole(nvdaObj_):
 	except (KeyError, IndexError, TypeError):
 		return f"unknown role ({nvdaObj_.role})"
 
+@profile
 def findHidingPlaceElementInA11yTree(root_):
 	# document > section > text 
 	# document: root_ 
@@ -290,7 +309,7 @@ g_original_speakTextInfo = speech.speakTextInfo
 
 g_a11yTreeRoot = None
 
-def wrapped_speakTextInfo(info, *args, **kwargs):
+def patchedSpeakTextInfo(info, *args, **kwargs):
 	global g_a11yTreeRoot
 	nvdaObjectAtStart = info.NVDAObjectAtStart
 	a11yTreeRoot = nvdaObjectAtStart.treeInterceptor.rootNVDAObject
@@ -298,7 +317,7 @@ def wrapped_speakTextInfo(info, *args, **kwargs):
 	return g_original_speakTextInfo(info, *args, **kwargs)
 
 def patchSpeakTextInfoFunc():
-	speech.speakTextInfo = wrapped_speakTextInfo
+	speech.speakTextInfo = patchedSpeakTextInfo
 
 class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 
