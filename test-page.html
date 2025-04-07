@@ -72,7 +72,7 @@ window.addEventListener("load", function(event) {
 		scrollWithGap(e.target);
 	});
 
-	if(false) { // tdr 
+	if(false) { 
 		let repeat = 70;
 		let chars = [
 			'\uFFF9', 
@@ -251,7 +251,14 @@ lorem ipsum <br>
 <br>
 <br>
 
+<h4>handling broken cases / noise in web pages</h4>
 here is some broken SSML: <span data-ssml='abc'>broken</span> <span data-ssml=''>broken</span> <span data-ssml='{"sub"}'>broken</span> <span data-ssml='{"sub": {"xyzalias": "3 prime"}}'>broken</span>.<br> 
+here are some encoding characters in the wild: <br>
+just some encoding characters.  no marker.  &#xFFF9;&#x200C;&#x200D;&#x2060;&#x2061;&#xFEFF;&#x2063;&#x2064;&#xFFFB;&#xFFFA;&#x206A;&#x206B;&#x206C;&#x206D;&#x206E;&#x206F;<br>
+marker: &#x2062;&#x2062;&#x2062;&#x2062; &#x2062;&#x2062;3&#x2062;&#x2062; &#x2062;&#xfffa;x&#x206F;&#x2062;4&#x2062;&#x2062; &#x2062;&#x2064;&#xfffb;&#x2062;5&#x2062;&#x2062;<br>
+
+&#x2062;&#x2060;&#xfffa;&#x2060;&#xfffa;&#x2060;&#xfffa;&#x2060;&#xfffa;&#x2060;&#xfffa;&#x2062;index = 99999&#x2062;&#x2062; <br>
+&#x2062;&#x200d;&#x206d;&#x2060;&#x200c;&#x2062;index = -1&#x2062;&#x2062; <br>
 
 
 <!--

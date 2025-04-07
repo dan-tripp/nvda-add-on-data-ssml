@@ -3,21 +3,6 @@ function go() {
 	encodeAllDataSsmlAttribs();
 }
 
-function encodeSsmlAsZeroWidthCharsBinary(str_) {
-    let encoder = new TextEncoder();
-    let utf8Bytes = encoder.encode(str_);
-    let result = '';
-
-    for (let byte of utf8Bytes) {
-        for (let i = 7; i >= 0; i--) {
-            let bit = (byte >> i) & 1;
-            result += bit === 0 ? '\u200C' : '\u200D';
-        }
-    }
-
-    return result;
-}
-
 function isPowerOfTwo(n_) {
 	return (n_ & (n_ - 1)) !== 0;
 }
@@ -81,19 +66,7 @@ function encodeStrAsZeroWidthChars(str_) {
     return result;
 }
 
-
-function encodeDataSsmlAsBase64(str_) {
-    let encoder = new TextEncoder();
-    let utf8Bytes = encoder.encode(str_);
-    let binaryString = '';
-    for (let byte of utf8Bytes) {
-        binaryString += String.fromCharCode(byte);
-    }
-    let base64String = btoa(binaryString);
-    return base64String;
-}
-
-function encodeAllDataSsmlAttribsInlineTechnique() {
+function _old_encodeAllDataSsmlAttribsInlineTechnique() {
 	let elements = [...document.querySelectorAll('[data-ssml]')]
 		.filter(el => el.getAttribute('data-ssml')?.trim() !== '');
 	for(let elem of elements) {

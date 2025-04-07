@@ -94,7 +94,7 @@ def decodeSingleStr(str_):
 class SsmlError(Exception):
     pass
 
-def turnSsmlIntoSpeechCommandList(ssmlAsJsonStr_, nonSsmlStr_):
+def turnSsmlIntoSpeechCommandList(ssmlAsJsonStr_, nonSsmlStr_, origWholeUnmodifiedText_):
 	try:
 		ssmlAsDict = json.loads(ssmlAsJsonStr_)
 		if len(ssmlAsDict) != 1: raise SsmlError()
@@ -117,7 +117,7 @@ def turnSsmlIntoSpeechCommandList(ssmlAsJsonStr_, nonSsmlStr_):
 		else:
 			raise SsmlError()
 	except (json.decoder.JSONDecodeError, SsmlError, KeyError) as e:
-		r = [nonSsmlStr_]
+		r = [origWholeUnmodifiedText_]
 	return r
 
 # Matches the javascript encoding side.  If you change that then change this, and vice versa. 
@@ -137,12 +137,6 @@ def decodeAllStrs(str_, hidingPlaceElem_):
 	assert hidingPlaceElem_
 	logInfo(f'decodeAllStrs input (len {len(str_)}): {repr(str_)}')
 
-	markerCount = str_.count(MARKER)
-	macroEndCount = str_.count(MACRO_END_MARKER)
-
-	if not ((markerCount % 4 == 0) and (markerCount // 4 == macroEndCount)):
-		raise Exception(f'[decodeAllStrs] marker mismatch: {markerCount} singles, {macroEndCount} doubles')
-
 	r = []
 	lastEnd = 0
 	matchCount = 0
@@ -150,27 +144,36 @@ def decodeAllStrs(str_, hidingPlaceElem_):
 	for match in pattern.finditer(str_):
 		matchCount += 1
 		start, end = match.span()
-		encodedSsmlIndexInGlobalList, plainText = match.groups()
+		encodedSsmlIndexInGlobalList, textToAffect = match.groups()
+		origWholeUnmodifiedText = match.group(0)
 
 		logInfo(f'encodedSsmlIndexInGlobalList: {repr(encodedSsmlIndexInGlobalList)}')
-		logInfo(f'nonSsmlStr (len {len(plainText)}): {repr(plainText)}')
+		logInfo(f'nonSsmlStr (len {len(textToAffect)}): {repr(textToAffect)}')
 
 		if start > lastEnd:
 			pre = str_[lastEnd:start]
 			logInfo(f'	plain text before match: {repr(pre)}')
 			r.append(pre)
 
+		success = False
 		try:
 			decodedToStrSsmlIndexInGlobalList = decodeSingleStr(encodedSsmlIndexInGlobalList)
-			logInfo(f'	decodedToStrSsmlIndexInGlobalList: {decodedToStrSsmlIndexInGlobalList}')
-			idxInGlobalList = int(decodedToStrSsmlIndexInGlobalList)
-			globalList = getGlobalListFromHidingPlaceElem(hidingPlaceElem_)
-			ssmlStr = globalList[idxInGlobalList]
-			r.extend(turnSsmlIntoSpeechCommandList(ssmlStr, plainText))
-		except Exception as e:
-			log.exception(e)
-			logInfo(f'	encoded string (raw): {repr(encodedSsmlIndexInGlobalList)}')
-			raise
+			logInfo(f'	decodedToStrSsmlIndexInGlobalList: "{decodedToStrSsmlIndexInGlobalList}"')
+			if decodedToStrSsmlIndexInGlobalList:
+				idxInGlobalList = int(decodedToStrSsmlIndexInGlobalList)
+				globalList = getGlobalListFromHidingPlaceElem(hidingPlaceElem_)
+				ssmlStr = globalList[idxInGlobalList]
+				r.extend(turnSsmlIntoSpeechCommandList(ssmlStr, textToAffect, origWholeUnmodifiedText))
+				success = True
+		except (Exception, IndexError) as e:
+			logInfo(f"Couldn't decode or figure out what to do with string '{encodedSsmlIndexInGlobalList}'.  Will use unmodified text.")
+			if 0:
+				log.exception(e)
+				logInfo(f'	encoded string (raw): {repr(encodedSsmlIndexInGlobalList)}')
+			#raise
+
+		if not success:
+			r.append(origWholeUnmodifiedText)
 
 		lastEnd = end
 
@@ -178,6 +181,10 @@ def decodeAllStrs(str_, hidingPlaceElem_):
 		trailing = str_[lastEnd:]
 		logInfo(f'trailing text after last match: {repr(trailing)}')
 		r.append(trailing)
+
+	if all(isinstance(e, str) for e in r):
+		# this is for when we meet 'encoding chars in the wild'.  in that case, the code earlier in this function will 'fallback' to the unmodified string, but it will still make this modification: it will split up str_ into > 1 string.  I suspect that might affect SR pronunciation in some cases.  so here we undo that.
+		r = [''.join(r)]
 
 	return r
 
@@ -198,9 +205,8 @@ def patchCurrentSynth():
 	currentSynthOrigSpeakFunc = synthDriverHandler.getSynth().speak
 	def patchedSpeakFunc(speechSequence, *args, **kwargs):
 		modifiedSpeechSequence = []
-		#logInfo(f'g_a11yTreeRoot: {g_a11yTreeRoot.name if g_a11yTreeRoot else None}') # tdr 
-		if 0: # tdr 
-			logInfo(f'a11yTree:\n{a11yTreeToStr(g_a11yTreeRoot)}') # tdr 
+		#logInfo(f'g_a11yTreeRoot: {g_a11yTreeRoot.name if g_a11yTreeRoot else None}') 
+		#logInfo(f'a11yTree:\n{a11yTreeToStr(g_a11yTreeRoot)}') 
 		hidingPlaceElem = findHidingPlaceElementInA11yTree(g_a11yTreeRoot)
 		logInfo(f'hiding place elem: {hidingPlaceElem != None}')
 		logInfo(f'original speech sequence: {speechSequence}')
@@ -306,26 +312,3 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		logInfo('synth changed.')
 		patchCurrentSynthIfNecessary()
 		
-	def xevent_gainFocus(self, obj, nextHandler): # tdr 
-		logInfo(f'focus: "{obj.name}"')
-		try:
-			logInfo(f'attributes: "{obj.attributes}"')
-		except:
-			logInfo(f'no attributes')
-		nextHandler()
-
-	def yevent_gainFocus(self, obj, nextHandler): # tdr 
-		try:
-			cur = obj
-			while cur:
-				role = roleLabels.get(cur.role, str(cur.role))
-				name = cur.name or ""
-				attrs = getattr(cur, "attributes", None)
-				logInfo(f"Focus: role={role}, name={name}, attributes={attrs}")
-				
-				cur = getattr(cur, "parent", None)
-
-		except Exception as e:
-			logInfo(f"[event_gainFocus] error: {e}")
-
-		nextHandler()
