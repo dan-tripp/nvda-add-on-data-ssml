@@ -40,6 +40,20 @@ def profile(fn):
 		return wrapped
 	else:
 		return fn
+	
+class StopWatch:
+	def __init__(self, label=""):
+		self.label = label
+		self.lastTime = time.perf_counter()
+		self.numClicks = 0
+
+	def click(self, message=""):
+		nowTime = time.perf_counter()
+		self.numClicks += 1
+		elapsedMillis = (nowTime - self.lastTime) * 1000
+		self.lastTime = nowTime
+		output = f"stopwatch: {self.label} {message} {self.numClicks} took {elapsedMillis:.0f} ms"
+		logInfo(output)
 
 def isPowerOfTwo(n_):
 	return n_ > 0 and (n_ & (n_ - 1)) == 0
@@ -250,14 +264,7 @@ def patchCurrentSynthIfNecessary():
 	else:
 		logInfo(f'patch of synth "{currentSynthName}" not necessary.')
 
-def getLastChild(nvdaObj_):
-	child = nvdaObj_.firstChild
-	if not child:
-		return None
-	while child.next:
-		child = child.next
-	return child
-
+@profile
 def getRole(nvdaObj_):
 	try:
 		return roleLabels[nvdaObj_.role]
@@ -266,13 +273,15 @@ def getRole(nvdaObj_):
 
 @profile
 def findHidingPlaceElementInA11yTree(root_):
+	logInfo(f'dom root id {id(root_)}')
 	# document > section > text 
 	# document: root_ 
 	# > section: our hiding place div.  in DOM: last child of <body>.  in this tree: last child of document.  
 	# > text: only child of our hiding place div. 
 	# in both chrome and ff.  
+	# looks like this function is slow.  usually takes 13 ms.  slow parts are: .lastChild and .firstChild. 
 	if not root_: return None
-	documentLastChild = getLastChild(root_)
+	documentLastChild = root_.lastChild
 	if not documentLastChild: return None
 	if getRole(documentLastChild) != 'section': return None
 	section = documentLastChild
