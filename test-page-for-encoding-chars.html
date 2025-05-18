@@ -27,23 +27,24 @@ p { line-height: 1.5; }
 window.addEventListener("load", function(event) {
     let main = document.querySelector("main");
 
-	let repeat = 70;
+	let repeat = 2;
     let chars = [
-    '\uFFF9',
-    '\uFFFA',
-	/*
-    '\uFFFB',
-    '\u061C',
-    '\u070F',
-    '\u180E',
-    '\u206A',
-    '\u206B',
-    '\u206C',
-    '\u206D',
-    '\u206E',
-    '\u206F', 
-	'\u200B'
-	*/
+		'\uFFF9', 
+		'\u200C', 
+		'\u200D',
+		'\u2060',
+		'\u2061',
+		'\uFEFF',
+		'\u2063',
+		'\u2064',
+		'\uFFFB',
+		'\uFFFA',
+		'\u206A',
+		'\u206B',
+		'\u206C',
+		'\u206D',
+		'\u206E',
+		'\u206F', 
     ];
     for (let c of chars) {
         let codePoint = c.codePointAt(0).toString(16).toUpperCase().padStart(4, '0');

@@ -20,15 +20,7 @@ p { line-height: 1.5; }
 }
 
 [data-ssml] {
-	background-color: rgb(255, 255, 0); 
-}
-
-[data-ssml]::before {
-	content: "»";
-}
-
-[data-ssml]::after {
-	content: "«";
+	outline: 2px dashed rgb(150,150,150);
 }
 
 table.ssml-table {
@@ -125,7 +117,7 @@ window.addEventListener("load", function(event) {
 
 <h1>data-ssml NVDA plugin test page</h1>
 
-<p>All elements on this page which have a data-ssml attribute are highlighted in yellow and with "double angle quotation marks", like this: <span data-ssml>abc</span>.</p>
+<p>All elements on this page which have a data-ssml attribute have a dark grey dashed box outline, like this: <span data-ssml>abc</span>.</p>
 
 <h2>SSML Sub / Alias</h2>
 
