@@ -134,7 +134,26 @@ def turnSsmlIntoSpeechCommandList(ssmlAsJsonStr_, nonSsmlStr_, origWholeUnmodifi
 			r = [aliasVal]
 		elif key == 'say-as':
 			if val != 'characters': raise SsmlError()
-			r = [CharacterModeCommand(True), nonSsmlStr_, CharacterModeCommand(False)]
+
+			# The best test case for reproducing the problem that this code solves is <span data-ssml='{"say-as": "characters"}'>ABCDEFGHIJKLMNOP</span>
+
+			# Some code here was copied from MathCAT.py, which was added in https://github.com/NSoiffer/MathCATForPython/commit/76679ad206749d4d0cf20bcade4a8880831e7904 to fix https://github.com/NSoiffer/MathCATForPython/issues/32 
+			# From MathCAT.py: as of 7/23, oneCore voices do not implement the CharacterModeCommand despite it being in supported_commands
+			synth = synthDriverHandler.getSynth()
+			useCharacterModeCommand = (CharacterModeCommand in synth.supportedCommands and synth.name != "oneCore")
+			if useCharacterModeCommand:
+				r = [CharacterModeCommand(True), nonSsmlStr_, CharacterModeCommand(False)]
+			else:
+				# This language code was copied from MathCAT.py.  It might not work in Chrome, as per comments at https://github.com/NSoiffer/MathCATForPython/commit/76679ad206749d4d0cf20bcade4a8880831e7904 .   I'm very unclear on whether this handles language changes in the HTML (vs. the synth) and how that all works. 
+				language = speech.getCurrentLanguage()
+				language = language.lower() # b/c MathCAT.py did this, maybe, sometimes. 
+				isLanguageEnglish = language.startswith("en")
+
+				r = []
+				for ch in nonSsmlStr_:
+					# I'm using this "eigh" from MathCAT even though I couldn't reproduce the problem that it is solving, which is described at https://github.com/NSoiffer/MathCATForPython/issues/32 and https://github.com/nvaccess/nvda/issues/13596 , most thoroughly at the latter. 
+					r.extend((" ", "eigh" if ch == "a" and isLanguageEnglish else ch, " "))
+
 		elif key == 'ph':
 			phonemeIpa = val
 			r = [PhonemeCommand(phonemeIpa, text=nonSsmlStr_)]
@@ -233,7 +252,7 @@ def getGlobalListFromHidingPlaceElem(hidingPlaceElem_):
 	globalListObj = json.loads(globalListStr)
 	return globalListObj
 
-g_synthNamesPatched = set()
+g_lastSynthPatched = None
 
 def patchCurrentSynth():
 	currentSynthOrigSpeakFunc = synthDriverHandler.getSynth().speak
@@ -257,14 +276,15 @@ def patchCurrentSynth():
 	synthDriverHandler.getSynth().speak = patchedSpeakFunc
 
 def patchCurrentSynthIfNecessary():
-	global g_synthNamesPatched
-	currentSynthName = synthDriverHandler.getSynth().name
-	if currentSynthName not in g_synthNamesPatched:
-		logInfo(f'patching synth "{currentSynthName}".')
-		g_synthNamesPatched.add(currentSynthName)
+	global g_lastSynthPatched
+	currentSynth = synthDriverHandler.getSynth()
+	if currentSynth != g_lastSynthPatched:
+		logInfo(f'patching synth "{currentSynth}".')
+		g_lastSynthPatched = currentSynth
 		patchCurrentSynth()
 	else:
-		logInfo(f'patch of synth "{currentSynthName}" not necessary.')
+		# it's unclear to me if this will ever happen. 
+		logInfo(f'patch of synth "{currentSynth}" not necessary.')
 
 @profile
 def getRole(nvdaObj_):
