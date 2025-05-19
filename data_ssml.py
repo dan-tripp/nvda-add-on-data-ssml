@@ -155,6 +155,13 @@ def turnSsmlIntoSpeechCommandList(ssmlAsJsonStr_, nonSsmlStr_, origWholeUnmodifi
 					r.extend((" ", "eigh" if ch == "a" and isLanguageEnglish else ch, " "))
 
 		elif key == 'ph':
+			# With phonemes, there are some things I don't understand:
+			# - judging by sound, PhonemeCommand only reliably works with synth=onecore 
+			# - PhonemeCommand appears in supportedCommands of all three synths (onecore, sapi5, espeak).  
+			# 	- all 3 synths have identical supportedCommands: {<class 'speech.commands.PitchCommand'>, <class 'speech.commands.BreakCommand'>, <class 'speech.commands.LangChangeCommand'>, <class 'speech.commands.PhonemeCommand'>, <class 'speech.commands.CharacterModeCommand'>, <class 'speech.commands.VolumeCommand'>, <class 'speech.commands.IndexCommand'>, <class 'speech.commands.RateCommand'>} 
+			# I know of one phoneme that works in all 3 synths: "θ" i.e. "th".  this is on the test page.  
+			# 	- I found this phoneme at https://github.com/nvaccess/nvda/blob/b501e16a2392aaa89892879d77725f02b9f2835d/source/synthDrivers/sapi5.py#L423 
+
 			phonemeIpa = val
 			r = [PhonemeCommand(phonemeIpa, text=nonSsmlStr_)]
 			INSERT_HACK_PAUSE_AFTER = 1
