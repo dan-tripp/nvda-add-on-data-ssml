@@ -164,12 +164,11 @@ def turnSsmlIntoSpeechCommandList(ssmlAsJsonStr_, nonSsmlStr_, origWholeUnmodifi
 
 			phonemeIpa = val
 			r = [PhonemeCommand(phonemeIpa, text=nonSsmlStr_)]
-			INSERT_HACK_PAUSE_AFTER = 1
-			if INSERT_HACK_PAUSE_AFTER:
-				# inspired by 1) the line in MathCAT.py which says "There needs to be a space after the phoneme command" (a comment I don't understand), 2) by my aural observation that NVDA's announcement sounded like "woundlink" (i.e. with no space).
-				# hard to say if the cure is worse than the disease here.  without it: "lead" is too fast.  with it: "tear" is too slow. 
-				r.insert(0, RateCommand(-30))
-				r.append(RateCommand(0))
+			INSERT_HACK_SPACE_AFTER = 1
+			if INSERT_HACK_SPACE_AFTER:
+				# ~ march 2025: this is here because of my aural observation that NVDA's announcement sounded like "woundlink" (i.e. with no space).
+				# 2025-05-19: today when I disabled this code, I couldn't hear the problem.  so it's unclear if this code is necessary.  
+				r.append(" ")
 		else:
 			raise SsmlError()
 	except (json.decoder.JSONDecodeError, SsmlError, KeyError) as e:
