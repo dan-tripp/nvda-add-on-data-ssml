@@ -46,7 +46,8 @@ cd ../nvda-add-on-data-ssml-private
 ((git add --all && if git diff-index --quiet HEAD --; then echo "No changes to commit." ; else echo "changed files:"; git diff --name-only --cached  && git commit -m . ; fi ) && git-windows push;) 
 cd ~-
 
-./copy-scratchpad-files-to-here.bash
+# ** commenting this out now that I'm using a symlink: ** 
+# ./copy-scratchpad-files-to-here.bash
 
 git add --all
 if git diff-index --quiet HEAD --; then 
