@@ -4,11 +4,12 @@ PROFILE = True
 import datetime, re, base64, json, time
 import globalPluginHandler
 from logHandler import log
-import speech
+import speech, speech.commands, speech.extensions
 import gettext
 import synthDriverHandler
 from controlTypes import roleLabels
 from documentBase import textInfos
+
 
 _ = gettext.gettext
 
@@ -27,6 +28,11 @@ from speech.commands import (
 
 def logInfo(str_):
 	log.info(f'data-ssml: {datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")} {str_}')
+
+def ourAssert(bool_, str_=''):
+	if not bool_:
+		raise AssertionError(str_)
+		
 
 def profile(fn):
 	if PROFILE:
@@ -97,7 +103,7 @@ def decodeSingleStr(str_):
 		'\u206E',
 		'\u206F', 
 	]
-	assert len(set(ENCODING_CHARS)) == len(ENCODING_CHARS), "encodingChars contains duplicates"
+	ourAssert(len(set(ENCODING_CHARS)) == len(ENCODING_CHARS), "encodingChars contains duplicates")
 
 	n = len(ENCODING_CHARS)
 	if not isPowerOfTwo(n):
@@ -179,24 +185,23 @@ def turnSsmlIntoSpeechCommandList(ssmlAsJsonStr_, nonSsmlStr_, origWholeUnmodifi
 MARKER = '\u2062'
 MACRO_END_MARKER = MARKER * 2
 
-pattern = re.compile(
-	f'{re.escape(MARKER)}'
-	f'(.*?)'
-	f'{re.escape(MARKER)}'
-	f'(.*?)'
-	f'{re.escape(MACRO_END_MARKER)}',
-	flags=re.DOTALL
-)
-
-# This function lazy-calls on findHidingPlaceElementInA11yTree() b/c it takes ~ 13 ms per call.  this amounts to calling that function only for parts of a web page which have our encoded data-ssml. 
+# This function lazy-calls findHidingPlaceElementInA11yTree() b/c it takes ~ 13 ms per call.  this amounts to calling that function only for parts of a web page which have our encoded data-ssml. 
 @profile
 def decodeAllStrs(str_, hidingPlaceElemRef_):
-	assert(isinstance(hidingPlaceElemRef_, list) and len(hidingPlaceElemRef_) == 1)
+	ourAssert(isinstance(hidingPlaceElemRef_, list) and len(hidingPlaceElemRef_) == 1)
 	logInfo(f'decodeAllStrs input (len {len(str_)}): {repr(str_)}')
  
 	r = []
 	lastEnd = 0
 	matchCount = 0
+
+	pattern = re.compile(
+		f'{re.escape(MARKER)}'
+		f'(.*?)'
+		f'{re.escape(MARKER)}'
+		f'(.*?)'
+		f'{re.escape(MACRO_END_MARKER)}',
+		flags=re.DOTALL)
 
 	for match in pattern.finditer(str_):
 		matchCount += 1
@@ -225,10 +230,10 @@ def decodeAllStrs(str_, hidingPlaceElemRef_):
 				r.extend(turnSsmlIntoSpeechCommandList(ssmlStr, textToAffect, origWholeUnmodifiedText))
 				success = True
 		except (Exception, IndexError) as e:
-			logInfo(f"Couldn't decode or figure out what to do with string '{encodedSsmlIndexInGlobalList}'.  Will use unmodified text.")
-			if 0:
+			logInfo(f"Couldn't decode or figure out what to do with string '{encodedSsmlIndexInGlobalList} / {repr(encodedSsmlIndexInGlobalList)}'.  Will use unmodified text.")
+			if 1:
+				logInfo('Exception, which we will suppressed, was:')
 				log.exception(e)
-				logInfo(f'	encoded string (raw): {repr(encodedSsmlIndexInGlobalList)}')
 			#raise
 
 		if not success:
@@ -248,7 +253,7 @@ def decodeAllStrs(str_, hidingPlaceElemRef_):
 	return r
 
 def getGlobalListFromHidingPlaceElem(hidingPlaceElem_):
-	assert hidingPlaceElem_
+	ourAssert(hidingPlaceElem_)
 	hidingPlaceElemTextContent = hidingPlaceElem_.name
 	HIDING_PLACE_GUID = '4b9b696c-8fc8-49ca-9bb9-73afc9bd95f7'
 	pattern = rf'{HIDING_PLACE_GUID}\s*(\[.*?\])'
@@ -257,40 +262,6 @@ def getGlobalListFromHidingPlaceElem(hidingPlaceElem_):
 	globalListStr = match.group(1)
 	globalListObj = json.loads(globalListStr)
 	return globalListObj
-
-g_lastSynthPatched = None
-
-def patchCurrentSynth():
-	currentSynthOrigSpeakFunc = synthDriverHandler.getSynth().speak
-	@profile
-	def patchedSpeakFunc(speechSequence, *args, **kwargs):
-		modifiedSpeechSequence = []
-		#logInfo(f'g_a11yTreeRoot: {g_a11yTreeRoot.name if g_a11yTreeRoot else None}') 
-		#logInfo(f'a11yTree:\n{a11yTreeToStr(g_a11yTreeRoot)}') 
-		hidingPlaceElemRef = [None]
-		logInfo(f'original speech sequence: {speechSequence}')
-		for element in speechSequence:
-			if isinstance(element, str):
-				#logInfo(f'patched synth got string len {len(element)}: "{element}"')
-				logInfo(f'patched synth got string len {len(element)}: "{repr(element)}"')
-				modifiedSpeechSequence.extend(decodeAllStrs(element, hidingPlaceElemRef))
-			else:
-				modifiedSpeechSequence.append(element)
-		logInfo(f'modified speech sequence: {modifiedSpeechSequence}')
-		logInfo(f'speech sequence changed: {modifiedSpeechSequence != speechSequence}')
-		return currentSynthOrigSpeakFunc(modifiedSpeechSequence, *args, **kwargs)
-	synthDriverHandler.getSynth().speak = patchedSpeakFunc
-
-def patchCurrentSynthIfNecessary():
-	global g_lastSynthPatched
-	currentSynth = synthDriverHandler.getSynth()
-	if currentSynth != g_lastSynthPatched:
-		logInfo(f'patching synth "{currentSynth}".')
-		g_lastSynthPatched = currentSynth
-		patchCurrentSynth()
-	else:
-		# it's unclear to me if this will ever happen. 
-		logInfo(f'patch of synth "{currentSynth}" not necessary.')
 
 @profile
 def getRole(nvdaObj_):
@@ -346,6 +317,7 @@ g_original_speakTextInfo = speech.speakTextInfo
 
 g_a11yTreeRoot = None
 
+# The point of this is to get the a11y tree root AKA DOM root, so that later our filter_speechSequence function can get our SSML from there.  If I knew how to get the DOM root directly from our filter_speechSequence function, then I would. 
 def patchedSpeakTextInfo(info, *args, **kwargs):
 	global g_a11yTreeRoot
 	nvdaObjectAtStart = info.NVDAObjectAtStart
@@ -357,14 +329,29 @@ def patchSpeakTextInfoFunc():
 	speech.speakTextInfo = patchedSpeakTextInfo
 
 class GlobalPlugin(globalPluginHandler.GlobalPlugin):
-
-	def __init__(self, *args, **kwargs):
-		super().__init__(*args, **kwargs)
-		synthDriverHandler.synthChanged.register(self.onSynthChanged) 
-		patchCurrentSynthIfNecessary()
+	def __init__(self):
+		super().__init__()
 		patchSpeakTextInfoFunc()
+		self._ourSpeechSequenceFilter = speech.extensions.filter_speechSequence.register(self.ourSpeechSequenceFilter)
 
-	def onSynthChanged(self, *args, **kwargs):
-		logInfo('synth changed.')
-		patchCurrentSynthIfNecessary()
-		
+	def terminate(self):
+		self._ourSpeechSequenceFilter.unregister()
+
+	def ourSpeechSequenceFilter(self, origSeq: speech.SpeechSequence) -> speech.SpeechSequence:
+		modSeq = []
+		#logInfo(f'g_a11yTreeRoot: {g_a11yTreeRoot.name if g_a11yTreeRoot else None}') 
+		#logInfo(f'a11yTree:\n{a11yTreeToStr(g_a11yTreeRoot)}') 
+		hidingPlaceElemRef = [None]
+		logInfo(f'original speech sequence: {origSeq}')
+		for element in origSeq:
+			if isinstance(element, str):
+				#logInfo(f'patched synth got string len {len(element)}: "{element}"')
+				logInfo(f'filter got string len {len(element)}: "{repr(element)}"')
+				modSeq.extend(decodeAllStrs(element, hidingPlaceElemRef))
+			else:
+				modSeq.append(element)
+		logInfo(f'modified speech sequence: {modSeq}')
+		logInfo(f'speech sequence changed: {modSeq != origSeq}')
+		return modSeq
+	
+
