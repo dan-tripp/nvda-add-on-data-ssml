@@ -4,7 +4,7 @@ PROFILE = True
 import datetime, re, base64, json, time
 import globalPluginHandler
 from logHandler import log
-import speech, speech.commands, speech.extensions
+import speech, speech.commands, speech.extensions, braille
 import gettext
 import synthDriverHandler
 from controlTypes import roleLabels
@@ -332,10 +332,17 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 	def __init__(self):
 		super().__init__()
 		patchSpeakTextInfoFunc()
+		# Thank you Dalen at https://nvda-addons.groups.io/g/nvda-addons/message/25811 for this idea of using filter_speechSequence instead of monkey-patching the synth. 
 		self._ourSpeechSequenceFilter = speech.extensions.filter_speechSequence.register(self.ourSpeechSequenceFilter)
+		LOG_BRAILLE = 0
+		if LOG_BRAILLE:
+			braille.pre_writeCells.register(self.ourBraillePreWriteCells)
+
+	def ourBraillePreWriteCells(self, cells, rawText, currentCellCount):
+		logInfo(f'braille: cells={cells}, rawText={rawText}, currentCellCount={currentCellCount}')
 
 	def terminate(self):
-		self._ourSpeechSequenceFilter.unregister()
+		speech.extensions.filter_speechSequence.unregister(self.ourSpeechSequenceFilter)
 
 	def ourSpeechSequenceFilter(self, origSeq: speech.SpeechSequence) -> speech.SpeechSequence:
 		modSeq = []
