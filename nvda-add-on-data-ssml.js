@@ -1,3 +1,6 @@
+(function () {
+
+const TECHNIQUE = ['dom-root', 'inline'][0];
 
 function go() {
 	encodeAllDataSsmlAttribs();
@@ -66,7 +69,7 @@ function encodeStrAsZeroWidthChars(str_) {
     return result;
 }
 
-function _old_encodeAllDataSsmlAttribsInlineTechnique() {
+function encodeAllDataSsmlAttribs_inlineTechnique() {
 	let elements = [...document.querySelectorAll('[data-ssml]')]
 		.filter(el => el.getAttribute('data-ssml')?.trim() !== '');
 	for(let elem of elements) {
@@ -83,12 +86,12 @@ function _old_encodeAllDataSsmlAttribsInlineTechnique() {
 	}
 }
 
-function encodeAllDataSsmlAttribsGlobalTechnique() {
-	let globalListOfSsmlStrs = encodeAllDataSsmlAttribsGlobalTechnique_encodeEachOccurrenceAsAnIndex();
-	encodeAllDataSsmlAttribsGlobalTechnique_addGlobalHidingPlaceElement(globalListOfSsmlStrs);
+function encodeAllDataSsmlAttribs_domRootTechnique() {
+	let globalListOfSsmlStrs = encodeAllDataSsmlAttribs_domRootTechnique_encodeEachOccurrenceAsAnIndex();
+	encodeAllDataSsmlAttribs_domRootTechnique_addGlobalHidingPlaceElement(globalListOfSsmlStrs);
 }
 
-function encodeAllDataSsmlAttribsGlobalTechnique_addGlobalHidingPlaceElement(globalListOfSsmlStrs_) {
+function encodeAllDataSsmlAttribs_domRootTechnique_addGlobalHidingPlaceElement(globalListOfSsmlStrs_) {
 	let div = document.createElement("div");
 	const HIDING_PLACE_GUID = '4b9b696c-8fc8-49ca-9bb9-73afc9bd95f7';
 	let globaListAsJson = JSON.stringify(globalListOfSsmlStrs_);
@@ -96,7 +99,7 @@ function encodeAllDataSsmlAttribsGlobalTechnique_addGlobalHidingPlaceElement(glo
 	document.body.appendChild(div);
 }
 
-function encodeAllDataSsmlAttribsGlobalTechnique_encodeEachOccurrenceAsAnIndex() {
+function encodeAllDataSsmlAttribs_domRootTechnique_encodeEachOccurrenceAsAnIndex() {
 	let globalListOfSsmlStrs = [];
 	let elements = [...document.querySelectorAll('[data-ssml]')]
 		.filter(el => el.getAttribute('data-ssml')?.trim() !== '');
@@ -121,9 +124,17 @@ function encodeAllDataSsmlAttribsGlobalTechnique_encodeEachOccurrenceAsAnIndex()
 }
 
 function encodeAllDataSsmlAttribs() {
-	encodeAllDataSsmlAttribsGlobalTechnique();
+	if(TECHNIQUE === 'dom-root') {
+		encodeAllDataSsmlAttribs_domRootTechnique();
+	} else if(TECHNIQUE === 'inline') {
+		encodeAllDataSsmlAttribs_inlineTechnique();
+	} else {
+		throw new Error();
+	}
 }
 
 window.addEventListener("load", function(event) {
 	go();
 });
+
+})();

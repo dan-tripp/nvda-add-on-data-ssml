@@ -185,7 +185,7 @@ def turnSsmlIntoSpeechCommandList(ssmlAsJsonStr_, nonSsmlStr_, origWholeUnmodifi
 MARKER = '\u2062'
 MACRO_END_MARKER = MARKER * 2
 
-# This function lazy-calls findHidingPlaceElementInA11yTree() b/c it takes ~ 13 ms per call.  this amounts to calling that function only for parts of a web page which have our encoded data-ssml. 
+# For the dom root technique: this function lazy-calls findHidingPlaceElementInA11yTree() b/c it takes ~ 13 ms per call.  this amounts to calling that function only for parts of a web page which have our encoded data-ssml. 
 @profile
 def decodeAllStrs(str_, hidingPlaceElemRef_):
 	ourAssert(isinstance(hidingPlaceElemRef_, list) and len(hidingPlaceElemRef_) == 1)
@@ -195,6 +195,7 @@ def decodeAllStrs(str_, hidingPlaceElemRef_):
 	lastEnd = 0
 	matchCount = 0
 
+	# Both techniques (dom-root and inline) have the same start/end markers. 
 	pattern = re.compile(
 		f'{re.escape(MARKER)}'
 		f'(.*?)'
@@ -203,14 +204,15 @@ def decodeAllStrs(str_, hidingPlaceElemRef_):
 		f'{re.escape(MACRO_END_MARKER)}',
 		flags=re.DOTALL)
 
+	technique = None
 	for match in pattern.finditer(str_):
 		matchCount += 1
 		start, end = match.span()
-		encodedSsmlIndexInGlobalList, textToAffect = match.groups()
+		encodedStr, textToAffect = match.groups()
 		origWholeUnmodifiedText = match.group(0)
 
-		logInfo(f'encodedSsmlIndexInGlobalList: {repr(encodedSsmlIndexInGlobalList)}')
-		logInfo(f'nonSsmlStr (len {len(textToAffect)}): {repr(textToAffect)}')
+		logInfo(f'encodedStr: {repr(encodedStr)}')
+		logInfo(f'textToAffect (len {len(textToAffect)}): {repr(textToAffect)}')
 
 		if start > lastEnd:
 			pre = str_[lastEnd:start]
@@ -219,20 +221,32 @@ def decodeAllStrs(str_, hidingPlaceElemRef_):
 
 		success = False
 		try:
-			decodedToStrSsmlIndexInGlobalList = decodeSingleStr(encodedSsmlIndexInGlobalList)
-			logInfo(f'	decodedToStrSsmlIndexInGlobalList: "{decodedToStrSsmlIndexInGlobalList}"')
-			if decodedToStrSsmlIndexInGlobalList:
-				idxInGlobalList = int(decodedToStrSsmlIndexInGlobalList)
-				if hidingPlaceElemRef_[0] == None:
-					hidingPlaceElemRef_[0] = findHidingPlaceElementInA11yTree(g_a11yTreeRoot)
-				globalList = getGlobalListFromHidingPlaceElem(hidingPlaceElemRef_[0])
-				ssmlStr = globalList[idxInGlobalList]
-				r.extend(turnSsmlIntoSpeechCommandList(ssmlStr, textToAffect, origWholeUnmodifiedText))
+			if technique == None:
+				technique = detectTechnique(encodedStr)
+			if technique == 'dom-root':
+				encodedSsmlIndexInGlobalList = encodedStr
+				decodedToStrSsmlIndexInGlobalList = decodeSingleStr(encodedSsmlIndexInGlobalList)
+				logInfo(f'	decodedToStrSsmlIndexInGlobalList: "{decodedToStrSsmlIndexInGlobalList}"')
+				if decodedToStrSsmlIndexInGlobalList:
+					idxInGlobalList = int(decodedToStrSsmlIndexInGlobalList)
+					if hidingPlaceElemRef_[0] == None:
+						hidingPlaceElemRef_[0] = findHidingPlaceElementInA11yTree(g_a11yTreeRoot)
+					globalList = getGlobalListFromHidingPlaceElem(hidingPlaceElemRef_[0])
+					ssmlStr = globalList[idxInGlobalList]
+					r.extend(turnSsmlIntoSpeechCommandList(ssmlStr, textToAffect, origWholeUnmodifiedText))
+					success = True
+			elif technique == 'inline':
+				encodedSsmlStr = encodedStr
+				decodedSsmlStr = decodeSingleStr(encodedSsmlStr)
+				logInfo(f'	decodedSsmlStr: {decodedSsmlStr}')
+				r.extend(turnSsmlIntoSpeechCommandList(decodedSsmlStr, textToAffect, origWholeUnmodifiedText))				
 				success = True
+			else:
+				ourAssert(False)
 		except (Exception, IndexError) as e:
-			logInfo(f"Couldn't decode or figure out what to do with string '{encodedSsmlIndexInGlobalList} / {repr(encodedSsmlIndexInGlobalList)}'.  Will use unmodified text.")
+			logInfo(f"Couldn't decode or figure out what to do with string '{encodedStr} / {repr(encodedStr)}'.  Will use unmodified text.")
 			if 1:
-				logInfo('Exception, which we will suppressed, was:')
+				logInfo('Exception, which we will suppress, was:')
 				log.exception(e)
 			#raise
 
@@ -247,10 +261,18 @@ def decodeAllStrs(str_, hidingPlaceElemRef_):
 		r.append(trailing)
 
 	if all(isinstance(e, str) for e in r):
-		# this is for when we meet 'encoding chars in the wild'.  in that case, the code earlier in this function will 'fallback' to the unmodified string, but it will still make this modification: it will split up str_ into > 1 string.  I suspect that might affect SR pronunciation in some cases.  so here we undo that.
+		# this is for when we meet 'encoding chars in the wild'.  in that case, the code earlier in this function will 'fallback' to the unmodified string, but it will still make this modification: it will split up str_ into > 1 string.  I suspect that might affect SR pronunciation in some cases.  so here we undo that.  
+		# I know know why I didn't do "r = [str_]" here.
 		r = [''.join(r)]
 
 	return r
+
+def detectTechnique(encodedStr_):
+	try:
+		int(decodeSingleStr(encodedStr_))
+		return 'dom-root'
+	except (ValueError):
+		return 'inline'
 
 def getGlobalListFromHidingPlaceElem(hidingPlaceElem_):
 	ourAssert(hidingPlaceElem_)

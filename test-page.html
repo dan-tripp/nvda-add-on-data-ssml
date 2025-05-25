@@ -117,7 +117,7 @@ window.addEventListener("load", function(event) {
 
 <h1>data-ssml NVDA plugin test page</h1>
 
-<p>All elements on this page which have a data-ssml attribute have a dark grey dashed box outline, like this: <span data-ssml>abc</span>.</p>
+<p>All elements on this page which have a data-ssml attribute have a dark grey dashed box outline, like this: <span data-ssml>abc</span><!-- The preceding span probably won't get any encoding chars and so won't cause our plugin to do anything, b/c the attrib value is empty. -->.</p>
 
 <h2>SSML Sub / Alias</h2>
 
