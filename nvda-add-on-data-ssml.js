@@ -1,6 +1,6 @@
 (function () {
 
-const TECHNIQUE = ['dom-root', 'inline'][0];
+const TECHNIQUE = ['dom-root', 'inline'][1];
 
 function go() {
 	encodeAllDataSsmlAttribs();
@@ -62,7 +62,7 @@ function encodeStrAsZeroWidthChars(str_) {
 
 	if(true) {
 		let resultReadable = [...result].map(c => `\\u${c.codePointAt(0).toString(16).padStart(4, '0')}`).join('');
-		console.log(`encoded string: ${JSON.stringify({str_, 'baseNDigits.length': baseNDigits.length, baseNDigits})}`);
+		console.log(`encoded string: ${JSON.stringify({'orig str': str_, 'orig str len': str_.length, 'baseNDigits.length': baseNDigits.length, baseNDigits})}`);
 		console.log(`resultReadable: "${resultReadable}"`);
 	}
 

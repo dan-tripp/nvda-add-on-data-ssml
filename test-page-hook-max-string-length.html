@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width">
+	<title>test page for encoding chars</title>
+
+	<style>
+
+p { line-height: 1.5; }
+
+/* thanks https://www.tpgi.com/the-anatomy-of-visually-hidden/#where-we-came-in */
+.visually-hidden:not(:focus):not(:active) {
+    clip-path: inset(50%);
+    height: 1px;
+    overflow: hidden;
+    position: absolute;
+    white-space: nowrap;
+    width: 1px;
+}
+
+
+	</style>
+
+	<script>
+
+window.addEventListener("load", function(event) {
+    let main = document.querySelector("main");
+
+    {
+		for(let numFillerCharsInSsml=0; numFillerCharsInSsml<15; numFillerCharsInSsml++) {
+			let div = document.createElement("div");
+			let ssml = `{"sub": {"alias": "3 prime", "junk": "${'x'.repeat(numFillerCharsInSsml)}"}}`;
+			div.setAttribute('data-ssml', ssml);
+			div.textContent = `3 ${ssml.length}`;
+			main.appendChild(div);
+		}
+		main.appendChild(document.createElement("p"));
+	}
+
+    {
+		for(let numFillerCharsInSsml=0; numFillerCharsInSsml<15; numFillerCharsInSsml++) {
+			let div = document.createElement("div");
+			let ssml = `{"sub": {"alias": "9", "j": "${'x'.repeat(numFillerCharsInSsml)}"}}`;
+			div.setAttribute('data-ssml', ssml);
+			div.textContent = `3 ${ssml.length} 0123456789`;
+			main.appendChild(div);
+		}
+		main.appendChild(document.createElement("p"));
+	}
+
+    {
+		for(let numFillerCharsInSsml=0; numFillerCharsInSsml<15; numFillerCharsInSsml++) {
+			let div = document.createElement("div");
+			let ssml = `{"sub":{"alias":"9","j":"${'x'.repeat(numFillerCharsInSsml)}"}}`;
+			div.setAttribute('data-ssml', ssml);
+			div.textContent = `3 ${ssml.length} 0123456789`;
+			main.appendChild(div);
+		}
+		main.appendChild(document.createElement("p"));
+	}
+
+    {
+		for(let numFillerCharsInSsml=0; numFillerCharsInSsml<15; numFillerCharsInSsml++) {
+			let div = document.createElement("div");
+			let ssml = `{"sub":{"alias":"9","j":"${'x'.repeat(numFillerCharsInSsml)}"}}`;
+			div.setAttribute('data-ssml', ssml);
+			div.textContent = `3 ${ssml.length} 0123456789`;
+			main.appendChild(div);
+		}
+		main.appendChild(document.createElement("p"));
+	}
+
+    {
+		for(let numFillerCharsInSsml=0; numFillerCharsInSsml<15; numFillerCharsInSsml++) {
+			let div = document.createElement("div");
+			let ssml = `{"sub":{"alias":"9","j":"${'x'.repeat(numFillerCharsInSsml)}"}}`;
+			div.setAttribute('data-ssml', ssml);
+			div.textContent = `3 ${ssml.length} 012345678901234`;
+			main.appendChild(div);
+		}
+		main.appendChild(document.createElement("p"));
+	}
+
+	let div = document.createElement("div");
+	div.textContent = 'end';
+	main.appendChild(div);
+});
+
+	
+	</script>
+
+	<script	src="nvda-add-on-data-ssml.js"></script>
+	
+
+</head>
+
+
+
+
+<body>
+<main>
+
+
+
+</main>
+
+</body>
+
+</html>

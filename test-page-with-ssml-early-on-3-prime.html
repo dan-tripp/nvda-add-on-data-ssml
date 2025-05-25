@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width">
+	<title>test page</title>
+
+	<style>
+
+p { line-height: 1.5; }
+
+/* thanks https://www.tpgi.com/the-anatomy-of-visually-hidden/#where-we-came-in */
+.visually-hidden:not(:focus):not(:active) {
+    clip-path: inset(50%);
+    height: 1px;
+    overflow: hidden;
+    position: absolute;
+    white-space: nowrap;
+    width: 1px;
+}
+
+[data-ssml] {
+	outline: 2px dashed rgb(150,150,150);
+}
+
+table.ssml-table {
+	border-collapse: collapse;
+	width: 100%;
+	margin-top: 1em;
+}
+
+table.ssml-table th,
+table.ssml-table td {
+	border: 1px solid #ccc;
+	padding: 8px 12px;
+	text-align: left;
+	vertical-align: top;
+}
+
+table.ssml-table th {
+	background-color: #f4f4f4;
+}
+
+	</style>
+
+	<script>
+
+function scrollWithGap(elem, gap = 40) {
+	let rect = elem.getBoundingClientRect();
+	let isBelow = rect.bottom > window.innerHeight - gap;
+	let isAbove = rect.top < gap;
+
+	if (isBelow || isAbove) {
+		window.scrollBy({
+			top: isBelow ? rect.bottom - window.innerHeight + gap : rect.top - gap,
+			left: 0,
+			/* used to do "behavior: 'smooth'" here, but it caused NVDA's focus indicator to not match the browser's focus indicator, which, I think, was not the best for demo videos. */
+		});
+	}
+}
+
+window.addEventListener("load", function(event) {
+	document.addEventListener('focusin', (e) => {
+		scrollWithGap(e.target);
+	});
+
+});
+
+	</script>
+
+	<script	src="nvda-add-on-data-ssml.js"></script>
+
+</head>
+
+
+
+
+<body>
+<main>
+
+
+
+<p>Here is 3 prime: <span data-ssml='{"sub": {"alias": "3 prime"}}'>3'</span></p>
+
+
+<div style="padding-bottom: 200px;">
+</div>
+	
+
+</main>
+
+
+</body>
+
+</html>

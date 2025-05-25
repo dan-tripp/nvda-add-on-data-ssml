@@ -81,7 +81,7 @@ def decodeSingleStr(str_):
 		\u0000: got filtered out by firefox. 
 		\u202C: seems to get filtered out by firefox 
 		\u202D: seems to get filtered out by firefox 
-		\u180E: almost worked, but got filtered sometimes, or caused premature string split.  tested on chrome only IIRC. 
+		\u180E: almost worked, but got filtered sometimes, or caused premature string split.  tested on chrome only IIRC.  more notes in test-page-for-encoding-chars.html . 
 		\u200B: got filtered out on the "repeat 1000" test on our test page for encoding chars.  
 		\u061C: got filtered out by firefox. 
 	'''
@@ -344,7 +344,9 @@ def patchedSpeakTextInfo(info, *args, **kwargs):
 	global g_a11yTreeRoot
 	nvdaObjectAtStart = info.NVDAObjectAtStart
 	a11yTreeRoot = nvdaObjectAtStart.treeInterceptor.rootNVDAObject
+	oldA11yTreeRoot = g_a11yTreeRoot
 	g_a11yTreeRoot = a11yTreeRoot
+	logInfo(f'set g_a11yTreeRoot to {str(g_a11yTreeRoot)}.  value changed: {"yes" if (id(oldA11yTreeRoot) != id(g_a11yTreeRoot)) else "no"}.')
 	return g_original_speakTextInfo(info, *args, **kwargs)
 
 def patchSpeakTextInfoFunc():
