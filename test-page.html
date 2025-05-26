@@ -197,6 +197,25 @@ Fix only works with synth=onecore.<br>
 
 <h2>Misc. examples, less organized</h2>	
 
+<h3>page-wide-override</h3>	
+
+<ol>
+	<div xstyle="display: none">
+		<span data-ssml='{"sub": {"alias": "yes"}}'>def</span>
+		<span data-ssml='{"sub": {"alias": "yes"}}'>def</span> <!-- will not log a warning -->
+		<span data-ssml='{"sub": {"alias": "no failure no"}}'>def</span> <!-- will log a warning -->
+	</div>
+	<li>abcdefghi  (desired behavior: don't override)
+	<li>abc<span>def</span>ghi  (desired behavior: don't override)
+	<li>abc<span style="margin: 0.3em">def</span>ghi  (desired behavior: don't override, but it's borderline)
+	<li>abc defghi  (desired behavior: don't override)
+	<li>abc <span>def</span> ghi  (desired behavior: override)
+	<li>abc def ghi  (desired behavior: override)
+	<li>abc<div>def</div>ghi  (desired behavior: override)
+	<li>abc pre-def ghi  (desired behavior: override)
+	<li>abc def/ghi  (desired behavior: override)
+	<li>abc"def"ghi  (desired behavior: override)
+</ol>
 
 
 <h3>SSML mid-line</h3>	

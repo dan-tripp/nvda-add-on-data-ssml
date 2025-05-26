@@ -1,6 +1,10 @@
 (function () {
 
-const TECHNIQUE = ['index', 'inline'][0];
+const TECHNIQUE = ['index', 'inline', 'page-wide-override'][2];
+
+const HIDING_PLACE_GUID_FOR_ALL_TECHNIQUES = '4b9b696c-8fc8-49ca-9bb9-73afc9bd95f7';
+const HIDING_PLACE_GUID_FOR_INDEX_TECHNIQUE = 'b4f55cd4-8d9e-40e1-b344-353fe387120f';
+const HIDING_PLACE_GUID_FOR_PAGE_WIDE_OVERRIDE_TECHNIQUE = 'c7a998a5-4b7e-4683-8659-f2da4aa96eee';
 
 function go() {
 	encodeAllDataSsmlAttribs();
@@ -86,16 +90,52 @@ function encodeAllDataSsmlAttribs_inlineTechnique() {
 	}
 }
 
-function encodeAllDataSsmlAttribs_indexTechnique() {
-	let globalListOfSsmlStrs = encodeAllDataSsmlAttribs_indexTechnique_encodeEachOccurrenceAsAnIndex();
-	encodeAllDataSsmlAttribs_indexTechnique_addGlobalHidingPlaceElement(globalListOfSsmlStrs);
+function encodeAllDataSsmlAttribs_pageWideOverrideTechnique() {
+	let mapOfPlainTextStrToSsmlStr = getMapOfPlainTextStrToSsmlStr_pageWideOverrideTechnique();
+	encodeAllDataSsmlAttribs_pageWideOverrideTechnique_addCentralHidingPlaceElement(mapOfPlainTextStrToSsmlStr);
 }
 
-function encodeAllDataSsmlAttribs_indexTechnique_addGlobalHidingPlaceElement(globalListOfSsmlStrs_) {
+function encodeAllDataSsmlAttribs_pageWideOverrideTechnique_addCentralHidingPlaceElement(mapOfPlainTextStrToSsmlStr_) {
 	let div = document.createElement("div");
-	const HIDING_PLACE_GUID = '4b9b696c-8fc8-49ca-9bb9-73afc9bd95f7';
+	let mapAsJson = jsonStringifyJsMap(mapOfPlainTextStrToSsmlStr_);
+	div.textContent = `Please ignore. ${HIDING_PLACE_GUID_FOR_ALL_TECHNIQUES} ${HIDING_PLACE_GUID_FOR_PAGE_WIDE_OVERRIDE_TECHNIQUE} ${mapAsJson}`;
+	document.body.appendChild(div);
+}
+
+function jsonStringifyJsMap(map_) {
+	let r = JSON.stringify(Object.fromEntries(map_));
+	return r;
+}
+
+function getMapOfPlainTextStrToSsmlStr_pageWideOverrideTechnique() {
+	let mapOfPlainTextStrToSsmlStr = new Map();
+	for(let elem of [...document.querySelectorAll('[data-ssml]')]) {
+		let elemSsmlStr = elem.getAttribute('data-ssml');
+		if(!elemSsmlStr) continue;
+		let elemPlainText = elem.textContent;
+		if(!mapOfPlainTextStrToSsmlStr.has(elemPlainText)) {
+			console.log(new Date(), "here", JSON.stringify({elemPlainText, elemSsmlStr}, null, 0)); /* tdr */
+			mapOfPlainTextStrToSsmlStr.set(elemPlainText, elemSsmlStr);
+		} else {
+			let firstSsmlStr = mapOfPlainTextStrToSsmlStr.get(elemPlainText);
+			if(firstSsmlStr !== elemSsmlStr) {
+				console.log(`Warning: found mismatching data-ssml values for plain text "${elemPlainText}".  The first data-ssml was "${firstSsmlStr}".  The current data-ssml is "${elemSsmlStr}".  This program will use the first one and ignore the current one.`);
+			}
+		}
+	}
+	console.log(new Date(), "", JSON.stringify(mapOfPlainTextStrToSsmlStr, null, 0)); /* tdr */
+	return mapOfPlainTextStrToSsmlStr;
+}
+
+function encodeAllDataSsmlAttribs_indexTechnique() {
+	let globalListOfSsmlStrs = encodeAllDataSsmlAttribs_indexTechnique_encodeEachOccurrenceAsAnIndex();
+	encodeAllDataSsmlAttribs_indexTechnique_addCentralHidingPlaceElement(globalListOfSsmlStrs);
+}
+
+function encodeAllDataSsmlAttribs_indexTechnique_addCentralHidingPlaceElement(globalListOfSsmlStrs_) {
+	let div = document.createElement("div");
 	let globaListAsJson = JSON.stringify(globalListOfSsmlStrs_);
-	div.textContent = `Please ignore. ${HIDING_PLACE_GUID} ${globaListAsJson}`;
+	div.textContent = `Please ignore. ${HIDING_PLACE_GUID_FOR_ALL_TECHNIQUES} ${HIDING_PLACE_GUID_FOR_INDEX_TECHNIQUE} ${globaListAsJson}`;
 	document.body.appendChild(div);
 }
 
@@ -128,6 +168,8 @@ function encodeAllDataSsmlAttribs() {
 		encodeAllDataSsmlAttribs_indexTechnique();
 	} else if(TECHNIQUE === 'inline') {
 		encodeAllDataSsmlAttribs_inlineTechnique();
+	} else if(TECHNIQUE === 'page-wide-override') {
+		encodeAllDataSsmlAttribs_pageWideOverrideTechnique();
 	} else {
 		throw new Error();
 	}

@@ -1,6 +1,10 @@
 
 PROFILE = True
 
+HIDING_PLACE_GUID_FOR_ALL_TECHNIQUES = '4b9b696c-8fc8-49ca-9bb9-73afc9bd95f7'
+HIDING_PLACE_GUID_FOR_INDEX_TECHNIQUE = 'b4f55cd4-8d9e-40e1-b344-353fe387120f'
+HIDING_PLACE_GUID_FOR_PAGE_WIDE_OVERRIDE_TECHNIQUE = 'c7a998a5-4b7e-4683-8659-f2da4aa96eee'
+
 import datetime, re, base64, json, time
 import globalPluginHandler
 from logHandler import log
@@ -185,26 +189,35 @@ def turnSsmlIntoSpeechCommandList(ssmlAsJsonStr_, nonSsmlStr_, origWholeUnmodifi
 MARKER = '\u2062'
 MACRO_END_MARKER = MARKER * 2
 
-# For the index technique: this function lazy-calls findHidingPlaceElementInA11yTree() b/c it takes ~ 13 ms per call.  this amounts to calling that function only for parts of a web page which have our encoded data-ssml. 
 @profile
-def decodeAllStrs(str_, hidingPlaceElemRef_):
-	ourAssert(isinstance(hidingPlaceElemRef_, list) and len(hidingPlaceElemRef_) == 1)
+def decodeAllStrs(str_):
 	logInfo(f'decodeAllStrs input (len {len(str_)}): {repr(str_)}')
  
+	if g_indexTechniqueGlobalList != None:
+		technique = 'index'
+	elif g_pageWideOverrideTechniqueMapOfPlainTextStrToSsmlStr != None:
+		technique = 'page-wide-override'
+	else:
+		technique = 'inline'
+	if technique in ('index', 'inline'):
+		r = decodeAllStrs_indexAndInlineTechniques(str_)
+	elif technique == 'page-wide-override':
+		r = decodeAllStrs_pageWideOverrideTechnique(str_)
+	else:
+		ourAssert(False)
+
+def decodeAllStrs_pageWideOverrideTechnique(str_):
+	ourAssert(g_pageWideOverrideTechniqueMapOfPlainTextStrToSsmlStr != None)
+	
+
+def decodeAllStrs_indexAndInlineTechniques(str_):
 	r = []
 	lastEnd = 0
 	matchCount = 0
 
-	# the two techniques index and inline have the same start/end markers. 
-	pattern = re.compile(
-		f'{re.escape(MARKER)}'
-		f'(.*?)'
-		f'{re.escape(MARKER)}'
-		f'(.*?)'
-		f'{re.escape(MACRO_END_MARKER)}',
-		flags=re.DOTALL)
+	# the techniques index and inline have the same start/end markers. 
+	pattern = re.compile(f'{re.escape(MARKER)}(.*?){re.escape(MARKER)}(.*?){re.escape(MACRO_END_MARKER)}', flags=re.DOTALL)
 
-	technique = None
 	for match in pattern.finditer(str_):
 		matchCount += 1
 		start, end = match.span()
@@ -229,10 +242,7 @@ def decodeAllStrs(str_, hidingPlaceElemRef_):
 				logInfo(f'	decodedToStrSsmlIndexInGlobalList: "{decodedToStrSsmlIndexInGlobalList}"')
 				if decodedToStrSsmlIndexInGlobalList:
 					idxInGlobalList = int(decodedToStrSsmlIndexInGlobalList)
-					if hidingPlaceElemRef_[0] == None:
-						hidingPlaceElemRef_[0] = findHidingPlaceElementInA11yTree(g_a11yTreeRoot)
-					globalList = getGlobalListFromHidingPlaceElem(hidingPlaceElemRef_[0])
-					ssmlStr = globalList[idxInGlobalList]
+					ssmlStr = g_indexTechniqueGlobalList[idxInGlobalList]
 					r.extend(turnSsmlIntoSpeechCommandList(ssmlStr, textToAffect, origWholeUnmodifiedText))
 					success = True
 			elif technique == 'inline':
@@ -270,20 +280,30 @@ def decodeAllStrs(str_, hidingPlaceElemRef_):
 def detectTechnique(encodedStr_):
 	try:
 		int(decodeSingleStr(encodedStr_))
+		ourAssert(g_indexTechniqueGlobalList != None)
 		return 'index'
 	except (ValueError):
 		return 'inline'
 
-def getGlobalListFromHidingPlaceElem(hidingPlaceElem_):
+def getIndexTechniqueGlobalListFromHidingPlaceElem(hidingPlaceElem_):
 	ourAssert(hidingPlaceElem_)
 	hidingPlaceElemTextContent = hidingPlaceElem_.name
-	HIDING_PLACE_GUID = '4b9b696c-8fc8-49ca-9bb9-73afc9bd95f7'
-	pattern = rf'{HIDING_PLACE_GUID}\s*(\[.*?\])'
+	pattern = rf'{HIDING_PLACE_GUID_FOR_ALL_TECHNIQUES} {HIDING_PLACE_GUID_FOR_INDEX_TECHNIQUE}\s*(\[.*?\])'
 	match = re.search(pattern, hidingPlaceElemTextContent)
 	if not match: return None
 	globalListStr = match.group(1)
 	globalListObj = json.loads(globalListStr)
 	return globalListObj
+
+def getPageWideOverrideTechniqueGlobalMapFromHidingPlaceElem(hidingPlaceElem_):
+	ourAssert(hidingPlaceElem_)
+	hidingPlaceElemTextContent = hidingPlaceElem_.name
+	pattern = rf'{HIDING_PLACE_GUID_FOR_ALL_TECHNIQUES} {HIDING_PLACE_GUID_FOR_PAGE_WIDE_OVERRIDE_TECHNIQUE}\s*(\[.*?\])'
+	match = re.search(pattern, hidingPlaceElemTextContent)
+	if not match: return None
+	mapStr = match.group(1)
+	mapObj = json.loads(mapStr)
+	return mapObj
 
 @profile
 def getRole(nvdaObj_):
@@ -311,8 +331,7 @@ def findHidingPlaceElementInA11yTree(root_):
 	text = sectionFirstChild
 	name = text.name
 	textContent = name
-	GUID = '4b9b696c-8fc8-49ca-9bb9-73afc9bd95f7'
-	if GUID in textContent: 
+	if HIDING_PLACE_GUID_FOR_ALL_TECHNIQUES in textContent: 
 		return text
 
 def a11yTreeToStr(root_, maxDepth=10):
@@ -338,15 +357,31 @@ def a11yTreeToStr(root_, maxDepth=10):
 g_original_speakTextInfo = speech.speakTextInfo
 
 g_a11yTreeRoot = None
+g_indexTechniqueGlobalList = None
+g_pageWideOverrideTechniqueMapOfPlainTextStrToSsmlStr = None
 
 # This functions gets the a11y tree root AKA DOM root, so that later our filter_speechSequence function can get our SSML from there.  This is not as good as getting the DOM root directly from our filter_speechSequence function.  If would do that if I knew how.
+# For technique=index and technique=page-wide-override: this function finds their "hiding places" in the DOM.  we do it here (not in our speech hook) b/c it takes ~ 13 ms per call and that's slow enough that we don't want to do it repeatedly, so we might as well do it here.  
 def patchedSpeakTextInfo(info, *args, **kwargs):
-	global g_a11yTreeRoot
+	global g_a11yTreeRoot, g_indexTechniqueGlobalList, g_pageWideOverrideTechniqueMapOfPlainTextStrToSsmlStr
 	nvdaObjectAtStart = info.NVDAObjectAtStart
 	a11yTreeRoot = nvdaObjectAtStart.treeInterceptor.rootNVDAObject
 	oldA11yTreeRoot = g_a11yTreeRoot
 	g_a11yTreeRoot = a11yTreeRoot
-	logInfo(f'set g_a11yTreeRoot to {str(g_a11yTreeRoot)}.  value changed: {"yes" if (id(oldA11yTreeRoot) != id(g_a11yTreeRoot)) else "no"}.')
+	a11yTreeRootChanged = (id(oldA11yTreeRoot) != id(g_a11yTreeRoot)) # it's unclear if "id" is necessary here.  I used it because I don't know how their equals operator is implemented. 
+	logInfo(f'set g_a11yTreeRoot to {str(g_a11yTreeRoot)}.  value changed: {"yes" if a11yTreeRootChanged else "no"}.')
+	if a11yTreeRootChanged:
+		g_indexTechniqueGlobalList = g_pageWideOverrideTechniqueMapOfPlainTextStrToSsmlStr = None
+		hidingPlaceElem = findHidingPlaceElementInA11yTree(g_a11yTreeRoot)
+		g_indexTechniqueGlobalList = getIndexTechniqueGlobalListFromHidingPlaceElem(hidingPlaceElem)
+		if g_indexTechniqueGlobalList != None:
+			logInfo('Found global object for technique=index.')
+		else:
+			g_pageWideOverrideTechniqueMapOfPlainTextStrToSsmlStr = getPageWideOverrideTechniqueGlobalMapFromHidingPlaceElem(hidingPlaceElem)
+			if g_pageWideOverrideTechniqueMapOfPlainTextStrToSsmlStr != None:
+				logInfo('Found global object for technique=page-wide-override.')
+			else:
+				logInfo("Found no global object.  Either this page uses technique=inline, or didn't run our JS.");
 	return g_original_speakTextInfo(info, *args, **kwargs)
 
 def patchSpeakTextInfoFunc():
@@ -372,13 +407,12 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		modSeq = []
 		#logInfo(f'g_a11yTreeRoot: {g_a11yTreeRoot.name if g_a11yTreeRoot else None}') 
 		#logInfo(f'a11yTree:\n{a11yTreeToStr(g_a11yTreeRoot)}') 
-		hidingPlaceElemRef = [None]
 		logInfo(f'original speech sequence: {origSeq}')
 		for element in origSeq:
 			if isinstance(element, str):
 				#logInfo(f'patched synth got string len {len(element)}: "{element}"')
 				logInfo(f'filter got string len {len(element)}: "{repr(element)}"')
-				modSeq.extend(decodeAllStrs(element, hidingPlaceElemRef))
+				modSeq.extend(decodeAllStrs(element))
 			else:
 				modSeq.append(element)
 		logInfo(f'modified speech sequence: {modSeq}')
