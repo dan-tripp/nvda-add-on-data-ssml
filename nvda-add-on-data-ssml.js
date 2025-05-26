@@ -1,6 +1,6 @@
 (function () {
 
-const TECHNIQUE = ['dom-root', 'inline'][0];
+const TECHNIQUE = ['index', 'inline'][0];
 
 function go() {
 	encodeAllDataSsmlAttribs();
@@ -86,12 +86,12 @@ function encodeAllDataSsmlAttribs_inlineTechnique() {
 	}
 }
 
-function encodeAllDataSsmlAttribs_domRootTechnique() {
-	let globalListOfSsmlStrs = encodeAllDataSsmlAttribs_domRootTechnique_encodeEachOccurrenceAsAnIndex();
-	encodeAllDataSsmlAttribs_domRootTechnique_addGlobalHidingPlaceElement(globalListOfSsmlStrs);
+function encodeAllDataSsmlAttribs_indexTechnique() {
+	let globalListOfSsmlStrs = encodeAllDataSsmlAttribs_indexTechnique_encodeEachOccurrenceAsAnIndex();
+	encodeAllDataSsmlAttribs_indexTechnique_addGlobalHidingPlaceElement(globalListOfSsmlStrs);
 }
 
-function encodeAllDataSsmlAttribs_domRootTechnique_addGlobalHidingPlaceElement(globalListOfSsmlStrs_) {
+function encodeAllDataSsmlAttribs_indexTechnique_addGlobalHidingPlaceElement(globalListOfSsmlStrs_) {
 	let div = document.createElement("div");
 	const HIDING_PLACE_GUID = '4b9b696c-8fc8-49ca-9bb9-73afc9bd95f7';
 	let globaListAsJson = JSON.stringify(globalListOfSsmlStrs_);
@@ -99,7 +99,7 @@ function encodeAllDataSsmlAttribs_domRootTechnique_addGlobalHidingPlaceElement(g
 	document.body.appendChild(div);
 }
 
-function encodeAllDataSsmlAttribs_domRootTechnique_encodeEachOccurrenceAsAnIndex() {
+function encodeAllDataSsmlAttribs_indexTechnique_encodeEachOccurrenceAsAnIndex() {
 	let globalListOfSsmlStrs = [];
 	let elements = [...document.querySelectorAll('[data-ssml]')]
 		.filter(el => el.getAttribute('data-ssml')?.trim() !== '');
@@ -124,8 +124,8 @@ function encodeAllDataSsmlAttribs_domRootTechnique_encodeEachOccurrenceAsAnIndex
 }
 
 function encodeAllDataSsmlAttribs() {
-	if(TECHNIQUE === 'dom-root') {
-		encodeAllDataSsmlAttribs_domRootTechnique();
+	if(TECHNIQUE === 'index') {
+		encodeAllDataSsmlAttribs_indexTechnique();
 	} else if(TECHNIQUE === 'inline') {
 		encodeAllDataSsmlAttribs_inlineTechnique();
 	} else {

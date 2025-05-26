@@ -185,7 +185,7 @@ def turnSsmlIntoSpeechCommandList(ssmlAsJsonStr_, nonSsmlStr_, origWholeUnmodifi
 MARKER = '\u2062'
 MACRO_END_MARKER = MARKER * 2
 
-# For the dom root technique: this function lazy-calls findHidingPlaceElementInA11yTree() b/c it takes ~ 13 ms per call.  this amounts to calling that function only for parts of a web page which have our encoded data-ssml. 
+# For the index technique: this function lazy-calls findHidingPlaceElementInA11yTree() b/c it takes ~ 13 ms per call.  this amounts to calling that function only for parts of a web page which have our encoded data-ssml. 
 @profile
 def decodeAllStrs(str_, hidingPlaceElemRef_):
 	ourAssert(isinstance(hidingPlaceElemRef_, list) and len(hidingPlaceElemRef_) == 1)
@@ -195,7 +195,7 @@ def decodeAllStrs(str_, hidingPlaceElemRef_):
 	lastEnd = 0
 	matchCount = 0
 
-	# Both techniques (dom-root and inline) have the same start/end markers. 
+	# the two techniques index and inline have the same start/end markers. 
 	pattern = re.compile(
 		f'{re.escape(MARKER)}'
 		f'(.*?)'
@@ -223,7 +223,7 @@ def decodeAllStrs(str_, hidingPlaceElemRef_):
 		try:
 			if technique == None:
 				technique = detectTechnique(encodedStr)
-			if technique == 'dom-root':
+			if technique == 'index':
 				encodedSsmlIndexInGlobalList = encodedStr
 				decodedToStrSsmlIndexInGlobalList = decodeSingleStr(encodedSsmlIndexInGlobalList)
 				logInfo(f'	decodedToStrSsmlIndexInGlobalList: "{decodedToStrSsmlIndexInGlobalList}"')
@@ -270,7 +270,7 @@ def decodeAllStrs(str_, hidingPlaceElemRef_):
 def detectTechnique(encodedStr_):
 	try:
 		int(decodeSingleStr(encodedStr_))
-		return 'dom-root'
+		return 'index'
 	except (ValueError):
 		return 'inline'
 
@@ -339,7 +339,7 @@ g_original_speakTextInfo = speech.speakTextInfo
 
 g_a11yTreeRoot = None
 
-# The point of this is to get the a11y tree root AKA DOM root, so that later our filter_speechSequence function can get our SSML from there.  If I knew how to get the DOM root directly from our filter_speechSequence function, then I would. 
+# This functions gets the a11y tree root AKA DOM root, so that later our filter_speechSequence function can get our SSML from there.  This is not as good as getting the DOM root directly from our filter_speechSequence function.  If would do that if I knew how.
 def patchedSpeakTextInfo(info, *args, **kwargs):
 	global g_a11yTreeRoot
 	nvdaObjectAtStart = info.NVDAObjectAtStart
