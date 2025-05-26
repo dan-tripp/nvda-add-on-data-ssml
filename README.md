@@ -15,6 +15,7 @@ This plugin can be configured to use one of several "techniques", but regardless
 - The python code intercepts the text content before it reaches the speech synth.  It looks for our encoding characters, and if it sees any, it replaces them with appropriate NVDA speech commands which will implement the wishes of the data-ssml.
 - Our encoding characters were chosen for their obscurity.  If the page uses any of them already, some part of our process might break.
 - This plugin implements my own loose dialect of the data-ssml JSON format.  Not the full version at https://www.w3.org/TR/spoken-html/. 
+- Regardless of technique, the audio output by NVDA will be the same.
 - The negative side effects if the JS part of this plugin is run on a page and the user is not running (the python part of) this plugin, and who is...
 	- ... a user of NVDA: are the same as for a user of NVDA who _is_ running this plugin.
 	- ... a user of JAWS: I don't know, because I haven't tested on JAWS. 
