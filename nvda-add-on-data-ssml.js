@@ -1,6 +1,6 @@
 (function () {
 
-const TECHNIQUE = ['dom-root', 'inline'][1];
+const TECHNIQUE = ['dom-root', 'inline'][0];
 
 function go() {
 	encodeAllDataSsmlAttribs();

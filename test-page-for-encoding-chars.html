@@ -28,7 +28,7 @@ window.addEventListener("load", function(event) {
     let main = document.querySelector("main");
 
 	let repeat = 2;
-    let chars = [
+    const ENCODING_CHARS = [
 		'\uFFF9', 
 		'\u200C', 
 		'\u200D',
@@ -45,8 +45,9 @@ window.addEventListener("load", function(event) {
 		'\u206D',
 		'\u206E',
 		'\u206F', 
-    ];
-    for (let c of chars) {
+	];
+
+	for (let c of ENCODING_CHARS) {
         let codePoint = c.codePointAt(0).toString(16).toUpperCase().padStart(4, '0');
         let div = document.createElement("div");
         div.textContent = `U+${codePoint}: '${c.repeat(repeat)}'`;
