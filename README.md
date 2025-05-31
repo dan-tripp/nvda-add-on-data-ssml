@@ -57,6 +57,12 @@ This plugin can be configured to use one of several "techniques", but regardless
 			<td>Tied for the best technique.  No length limit. 
 		</tr>
 		<tr>
+			<th scope="row">Max number of overrides on a page for a given plain text string
+			<td>Tied for the best technique.  No max.
+			<td>Tied for the best technique.  No max.
+			<td>The worst technique.  Max=1.  This is a serious limitation.
+		</tr>
+		<tr>
 			<th scope="row">NVDA braille viewer sees junk characters 
 			<td>The worse technique.  Braille viewer sees a lot of junk characters.
 			<td>The middle technique.  Braille viewer sees much fewer characters.  Still: the negative user impact of this is still significant, I expect.
