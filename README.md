@@ -30,46 +30,55 @@ This plugin can be configured to use one of several "techniques", but regardless
 			<td>
 			<th>technique=inline
 			<th>technique=index
+			<th>technique=page-wide-override
 		</tr>
 		<tr>
 			<th scope="row">Description of technique
-			<td>The JS puts an encoded version of the entire data-ssml attribute value into the text content of the element that has the data-ssml attribute.  So this technique adds a lot of our encoding characters all over the page.
-			<td>The JS puts an encoded version of the entire data-ssml attribute value into a central "hiding place" in the DOM root, near the footer.  To the text content of the element that has the data-ssml attribute, the JS only adds an encoded integer index, which represents an array index in the central "hiding place".  So this adds a lot less of our encoding characters all over the page than the "inline" technique does.
+			<td>The JS adds an encoded version of the entire data-ssml attribute value into the text content of the element that has the data-ssml attribute.  So this technique adds a lot of our encoding characters all over the page.
+			<td>The JS adds a list of all of the data-ssml attribute values on the page into a central "hiding place" in the DOM root, near the footer.  To the text content of each element that has the data-ssml attribute, the JS only adds an encoded integer index, which represents an array index in the central "hiding place".  So this adds a lot less of our encoding characters all over the page than the "inline" technique does.
+			<td>Like technique=index, the JS uses a central "hiding place".  Unlike the other two techniques, in this technique the JS adds nothing to the text content.  Instead, the plugin does a string lookup to do a central lookup of plainText -> SSML.  This technique assumes that you only want to override plainText XYZ one way on a page.  So you can have "3'" announced as "3 prime" or "3 feet", but not both.  The string lookup uses a case-insensitive whole-word regex, roughly.
 		</tr>
 		<tr>
 			<th scope="row">Left/right arrow nav sees junk characters
-			<td>The worse technique.  The JS adds many silent junk characters.  Number of junk characters is approximately equal to the length of the data-ssml attribute value x 2.  That's at the start of the element that has the data-ssml attribute.  And at the end of the element: the JS adds 2 more. 
-			<td>The better technique.  The JS adds approx. 2 junk characters at the start of the element.  And again 2 at the end.  At the start: those 2 characters take 4 right-arrow-key-presses to get through.  I don't know why.  TO DO: figure that out. 
+			<td>The worst technique.  The JS adds many silent junk characters.  Number of junk characters is approximately equal to the length of the data-ssml attribute value x 2.  That's at the start of the element that has the data-ssml attribute.  And at the end of the element: the JS adds 2 more. 
+			<td>The middle technique.  The JS adds approx. 2 junk characters at the start of the element.  And again 2 at the end.  At the start: those 2 characters take 4 right-arrow-key-presses to get through.  I don't know why.  TO DO: figure that out. 
+			<td>The best technique.  The JS adds no junk characters here.
 		</tr>
 		<tr>
 			<th scope="row">Up/down arrow is different due to junk characters 
-			<td>The worse technique.  Noticeable.
-			<td>The better technique.  Not noticeable.
+			<td>The worst technique.  Noticeable.
+			<td>The almost-best technique.  I didn't notice it, but there might be cases that I'm missing.
+			<td>The best technique.  The JS adds no junk characters here.
 		</tr>
 		<tr>
 			<th scope="row">Max length of SSML
-			<td>The worse technique.  Plugin will only work if len(textContent) 2*len(ssmlJsonString) + 2 <= 100 , roughly.  
-			<td>The better technique.  No length limit. 
+			<td>The worst technique.  Plugin will only work if len(textContent) 2*len(ssmlJsonString) + 2 <= 100 , roughly.  
+			<td>Tied for the best technique.  No length limit. 
+			<td>Tied for the best technique.  No length limit. 
 		</tr>
 		<tr>
 			<th scope="row">NVDA braille viewer sees junk characters 
 			<td>The worse technique.  Braille viewer sees a lot of junk characters.
-			<td>The better technique.  Braille viewer sees much fewer characters.  Still: the negative user impact of this is still significant, I expect.
+			<td>The middle technique.  Braille viewer sees much fewer characters.  Still: the negative user impact of this is still significant, I expect.
+			<td>The best technique.  Braille viewer sees no junk characters, because the JS didn't add any. 
 		</tr>
 		<tr>
 			<th scope="row">Bug: stale DOM root reference
-			<td>The better technique.  Bug does not exist.
-			<td>The worse technique.  Bug exists.  This bug means that sometimes, if the user hasn't yet arrowed or tabbed on the current page (eg. just loaded that page and NVDA is reading the whole page - I think - details unclear) then this plugin's DOM root reference will be stale, which will result in either: 1) this plugin not working, or 2: this plugin using SSML from another web page i.e. whichever data-ssml-enabled web page it saw last.
+			<td>The best technique.  Bug does not exist.
+			<td>Tied for the worst technique.  Bug exists.  This bug means that sometimes, if the user hasn't yet arrowed or tabbed on the current page (eg. just loaded that page and NVDA is reading the whole page - I think - details unclear) then this plugin's DOM root reference will be stale, which will result in either: 1) this plugin not working, or 2: this plugin using SSML from another web page i.e. whichever data-ssml-enabled web page it saw last.
+			<td>Tied for the worst technique.  Same bug. 
 		</tr>
 		<tr>
 			<th scope="row">Clipboard junk.  i.e. our encoding characters, even though they're invisible to the eye and silent in the screen reader audio, show up in the clipboard if you select and copy that part of the page.
 			<td>The worse technique.  The JS adds approx 2 characters of clipboard junk per data-ssml character.
-			<td>The better technique.  The JS adds a roughly-constant 6 characters of clipboard junk, regardless of the length of data-ssml.  4 characters at the start of the element + 2 characters at the end.
+			<td>The middle technique.  The JS adds a roughly-constant 6 characters of clipboard junk, regardless of the length of data-ssml.  4 characters at the start of the element + 2 characters at the end.
+			<td>The best technique.  The JS adds no clipboard junk.
 		</tr>
 		<tr>
 			<th scope="row">The JS adds somewhat-human-readable junk in DOM root, near the footer of the page
-			<td>The better technique.  No junk here.
-			<td>The worse technique.  Substantial junk here.
+			<td>The best technique.  No junk here.
+			<td>Tied for the worst technique.  Substantial junk here.
+			<td>Tied for the worst technique.  Same amount of junk, roughly. 
 		</tr>
 	</tbody>
 </table>

@@ -1,5 +1,6 @@
 
 PROFILE = True
+LOG_BRAILLE = True
 
 HIDING_PLACE_GUID_FOR_ALL_TECHNIQUES = '4b9b696c-8fc8-49ca-9bb9-73afc9bd95f7'
 HIDING_PLACE_GUID_FOR_INDEX_TECHNIQUE = 'b4f55cd4-8d9e-40e1-b344-353fe387120f'
@@ -410,7 +411,7 @@ def patchedSpeakTextInfo(info, *args, **kwargs):
 	nvdaObjectAtStart = info.NVDAObjectAtStart
 	if nvdaObjectAtStart.treeInterceptor != None:
 		newA11yTreeRoot = nvdaObjectAtStart.treeInterceptor.rootNVDAObject
-	else:
+	else: # will happen if eg. the current window is notepad++ 
 		newA11yTreeRoot = None
 	oldA11yTreeRoot = g_a11yTreeRoot
 	g_a11yTreeRoot = newA11yTreeRoot
@@ -443,7 +444,6 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		patchSpeakTextInfoFunc()
 		# Thank you Dalen at https://nvda-addons.groups.io/g/nvda-addons/message/25811 for this idea of using filter_speechSequence instead of monkey-patching the synth. 
 		self._ourSpeechSequenceFilter = speech.extensions.filter_speechSequence.register(self.ourSpeechSequenceFilter)
-		LOG_BRAILLE = 0
 		if LOG_BRAILLE:
 			braille.pre_writeCells.register(self.ourBraillePreWriteCells)
 
