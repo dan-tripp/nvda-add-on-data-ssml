@@ -114,7 +114,7 @@ function getMapOfPlainTextStrToSsmlStr_pageWideOverrideTechnique() {
 		if(!elemSsmlStr) continue;
 		let elemPlainText = elem.textContent;
 		if(!mapOfPlainTextStrToSsmlStr.has(elemPlainText)) {
-			console.log(new Date(), "here", JSON.stringify({elemPlainText, elemSsmlStr}, null, 0)); /* tdr */
+			console.log(new Date(), "map set:", JSON.stringify({elemPlainText, elemSsmlStr}, null, 0)); /* tdr */
 			mapOfPlainTextStrToSsmlStr.set(elemPlainText, elemSsmlStr);
 		} else {
 			let firstSsmlStr = mapOfPlainTextStrToSsmlStr.get(elemPlainText);
@@ -123,7 +123,7 @@ function getMapOfPlainTextStrToSsmlStr_pageWideOverrideTechnique() {
 			}
 		}
 	}
-	console.log(new Date(), "", JSON.stringify(mapOfPlainTextStrToSsmlStr, null, 0)); /* tdr */
+	console.log(new Date(), "final map", jsonStringifyJsMap(mapOfPlainTextStrToSsmlStr)); /* tdr */
 	return mapOfPlainTextStrToSsmlStr;
 }
 

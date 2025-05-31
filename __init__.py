@@ -199,16 +199,37 @@ def decodeAllStrs(str_):
 		technique = 'page-wide-override'
 	else:
 		technique = 'inline'
+
 	if technique in ('index', 'inline'):
-		r = decodeAllStrs_indexAndInlineTechniques(str_)
+		return decodeAllStrs_indexAndInlineTechniques(str_)
 	elif technique == 'page-wide-override':
-		r = decodeAllStrs_pageWideOverrideTechnique(str_)
+		return decodeAllStrs_pageWideOverrideTechnique(str_)
 	else:
 		ourAssert(False)
 
 def decodeAllStrs_pageWideOverrideTechnique(str_):
 	ourAssert(g_pageWideOverrideTechniqueMapOfPlainTextStrToSsmlStr != None)
-	
+	r = []
+	for plainTextStr, ssmlStr in g_pageWideOverrideTechniqueMapOfPlainTextStrToSsmlStr.items():
+		patternForPlainTextStr = re.compile(r'\b'+re.escape(plainTextStr)+r'\b')
+		speechCommandListForSsmlStr = turnSsmlIntoSpeechCommandList(ssmlStr, plainTextStr, plainTextStr)
+		lastEnd = 0
+		for match in patternForPlainTextStr.finditer(str_):
+			start, end = match.span()
+			logInfo(f'found {repr(plainTextStr)}')
+			if start > lastEnd:
+				pre = str_[lastEnd:start]
+				logInfo(f'	plain text before match: {repr(pre)}')
+				r.append(pre)
+			r.extend(speechCommandListForSsmlStr)				
+			lastEnd = end
+
+		if lastEnd < len(str_):
+			trailing = str_[lastEnd:]
+			logInfo(f'trailing text after last match: {repr(trailing)}')
+			r.append(trailing)
+
+	return r
 
 def decodeAllStrs_indexAndInlineTechniques(str_):
 	r = []
@@ -298,7 +319,7 @@ def getIndexTechniqueGlobalListFromHidingPlaceElem(hidingPlaceElem_):
 def getPageWideOverrideTechniqueGlobalMapFromHidingPlaceElem(hidingPlaceElem_):
 	ourAssert(hidingPlaceElem_)
 	hidingPlaceElemTextContent = hidingPlaceElem_.name
-	pattern = rf'{HIDING_PLACE_GUID_FOR_ALL_TECHNIQUES} {HIDING_PLACE_GUID_FOR_PAGE_WIDE_OVERRIDE_TECHNIQUE}\s*(\[.*?\])'
+	pattern = HIDING_PLACE_GUID_FOR_ALL_TECHNIQUES+' '+HIDING_PLACE_GUID_FOR_PAGE_WIDE_OVERRIDE_TECHNIQUE+r'\s*(\{.*\})'
 	match = re.search(pattern, hidingPlaceElemTextContent)
 	if not match: return None
 	mapStr = match.group(1)
