@@ -195,62 +195,83 @@ def decodeAllStrs(str_):
  
 	if g_indexTechniqueGlobalList != None:
 		technique = 'index'
-	elif g_pageWideOverrideTechniqueMapOfPlainTextStrToSsmlStr != None:
+	elif g_pageWideOverrideTechniqueMapOfPlainTextToSpeechCommandList != None:
 		technique = 'page-wide-override'
 	else:
 		technique = 'inline'
 
 	if technique in ('index', 'inline'):
-		return decodeAllStrs_indexAndInlineTechniques(str_)
+		r = decodeAllStrs_indexAndInlineTechniques(str_)
 	elif technique == 'page-wide-override':
-		return decodeAllStrs_pageWideOverrideTechnique(str_)
+		r = decodeAllStrs_pageWideOverrideTechnique(str_)
 	else:
 		ourAssert(False)
 
-def decodeAllStrs_pageWideOverrideTechnique(str_):
-	ourAssert(g_pageWideOverrideTechniqueMapOfPlainTextStrToSsmlStr != None)
-	r = []
-	for plainTextStr, ssmlStr in g_pageWideOverrideTechniqueMapOfPlainTextStrToSsmlStr.items():
-		patternForPlainTextStr = re.compile(r'\b'+re.escape(plainTextStr)+r'\b')
-		speechCommandListForSsmlStr = turnSsmlIntoSpeechCommandList(ssmlStr, plainTextStr, plainTextStr)
-		lastEnd = 0
-		for match in patternForPlainTextStr.finditer(str_):
-			start, end = match.span()
-			logInfo(f'found {repr(plainTextStr)}')
-			if start > lastEnd:
-				pre = str_[lastEnd:start]
-				logInfo(f'	plain text before match: {repr(pre)}')
-				r.append(pre)
-			r.extend(speechCommandListForSsmlStr)				
-			lastEnd = end
+	# concat adjacent strings.  handles two situations: 1) technique=inline|index and we see encoding characters in the wild.  2) technique=*: consecutive sub-aliases, or a sub-alias with leading or trailing text. 
+	# in both cases: I don't know how important this code is.  but it seems prudent to do it, in the spirit of being minimally invasive. 
+	newR = []
+	i = 0
+	while i < len(r):
+		if isinstance(r[i], str):
+			s = r[i]
+			while i+1 < len(r) and isinstance(r[i+1], str):
+				s += r[i+1]
+				i += 1
+			newR.append(s)
+		else:
+			newR.append(r[i])
+		i += 1
+	r = newR
+	return r
+    
 
-		if lastEnd < len(str_):
-			trailing = str_[lastEnd:]
-			logInfo(f'trailing text after last match: {repr(trailing)}')
-			r.append(trailing)
+
+def decodeAllStrs_pageWideOverrideTechnique(str_):
+	ourAssert(g_pageWideOverrideTechniqueMapOfPlainTextToSpeechCommandList != None)
+	m = g_pageWideOverrideTechniqueMapOfPlainTextToSpeechCommandList
+	patternForAllPlainTexts = re.compile('|'.join(r'(?<!\w)'+re.escape(plainText)+r'(?!\w)' for plainText in m.keys()))
+	r = []
+	prevEndIdx = 0
+	for match in patternForAllPlainTexts.finditer(str_):
+		startIdx, endIdx = match.span()
+		plainText = match.group(0)
+		logInfo(f'matched {repr(plainText)} at start pos {startIdx}')
+		if startIdx > prevEndIdx:
+			textBeforeMatch = str_[prevEndIdx:startIdx]
+			logInfo(f'	text before this match: {repr(textBeforeMatch)}')
+			r.append(textBeforeMatch)
+		speechCommandList = m[plainText]
+		r.extend(speechCommandList)
+		prevEndIdx = endIdx
+
+	if prevEndIdx < len(str_):
+		textAfterMatch = str_[prevEndIdx:]
+		logInfo(f'text after last match: {repr(textAfterMatch)}')
+		r.append(textAfterMatch)
 
 	return r
 
 def decodeAllStrs_indexAndInlineTechniques(str_):
 	r = []
-	lastEnd = 0
+	prevEndIdx = 0
 	matchCount = 0
 
 	# the techniques index and inline have the same start/end markers. 
 	pattern = re.compile(f'{re.escape(MARKER)}(.*?){re.escape(MARKER)}(.*?){re.escape(MACRO_END_MARKER)}', flags=re.DOTALL)
 
+	technique = None
 	for match in pattern.finditer(str_):
 		matchCount += 1
-		start, end = match.span()
+		startIdx, endIdx = match.span()
 		encodedStr, textToAffect = match.groups()
 		origWholeUnmodifiedText = match.group(0)
 
 		logInfo(f'encodedStr: {repr(encodedStr)}')
 		logInfo(f'textToAffect (len {len(textToAffect)}): {repr(textToAffect)}')
 
-		if start > lastEnd:
-			pre = str_[lastEnd:start]
-			logInfo(f'	plain text before match: {repr(pre)}')
+		if startIdx > prevEndIdx:
+			pre = str_[prevEndIdx:startIdx]
+			logInfo(f'	text before this match: {repr(pre)}')
 			r.append(pre)
 
 		success = False
@@ -284,17 +305,12 @@ def decodeAllStrs_indexAndInlineTechniques(str_):
 		if not success:
 			r.append(origWholeUnmodifiedText)
 
-		lastEnd = end
+		prevEndIdx = endIdx
 
-	if lastEnd < len(str_):
-		trailing = str_[lastEnd:]
-		logInfo(f'trailing text after last match: {repr(trailing)}')
+	if prevEndIdx < len(str_):
+		trailing = str_[prevEndIdx:]
+		logInfo(f'text after last match: {repr(trailing)}')
 		r.append(trailing)
-
-	if all(isinstance(e, str) for e in r):
-		# this is for when we meet 'encoding chars in the wild'.  in that case, the code earlier in this function will 'fallback' to the unmodified string, but it will still make this modification: it will split up str_ into > 1 string.  I suspect that might affect SR pronunciation in some cases.  so here we undo that.  
-		# I know know why I didn't do "r = [str_]" here.
-		r = [''.join(r)]
 
 	return r
 
@@ -323,8 +339,11 @@ def getPageWideOverrideTechniqueGlobalMapFromHidingPlaceElem(hidingPlaceElem_):
 	match = re.search(pattern, hidingPlaceElemTextContent)
 	if not match: return None
 	mapStr = match.group(1)
-	mapObj = json.loads(mapStr)
-	return mapObj
+	plainTextToSsmlStr = json.loads(mapStr)
+	r = {}
+	for plainText, ssmlStr in plainTextToSsmlStr.items():
+		r[plainText] = turnSsmlIntoSpeechCommandList(ssmlStr, plainText, plainText)
+	return r
 
 @profile
 def getRole(nvdaObj_):
@@ -379,12 +398,12 @@ g_original_speakTextInfo = speech.speakTextInfo
 
 g_a11yTreeRoot = None
 g_indexTechniqueGlobalList = None
-g_pageWideOverrideTechniqueMapOfPlainTextStrToSsmlStr = None
+g_pageWideOverrideTechniqueMapOfPlainTextToSpeechCommandList = None
 
 # This functions gets the a11y tree root AKA DOM root, so that later our filter_speechSequence function can get our SSML from there.  This is not as good as getting the DOM root directly from our filter_speechSequence function.  If would do that if I knew how.
 # For technique=index and technique=page-wide-override: this function finds their "hiding places" in the DOM.  we do it here (not in our speech hook) b/c it takes ~ 13 ms per call and that's slow enough that we don't want to do it repeatedly, so we might as well do it here.  
 def patchedSpeakTextInfo(info, *args, **kwargs):
-	global g_a11yTreeRoot, g_indexTechniqueGlobalList, g_pageWideOverrideTechniqueMapOfPlainTextStrToSsmlStr
+	global g_a11yTreeRoot, g_indexTechniqueGlobalList, g_pageWideOverrideTechniqueMapOfPlainTextToSpeechCommandList
 	nvdaObjectAtStart = info.NVDAObjectAtStart
 	a11yTreeRoot = nvdaObjectAtStart.treeInterceptor.rootNVDAObject
 	oldA11yTreeRoot = g_a11yTreeRoot
@@ -392,17 +411,21 @@ def patchedSpeakTextInfo(info, *args, **kwargs):
 	a11yTreeRootChanged = (id(oldA11yTreeRoot) != id(g_a11yTreeRoot)) # it's unclear if "id" is necessary here.  I used it because I don't know how their equals operator is implemented. 
 	logInfo(f'set g_a11yTreeRoot to {str(g_a11yTreeRoot)}.  value changed: {"yes" if a11yTreeRootChanged else "no"}.')
 	if a11yTreeRootChanged:
-		g_indexTechniqueGlobalList = g_pageWideOverrideTechniqueMapOfPlainTextStrToSsmlStr = None
+		g_indexTechniqueGlobalList = g_pageWideOverrideTechniqueMapOfPlainTextToSpeechCommandList = None
+		success = False
 		hidingPlaceElem = findHidingPlaceElementInA11yTree(g_a11yTreeRoot)
-		g_indexTechniqueGlobalList = getIndexTechniqueGlobalListFromHidingPlaceElem(hidingPlaceElem)
-		if g_indexTechniqueGlobalList != None:
-			logInfo('Found global object for technique=index.')
-		else:
-			g_pageWideOverrideTechniqueMapOfPlainTextStrToSsmlStr = getPageWideOverrideTechniqueGlobalMapFromHidingPlaceElem(hidingPlaceElem)
-			if g_pageWideOverrideTechniqueMapOfPlainTextStrToSsmlStr != None:
-				logInfo('Found global object for technique=page-wide-override.')
+		if hidingPlaceElem:
+			g_indexTechniqueGlobalList = getIndexTechniqueGlobalListFromHidingPlaceElem(hidingPlaceElem)
+			if g_indexTechniqueGlobalList != None:
+				logInfo('Found global object for technique=index.')
+				success = True
 			else:
-				logInfo("Found no global object.  Either this page uses technique=inline, or didn't run our JS.");
+				g_pageWideOverrideTechniqueMapOfPlainTextToSpeechCommandList = getPageWideOverrideTechniqueGlobalMapFromHidingPlaceElem(hidingPlaceElem)
+				if g_pageWideOverrideTechniqueMapOfPlainTextToSpeechCommandList != None:
+					logInfo('Found global object for technique=page-wide-override.')
+					success = True
+		if not success:
+			logInfo("Found no global object.  Either this page uses technique=inline, or didn't run our JS.")
 	return g_original_speakTextInfo(info, *args, **kwargs)
 
 def patchSpeakTextInfoFunc():
