@@ -83,7 +83,14 @@ window.addEventListener("load", function(event) {
 
 <ol>
 	<div style="display: none">
+		<!--
+		<span data-ssml='{'>broken-1</span>
+		<span data-ssml='{"say-as": "brokenbroken"}'>broken-2</span>
+		<span data-ssml='{"broken": "brokenbroken"}'>broken-3</span>
+		-->
 		<span data-ssml='{"sub": {"alias": "3 feet"}}'>3'</span>
+		<span data-ssml='{"sub": {"alias": "approximately 3 feet"}}'>~3'</span>
+		<span data-ssml='{"sub": {"alias": "3 feet approximately"}}'>3'~</span>
 		<span data-ssml='{"sub": {"alias": "mess"}}'>^[^].{9}.*!@#$%^&*()_+-=_+*$</span>
 		<span data-ssml='{"sub": {"alias": "yes"}}'>def</span>
 		<span data-ssml='{"say-as": "characters"}'>abcdefg</span>
@@ -91,6 +98,15 @@ window.addEventListener("load", function(event) {
 		<span data-ssml='{"sub": {"alias": "no failure no"}}'>def</span> <!-- not redundant.  will log a warning and otherwise be ignored. -->
 		<span data-ssml='{"sub": {"alias": "no no no if you hear this it is bad"}}'>yes</span>
 	</div>
+	<li>~3' (desired behavior: override: prepend "approx...")</li>
+	<li>3'~ (desired behavior: override: append "approx...")</li>
+	<!--
+	<li>broken-3 (desired behavior: don't override)</li>
+	<li>broken-2 (desired behavior: don't override)</li>
+	<li>broken-1 (desired behavior: don't override)</li>
+	-->
+	<li>DEF (desired behavior: override)</li>
+	<li>DeF (desired behavior: override)</li>
 	<li>^[^].{9}.*!@#$%^&*()_+-=_+*$ (desired behavior: override)</li>
 	<li>x^[^].{9}.*!@#$%^&*()_+-=_+*$ (desired behavior: don't override)</li>
 	<li>^[^].{9}.*!@#$%^&*()_+-=_+*$x (desired behavior: don't override)</li>

@@ -182,6 +182,8 @@ def turnSsmlIntoSpeechCommandList(ssmlAsJsonStr_, nonSsmlStr_, origWholeUnmodifi
 		else:
 			raise SsmlError()
 	except (json.decoder.JSONDecodeError, SsmlError, KeyError) as e:
+		logInfo(f'Error happened while processing SSML JSON string.  We will fall back to the plain text.  The SSML string was "{ssmlAsJsonStr_}".  The exception, which we will suppress, was:')
+		log.exception(e)
 		r = [origWholeUnmodifiedText_]
 	return r
 
@@ -229,7 +231,8 @@ def decodeAllStrs(str_):
 def decodeAllStrs_pageWideOverrideTechnique(str_):
 	ourAssert(g_pageWideOverrideTechniqueMapOfPlainTextToSpeechCommandList != None)
 	m = g_pageWideOverrideTechniqueMapOfPlainTextToSpeechCommandList
-	patternForAllPlainTexts = re.compile('|'.join(r'(?<!\w)'+re.escape(plainText)+r'(?!\w)' for plainText in m.keys()))
+	plainTexts = sorted(m.keys(), key=lambda e: -len(e)) # so that if we have plainTexts "3'" and "3'~", our pattern will match "3'~".  the way regex '|' works, it will match the leftmost branch.  so we want the longest one to be the leftmost.  this sort does that. 
+	patternForAllPlainTexts = re.compile('(?i)' + '|'.join(r'(?<!\w)'+re.escape(plainText)+r'(?!\w)' for plainText in plainTexts))
 	r = []
 	prevEndIdx = 0
 	for match in patternForAllPlainTexts.finditer(str_):
@@ -240,7 +243,7 @@ def decodeAllStrs_pageWideOverrideTechnique(str_):
 			textBeforeMatch = str_[prevEndIdx:startIdx]
 			logInfo(f'	text before this match: {repr(textBeforeMatch)}')
 			r.append(textBeforeMatch)
-		speechCommandList = m[plainText]
+		speechCommandList = m[plainText.lower()]
 		r.extend(speechCommandList)
 		prevEndIdx = endIdx
 
@@ -290,13 +293,13 @@ def decodeAllStrs_indexAndInlineTechniques(str_):
 			elif technique == 'inline':
 				encodedSsmlStr = encodedStr
 				decodedSsmlStr = decodeSingleStr(encodedSsmlStr)
-				logInfo(f'	decodedSsmlStr: {decodedSsmlStr}')
+				logInfo(f'	decodedSsmlStr: "{decodedSsmlStr}"')
 				r.extend(turnSsmlIntoSpeechCommandList(decodedSsmlStr, textToAffect, origWholeUnmodifiedText))				
 				success = True
 			else:
 				ourAssert(False)
 		except (Exception, IndexError) as e:
-			logInfo(f"Couldn't decode or figure out what to do with string '{encodedStr} / {repr(encodedStr)}'.  Will use unmodified text.")
+			logInfo(f"Couldn't decode or figure out what to do with string '{encodedStr} / {repr(encodedStr)}'.  Will use fall back to the plain text.")
 			if 1:
 				logInfo('Exception, which we will suppress, was:')
 				log.exception(e)
@@ -342,7 +345,7 @@ def getPageWideOverrideTechniqueGlobalMapFromHidingPlaceElem(hidingPlaceElem_):
 	plainTextToSsmlStr = json.loads(mapStr)
 	r = {}
 	for plainText, ssmlStr in plainTextToSsmlStr.items():
-		r[plainText] = turnSsmlIntoSpeechCommandList(ssmlStr, plainText, plainText)
+		r[plainText.lower()] = turnSsmlIntoSpeechCommandList(ssmlStr, plainText, plainText)
 	return r
 
 @profile
