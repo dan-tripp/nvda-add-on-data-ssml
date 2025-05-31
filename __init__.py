@@ -354,7 +354,7 @@ def getRole(nvdaObj_):
 
 @profile
 def findHidingPlaceElementInA11yTree(root_):
-	logInfo(f'dom root id {id(root_)}')
+	logInfo(f'dom root id={id(root_)} {root_}')
 	# document > section > text 
 	# document: root_ 
 	# > section: our hiding place div.  in DOM: last child of <body>.  in this tree: last child of document.  
@@ -405,10 +405,13 @@ g_pageWideOverrideTechniqueMapOfPlainTextToSpeechCommandList = None
 def patchedSpeakTextInfo(info, *args, **kwargs):
 	global g_a11yTreeRoot, g_indexTechniqueGlobalList, g_pageWideOverrideTechniqueMapOfPlainTextToSpeechCommandList
 	nvdaObjectAtStart = info.NVDAObjectAtStart
-	a11yTreeRoot = nvdaObjectAtStart.treeInterceptor.rootNVDAObject
+	if nvdaObjectAtStart.treeInterceptor != None:
+		newA11yTreeRoot = nvdaObjectAtStart.treeInterceptor.rootNVDAObject
+	else:
+		newA11yTreeRoot = None
 	oldA11yTreeRoot = g_a11yTreeRoot
-	g_a11yTreeRoot = a11yTreeRoot
-	a11yTreeRootChanged = (id(oldA11yTreeRoot) != id(g_a11yTreeRoot)) # it's unclear if "id" is necessary here.  I used it because I don't know how their equals operator is implemented. 
+	g_a11yTreeRoot = newA11yTreeRoot
+	a11yTreeRootChanged = (id(oldA11yTreeRoot) != id(newA11yTreeRoot)) # it's unclear if "id" is necessary here.  I used it because I don't know how their equals operator is implemented. 
 	logInfo(f'set g_a11yTreeRoot to {str(g_a11yTreeRoot)}.  value changed: {"yes" if a11yTreeRootChanged else "no"}.')
 	if a11yTreeRootChanged:
 		g_indexTechniqueGlobalList = g_pageWideOverrideTechniqueMapOfPlainTextToSpeechCommandList = None
@@ -425,7 +428,7 @@ def patchedSpeakTextInfo(info, *args, **kwargs):
 					logInfo('Found global object for technique=page-wide-override.')
 					success = True
 		if not success:
-			logInfo("Found no global object.  Either this page uses technique=inline, or didn't run our JS.")
+			logInfo("Found no global object.  Either this web page uses technique=inline, or this web page didn't run our JS, or this is not a web page.")
 	return g_original_speakTextInfo(info, *args, **kwargs)
 
 def patchSpeakTextInfoFunc():
