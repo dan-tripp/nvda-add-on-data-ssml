@@ -7,7 +7,7 @@ HIDING_PLACE_GUID_FOR_INDEX_TECHNIQUE = 'b4f55cd4-8d9e-40e1-b344-353fe387120f'
 HIDING_PLACE_GUID_FOR_PAGE_WIDE_OVERRIDE_TECHNIQUE = 'c7a998a5-4b7e-4683-8659-f2da4aa96eee'
 
 import datetime, re, base64, json, time, types
-import globalPluginHandler
+import globalPluginHandler, api
 from logHandler import log
 import speech, speech.commands, speech.extensions, braille
 import gettext
@@ -407,15 +407,19 @@ g_pageWideOverrideTechniqueMapOfPlainTextToSpeechCommandList = None
 # This functions gets the a11y tree root AKA DOM root, so that later our filter_speechSequence function can get our SSML from there.  This is not as good as getting the DOM root directly from our filter_speechSequence function.  If would do that if I knew how.
 # For technique=index and technique=page-wide-override: this function finds their "hiding places" in the DOM.  we do it here (not in our speech hook) b/c it takes ~ 13 ms per call and that's slow enough that we don't want to do it repeatedly, so we might as well do it here.  
 def patchedSpeakTextInfo(info, *args, **kwargs):
-	global g_a11yTreeRoot, g_indexTechniqueGlobalList, g_pageWideOverrideTechniqueMapOfPlainTextToSpeechCommandList
 	nvdaObjectAtStart = info.NVDAObjectAtStart
 	if nvdaObjectAtStart.treeInterceptor != None:
 		newA11yTreeRoot = nvdaObjectAtStart.treeInterceptor.rootNVDAObject
 	else: # will happen if eg. the current window is notepad++ 
 		newA11yTreeRoot = None
+	updateA11yTreeRoot(newA11yTreeRoot)
+	return g_original_speakTextInfo(info, *args, **kwargs)
+
+def updateA11yTreeRoot(newAllTreeRoot_):
+	global g_a11yTreeRoot, g_indexTechniqueGlobalList, g_pageWideOverrideTechniqueMapOfPlainTextToSpeechCommandList
 	oldA11yTreeRoot = g_a11yTreeRoot
-	g_a11yTreeRoot = newA11yTreeRoot
-	a11yTreeRootChanged = (id(oldA11yTreeRoot) != id(newA11yTreeRoot)) # it's unclear if "id" is necessary here.  I used it because I don't know how their equals operator is implemented. 
+	g_a11yTreeRoot = newAllTreeRoot_
+	a11yTreeRootChanged = (id(oldA11yTreeRoot) != id(newAllTreeRoot_)) # it's unclear if "id" is necessary here.  I used it because I don't know how their equals operator is implemented. 
 	logInfo(f'set g_a11yTreeRoot to {str(g_a11yTreeRoot)}.  value changed: {"yes" if a11yTreeRootChanged else "no"}.')
 	if a11yTreeRootChanged:
 		g_indexTechniqueGlobalList = g_pageWideOverrideTechniqueMapOfPlainTextToSpeechCommandList = None
@@ -433,7 +437,6 @@ def patchedSpeakTextInfo(info, *args, **kwargs):
 					success = True
 		if not success:
 			logInfo("Found no global object.  Either this web page uses technique=inline, or this web page didn't run our JS, or this is not a web page.")
-	return g_original_speakTextInfo(info, *args, **kwargs)
 
 def patchSpeakTextInfoFunc():
 	speech.speakTextInfo = patchedSpeakTextInfo
@@ -442,7 +445,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 	def __init__(self):
 		super().__init__()
 		#monkeyPatchBrailleHandler()
-		patchSpeakTextInfoFunc()
+		#patchSpeakTextInfoFunc()
 		# Thank you Dalen at https://nvda-addons.groups.io/g/nvda-addons/message/25811 for this idea of using filter_speechSequence instead of monkey-patching the synth. 
 		self._ourSpeechSequenceFilter = speech.extensions.filter_speechSequence.register(self.ourSpeechSequenceFilter)
 		if LOG_BRAILLE:
@@ -454,7 +457,17 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 	def terminate(self):
 		speech.extensions.filter_speechSequence.unregister(self.ourSpeechSequenceFilter)
 
+	def newUpdateA11yTreeRoot(self):
+		try:
+			newA11yTreeRoot = api.getNavigatorObject().treeInterceptor.rootNVDAObject
+		except (AttributeError) as e:
+			newA11yTreeRoot = None
+		updateA11yTreeRoot(newA11yTreeRoot)
+
 	def ourSpeechSequenceFilter(self, origSeq: speech.SpeechSequence) -> speech.SpeechSequence:
+		if 1:
+			self.newUpdateA11yTreeRoot()
+			#logInfo(f"api.getNavigatorObject() {api.getNavigatorObject()}")
 		modSeq = []
 		#logInfo(f'g_a11yTreeRoot: {g_a11yTreeRoot.name if g_a11yTreeRoot else None}') 
 		#logInfo(f'a11yTree:\n{a11yTreeToStr(g_a11yTreeRoot)}') 
