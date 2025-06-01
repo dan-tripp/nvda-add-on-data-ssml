@@ -203,12 +203,16 @@ Fix only works with synth=onecore.<br>
 
 <h3>page-wide-override</h3>	
 
+<div>
+	html comment strangeness: <br>
+	works:<br>
+	<span data-ssml='{"sub": {"alias": "yes"}}'>def</span>
+	<span data-ssml='{"sub": {"alias": "yes"}}'>def</span><br>
+	does not work:<br>
+	<span data-ssml='{"sub": {"alias": "yes"}}'>def</span> <!-- this is strange.  this comment here will cause the speech filter to see this as "defdef" (w/o a space).  so our string matching (w/ technique=page-wide-override) won't work.  -->
+	<span data-ssml='{"sub": {"alias": "yes"}}'>def</span><br>
+</div>
 <ol>
-	<div xstyle="display: none">
-		<span data-ssml='{"sub": {"alias": "yes"}}'>def</span>
-		<span data-ssml='{"sub": {"alias": "yes"}}'>def</span> <!-- will not log a warning -->
-		<span data-ssml='{"sub": {"alias": "no failure no"}}'>def</span> <!-- will log a warning -->
-	</div>
 	<li>abcdefghi  (desired behavior: don't override)
 	<li>abc<span>def</span>ghi  (desired behavior: don't override)
 	<li>abc<span style="margin: 0.3em">def</span>ghi  (desired behavior: don't override, but it's borderline)
@@ -252,6 +256,8 @@ Fix only works with synth=onecore.<br>
 
 <h3>Misc.</h3>
 
+
+
 <p>
 This "th" phoneme seems to work under synth = espeak and sapi5.  I don't know why.  I got this idea from https://github.com/nvaccess/nvda/blob/b501e16a2392aaa89892879d77725f02b9f2835d/source/synthDrivers/sapi5.py#L423 <br>
 <a href="#"><span data-ssml='{"ph": "θ"}'>th</span> </a><br>
@@ -287,6 +293,11 @@ marker: &#x2062;&#x2062;&#x2062;&#x2062; &#x2062;&#x2062;3&#x2062;&#x2062; &#x20
 
 &#x2062;&#x2060;&#xfffa;&#x2060;&#xfffa;&#x2060;&#xfffa;&#x2060;&#xfffa;&#x2060;&#xfffa;&#x2062;index = 99999&#x2062;&#x2062; <br>
 &#x2062;&#x200d;&#x206d;&#x2060;&#x200c;&#x2062;index = -1&#x2062;&#x2062; <br>
+
+<h4>Misc.</h4>
+
+technique=index: testing a certain regex: 
+<span data-ssml='{"sub": {"alias": "[ success ]"}}'>testing 123</span>
 
 
 <!--

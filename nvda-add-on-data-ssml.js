@@ -1,6 +1,6 @@
 (function () {
 
-const TECHNIQUE = ['index', 'inline', 'page-wide-override'][2];
+const TECHNIQUE = ['inline', 'index', 'page-wide-override'][1];
 
 const HIDING_PLACE_GUID_FOR_ALL_TECHNIQUES = '4b9b696c-8fc8-49ca-9bb9-73afc9bd95f7';
 const HIDING_PLACE_GUID_FOR_INDEX_TECHNIQUE = 'b4f55cd4-8d9e-40e1-b344-353fe387120f';

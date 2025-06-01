@@ -1,6 +1,6 @@
 
-PROFILE = True
-LOG_BRAILLE = True
+PROFILE = False
+LOG_BRAILLE = False
 
 HIDING_PLACE_GUID_FOR_ALL_TECHNIQUES = '4b9b696c-8fc8-49ca-9bb9-73afc9bd95f7'
 HIDING_PLACE_GUID_FOR_INDEX_TECHNIQUE = 'b4f55cd4-8d9e-40e1-b344-353fe387120f'
@@ -329,7 +329,7 @@ def detectTechnique(encodedStr_):
 def getIndexTechniqueGlobalListFromHidingPlaceElem(hidingPlaceElem_):
 	ourAssert(hidingPlaceElem_)
 	hidingPlaceElemTextContent = hidingPlaceElem_.name
-	pattern = rf'{HIDING_PLACE_GUID_FOR_ALL_TECHNIQUES} {HIDING_PLACE_GUID_FOR_INDEX_TECHNIQUE}\s*(\[.*?\])'
+	pattern = rf'{HIDING_PLACE_GUID_FOR_ALL_TECHNIQUES} {HIDING_PLACE_GUID_FOR_INDEX_TECHNIQUE}\s*(\[.*\])'
 	match = re.search(pattern, hidingPlaceElemTextContent)
 	if not match: return None
 	globalListStr = match.group(1)
