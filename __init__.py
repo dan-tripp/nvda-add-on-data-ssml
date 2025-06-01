@@ -6,7 +6,7 @@ HIDING_PLACE_GUID_FOR_ALL_TECHNIQUES = '4b9b696c-8fc8-49ca-9bb9-73afc9bd95f7'
 HIDING_PLACE_GUID_FOR_INDEX_TECHNIQUE = 'b4f55cd4-8d9e-40e1-b344-353fe387120f'
 HIDING_PLACE_GUID_FOR_PAGE_WIDE_OVERRIDE_TECHNIQUE = 'c7a998a5-4b7e-4683-8659-f2da4aa96eee'
 
-import datetime, re, base64, json, time
+import datetime, re, base64, json, time, types
 import globalPluginHandler
 from logHandler import log
 import speech, speech.commands, speech.extensions, braille
@@ -441,6 +441,7 @@ def patchSpeakTextInfoFunc():
 class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 	def __init__(self):
 		super().__init__()
+		#monkeyPatchBrailleHandler()
 		patchSpeakTextInfoFunc()
 		# Thank you Dalen at https://nvda-addons.groups.io/g/nvda-addons/message/25811 for this idea of using filter_speechSequence instead of monkey-patching the synth. 
 		self._ourSpeechSequenceFilter = speech.extensions.filter_speechSequence.register(self.ourSpeechSequenceFilter)
@@ -470,3 +471,12 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		return modSeq
 	
 
+def monkeyPatchBrailleHandler():
+	originalUpdateFunc = braille.handler.update
+
+	def ourUpdateFunc(region, *args, **kwargs):
+		logInfo('eureka')
+		return originalUpdateFunc(region, *args, **kwargs)
+
+	braille.handler.update = ourUpdateFunc
+	
