@@ -6,6 +6,53 @@ HIDING_PLACE_GUID_FOR_ALL_TECHNIQUES = '4b9b696c-8fc8-49ca-9bb9-73afc9bd95f7'
 HIDING_PLACE_GUID_FOR_INDEX_TECHNIQUE = 'b4f55cd4-8d9e-40e1-b344-353fe387120f'
 HIDING_PLACE_GUID_FOR_PAGE_WIDE_OVERRIDE_TECHNIQUE = 'c7a998a5-4b7e-4683-8659-f2da4aa96eee'
 
+def logInfo(str_):
+	log.info(f'data-ssml: {datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")} {str_}')
+
+def ourAssert(bool_, str_=''):
+	if not bool_:
+		raise AssertionError(str_)
+
+''' If you change the chars here, you need to also change them in the JS encode function.  
+And vice versa.  Write comments about these chars here, not there. '''
+ENCODING_CHARS = [
+	'\uFFF9', 
+	'\u200C', 
+	'\u200D',
+	'\u2060',
+	'\u2061',
+	'\uFEFF',
+	'\u2063',
+	'\u2064',
+	'\uFFFB',
+	'\uFFFA',
+	'\u206A',
+	'\u206B',
+	'\u206C',
+	'\u206D',
+	'\u206E',
+	'\u206F', 
+]
+'''
+chars not used AKA unused: 
+	\u070F: tempting, but it's not invisible. 
+	\u17B4: didn't make it through chrome.  showed up as some characters in the synth.  I don't get it. 
+	\u17B5: same. 
+	\u202A: got filtered out by firefox. 
+	\u202B: got filtered out by firefox. 
+	\u001C: got filtered out by firefox. 
+	\u001D: got filtered out by firefox. 
+	\u001E: got filtered out by firefox. 
+	\u001F: got filtered out by firefox. 
+	\u0000: got filtered out by firefox. 
+	\u202C: seems to get filtered out by firefox 
+	\u202D: seems to get filtered out by firefox 
+	\u180E: almost worked, but got filtered sometimes, or caused premature string split.  tested on chrome only IIRC.  more notes in test-page-for-encoding-chars.html . 
+	\u200B: got filtered out on the "repeat 1000" test on our test page for encoding chars.  
+	\u061C: got filtered out by firefox. 
+'''
+ourAssert(len(set(ENCODING_CHARS)) == len(ENCODING_CHARS), "encodingChars contains duplicates")
+
 import datetime, re, base64, json, time, types
 import globalPluginHandler, api
 from logHandler import log
@@ -31,13 +78,6 @@ from speech.commands import (
 	IndexCommand,
 )
 
-def logInfo(str_):
-	log.info(f'data-ssml: {datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")} {str_}')
-
-def ourAssert(bool_, str_=''):
-	if not bool_:
-		raise AssertionError(str_)
-		
 
 def profile(fn):
 	if PROFILE:
@@ -71,44 +111,6 @@ def isPowerOfTwo(n_):
 
 @profile
 def decodeSingleStr(str_):
-	''' If you change the chars here, you need to also change them in the JS encode function.  
-	And vice versa.  Write comments about these chars here, not there. 
-	chars not used AKA unused: 
-		\u070F: tempting, but it's not invisible. 
-		\u17B4: didn't make it through chrome.  showed up as some characters in the synth.  I don't get it. 
-		\u17B5: same. 
-		\u202A: got filtered out by firefox. 
-		\u202B: got filtered out by firefox. 
-		\u001C: got filtered out by firefox. 
-		\u001D: got filtered out by firefox. 
-		\u001E: got filtered out by firefox. 
-		\u001F: got filtered out by firefox. 
-		\u0000: got filtered out by firefox. 
-		\u202C: seems to get filtered out by firefox 
-		\u202D: seems to get filtered out by firefox 
-		\u180E: almost worked, but got filtered sometimes, or caused premature string split.  tested on chrome only IIRC.  more notes in test-page-for-encoding-chars.html . 
-		\u200B: got filtered out on the "repeat 1000" test on our test page for encoding chars.  
-		\u061C: got filtered out by firefox. 
-	'''
-	ENCODING_CHARS = [
-		'\uFFF9', 
-		'\u200C', 
-		'\u200D',
-		'\u2060',
-		'\u2061',
-		'\uFEFF',
-		'\u2063',
-		'\u2064',
-		'\uFFFB',
-		'\uFFFA',
-		'\u206A',
-		'\u206B',
-		'\u206C',
-		'\u206D',
-		'\u206E',
-		'\u206F', 
-	]
-	ourAssert(len(set(ENCODING_CHARS)) == len(ENCODING_CHARS), "encodingChars contains duplicates")
 
 	n = len(ENCODING_CHARS)
 	if not isPowerOfTwo(n):
@@ -487,9 +489,16 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 def monkeyPatchBrailleHandler():
 	originalUpdateFunc = braille.handler.update
 
-	def ourUpdateFunc(region, *args, **kwargs):
+	def ourUpdateFunc(self):
 		logInfo('eureka')
-		return originalUpdateFunc(region, *args, **kwargs)
+		for region in self.buffer.regions:
+			if hasattr(region, "rawText"):
+				logInfo(f'braille rawText before: "{region.rawText}"')
+				for encodingChar in ENCODING_CHARS:
+					region.rawText = region.rawText.replace(encodingChar, "")
+				logInfo(f'braille rawText after: "{region.rawText}"')
+		self.buffer.update()
+		return originalUpdateFunc()
 
-	braille.handler.update = ourUpdateFunc
+	braille.handler.update = types.MethodType(ourUpdateFunc, braille.handler)
 	
