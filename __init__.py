@@ -447,7 +447,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 	def __init__(self):
 		super().__init__()
 		#monkeyPatchBrailleHandler()
-		#patchSpeakTextInfoFunc()
+		patchSpeakTextInfoFunc()
 		# Thank you Dalen at https://nvda-addons.groups.io/g/nvda-addons/message/25811 for this idea of using filter_speechSequence instead of monkey-patching the synth. 
 		self._ourSpeechSequenceFilter = speech.extensions.filter_speechSequence.register(self.ourSpeechSequenceFilter)
 		if LOG_BRAILLE:
@@ -467,7 +467,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		updateA11yTreeRoot(newA11yTreeRoot)
 
 	def ourSpeechSequenceFilter(self, origSeq: speech.SpeechSequence) -> speech.SpeechSequence:
-		if 1:
+		if 0:
 			self.newUpdateA11yTreeRoot()
 			#logInfo(f"api.getNavigatorObject() {api.getNavigatorObject()}")
 		modSeq = []
