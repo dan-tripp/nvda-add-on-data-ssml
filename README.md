@@ -69,12 +69,6 @@ This plugin can be configured to use one of several "techniques", but regardless
 			<td>The best technique.  Braille viewer sees no junk characters, because the JS didn't add any. 
 		</tr>
 		<tr>
-			<th scope="row">Bug: stale DOM root reference
-			<td>The best technique.  Bug does not exist.
-			<td>Tied for the worst technique.  Bug exists.  This bug means that sometimes, if the user hasn't yet arrowed or tabbed on the current page (eg. just loaded that page and NVDA is reading the whole page - I think - details unclear) then this plugin's DOM root reference will be stale, which will result in either: 1) this plugin not working, or 2: this plugin using SSML from another web page i.e. whichever data-ssml-enabled web page it saw last.
-			<td>Tied for the worst technique.  Same bug. 
-		</tr>
-		<tr>
 			<th scope="row">Clipboard junk.  i.e. our encoding characters, even though they're invisible to the eye and silent in the screen reader audio, show up in the clipboard if you select and copy that part of the page.
 			<td>The worse technique.  The JS adds approx 2 characters of clipboard junk per data-ssml character.
 			<td>The middle technique.  The JS adds a roughly-constant 6 characters of clipboard junk, regardless of the length of data-ssml.  4 characters at the start of the element + 2 characters at the end.

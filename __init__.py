@@ -400,22 +400,9 @@ def a11yTreeToStr(root_, maxDepth=10):
 	recurse(root_)
 	return "\n".join(lines)
 
-g_original_speakTextInfo = speech.speakTextInfo
-
 g_a11yTreeRoot = None
 g_indexTechniqueGlobalList = None
 g_pageWideOverrideTechniqueMapOfPlainTextToSpeechCommandList = None
-
-# This functions gets the a11y tree root AKA DOM root, so that later our filter_speechSequence function can get our SSML from there.  This is not as good as getting the DOM root directly from our filter_speechSequence function.  If would do that if I knew how.
-# For technique=index and technique=page-wide-override: this function finds their "hiding places" in the DOM.  we do it here (not in our speech hook) b/c it takes ~ 13 ms per call and that's slow enough that we don't want to do it repeatedly, so we might as well do it here.  
-def patchedSpeakTextInfo(info, *args, **kwargs):
-	nvdaObjectAtStart = info.NVDAObjectAtStart
-	if nvdaObjectAtStart.treeInterceptor != None:
-		newA11yTreeRoot = nvdaObjectAtStart.treeInterceptor.rootNVDAObject
-	else: # will happen if eg. the current window is notepad++ 
-		newA11yTreeRoot = None
-	updateA11yTreeRoot(newA11yTreeRoot)
-	return g_original_speakTextInfo(info, *args, **kwargs)
 
 def updateA11yTreeRoot(newAllTreeRoot_):
 	global g_a11yTreeRoot, g_indexTechniqueGlobalList, g_pageWideOverrideTechniqueMapOfPlainTextToSpeechCommandList
@@ -440,14 +427,11 @@ def updateA11yTreeRoot(newAllTreeRoot_):
 		if not success:
 			logInfo("Found no global object.  Either this web page uses technique=inline, or this web page didn't run our JS, or this is not a web page.")
 
-def patchSpeakTextInfoFunc():
-	speech.speakTextInfo = patchedSpeakTextInfo
-
 class GlobalPlugin(globalPluginHandler.GlobalPlugin):
+	
 	def __init__(self):
 		super().__init__()
 		#monkeyPatchBrailleHandler()
-		patchSpeakTextInfoFunc()
 		# Thank you Dalen at https://nvda-addons.groups.io/g/nvda-addons/message/25811 for this idea of using filter_speechSequence instead of monkey-patching the synth. 
 		self._ourSpeechSequenceFilter = speech.extensions.filter_speechSequence.register(self.ourSpeechSequenceFilter)
 		if LOG_BRAILLE:
@@ -467,9 +451,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		updateA11yTreeRoot(newA11yTreeRoot)
 
 	def ourSpeechSequenceFilter(self, origSeq: speech.SpeechSequence) -> speech.SpeechSequence:
-		if 0:
-			self.newUpdateA11yTreeRoot()
-			#logInfo(f"api.getNavigatorObject() {api.getNavigatorObject()}")
+		self.newUpdateA11yTreeRoot()
 		modSeq = []
 		#logInfo(f'g_a11yTreeRoot: {g_a11yTreeRoot.name if g_a11yTreeRoot else None}') 
 		#logInfo(f'a11yTree:\n{a11yTreeToStr(g_a11yTreeRoot)}') 
