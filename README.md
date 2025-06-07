@@ -90,10 +90,10 @@ This plugin can be configured to use one of several "techniques", but regardless
 
 - To keep NVDA's copy of this plugin (AKA add-on) in sync with this repo, I use NVDA's "scratchPad" directory.  Here are some ways to make that work:
 	- symlink 
-		- i.e. in Windows, run a command prompt as administrator, then run something like this: mklink /D "C:\Users\dt\AppData\Roaming\nvda\scratchpad\globalPlugins\nvda-add-on-data-ssml" "\\wsl.localhost\Ubuntu\root\nvda-add-on-data-ssml" 
+		- i.e. in Windows, run a command prompt as administrator, then run something like this: mklink /D "C:\Users\dt\AppData\Roaming\nvda\scratchpad\globalPlugins\data_ssml" "\\wsl.localhost\Ubuntu\root\nvda-add-on-data-ssml\data_ssml"  
+			- this will create a link from nvda's scratchPad directory to the git repo, not the other way around.  so nvda - via it's scratchPad directory - will find your repo this way.  the git repo in no way finds the nvda scratchPad directory.
 		- This might rely on WSL running.  It's unclear what "WSL running" means.  It seems not to mean "there are one or more interactive WSL shells running", because I shut down all my shells, and the symlink still worked.
 	- Copy files 
 		- I do all my edits to the code on NVDA's copy, then when it's time to commit I copy NVDA's copy to this repo.
-		- These files are meant to help with that: copy-scratchpad-files-to-here.bash , copy-here-files-to-scratchpad.bash , cd-scratchpad.bash , git-add-commit-etc.bash . 
 
 

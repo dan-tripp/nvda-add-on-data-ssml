@@ -22,17 +22,20 @@ shopt -s expand_aliases
 nameOfThisProgram="$(basename "$0")"
 
 numArgsMin=0
-numArgsMax=0
+numArgsMax=1
 if [[ ( "$#" -le "$numArgsMin"-1 ) || ( "$#" -ge "$numArgsMax"+1 ) || ( "$#" == 1 && "$1" == "--help" ) ]] ; then
 	cat >&2 << EOF
 Usage example(s): 
-$nameOfThisProgram # no args
+$nameOfThisProgram [GREP_REGEX]
 EOF
 	exit 1
 fi
 
-#tail -F "$(wslpath -ua 'C:\Users\dt\AppData\Local\Temp\nvda.log')"
-powershell.exe -Command "Get-Content 'C:\\Users\\dt\\AppData\\Local\\Temp\\nvda.log' -Wait"
-
+if (( $# > 0 )); then
+	grepRegex="$1"
+	powershell.exe -Command "Get-Content 'C:\\Users\\dt\\AppData\\Local\\Temp\\nvda.log' -Wait" | grep --ignore-case --line-buffered "$grepRegex" | stdin-squeeze-into-column.py 50 
+else
+	powershell.exe -Command "Get-Content 'C:\\Users\\dt\\AppData\\Local\\Temp\\nvda.log' -Wait" | stdin-squeeze-into-column.py 50 
+fi
 
 

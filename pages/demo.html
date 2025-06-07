@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width">
+	<title>data-ssml NVDA plugin demo page</title>
+
+	<style>
+
+p { line-height: 1.5; }
+
+/* thanks https://www.tpgi.com/the-anatomy-of-visually-hidden/#where-we-came-in */
+.visually-hidden:not(:focus):not(:active) {
+    clip-path: inset(50%);
+    height: 1px;
+    overflow: hidden;
+    position: absolute;
+    white-space: nowrap;
+    width: 1px;
+}
+
+[data-ssml] {
+	outline: 2px dashed rgb(150,150,150);
+}
+
+table.ssml-table {
+	border-collapse: collapse;
+	width: 100%;
+	margin-top: 1em;
+}
+
+table.ssml-table th,
+table.ssml-table td {
+	border: 1px solid #ccc;
+	padding: 8px 12px;
+	text-align: left;
+	vertical-align: top;
+}
+
+table.ssml-table th {
+	background-color: #f4f4f4;
+}
+
+	</style>
+
+	<script>
+
+function scrollWithGap(elem, gap = 40) {
+	let rect = elem.getBoundingClientRect();
+	let isBelow = rect.bottom > window.innerHeight - gap;
+	let isAbove = rect.top < gap;
+
+	if (isBelow || isAbove) {
+		window.scrollBy({
+			top: isBelow ? rect.bottom - window.innerHeight + gap : rect.top - gap,
+			left: 0,
+			/* used to do "behavior: 'smooth'" here, but it caused NVDA's focus indicator to not match the browser's focus indicator, which, I think, was not the best for demo videos. */
+		});
+	}
+}
+
+window.addEventListener("load", function(event) {
+	document.addEventListener('focusin', (e) => {
+		scrollWithGap(e.target);
+	});
+
+});
+
+	</script>
+
+	<script	src="../js/nvda-add-on-data-ssml.js"></script>
+
+</head>
+
+
+
+
+<body>
+<main>
+
+
+<h1>data-ssml NVDA plugin demo page</h1>
+
+<p>All elements on this page which have a data-ssml attribute have a dark grey dashed box outline, like this: <span data-ssml>abc</span><!-- The preceding span probably won't get any encoding chars and so won't cause our plugin to do anything, b/c the attrib value is empty. -->.</p>
+
+<p>This is a good demo page for the plugin's techniques "inline" and "index".  Not "page-wide-override".</p>
+
+<h2>SSML Sub / Alias</h2>
+
+<ol>
+<li>On this line we have no SSML, so the "3 apostrophe" at the end of the line will be spoken as just "3".  3'
+<li>Same on this line.  No SSML here, so the "3 apostrophe" at the end of this line will be spoken as just "3", but as a link this time.  <a href="#">3'</a>
+<li>Here we use SSML to make the "3 apostrophe" at the end of this line spoken as "3 prime".  <span data-ssml='{"sub": {"alias": "3 prime"}}'>3'</span>
+<li>Same as previous line, but as a link this time.  <a href="#" data-ssml='{"sub": {"alias": "3 prime"}}'>3'</a>
+<li>Now "feet" instead of "prime".  Visually it looks the same as previous examples - still "3 apostrophe".  <span data-ssml='{"sub": {"alias": "3 feet"}}'>3'</span>
+</ol>
+
+<h2>SSML "Say As Characters"</h2>
+i.e. data-ssml='{"say-as": "characters"}'.<br>
+Most cases in this section only have bad spoken presentation without SSML only under synth=eSpeak.  Exceptions: ETA, ABCDEF....<br>
+
+<table class="ssml-table">
+	<thead>
+		<tr>
+			<th>Without SSML</th>
+			<th>With SSML</th>
+		</tr>
+	</thead>
+	<tbody>
+		<tr>
+			<td><span>ETA</span></td>
+			<td><span data-ssml='{"say-as": "characters"}'>ETA</span></td>
+		</tr>
+		<tr>
+			<td><span>FAQ</span></td>
+			<td><span data-ssml='{"say-as": "characters"}'>FAQ</span></td>
+		</tr>
+		<tr>
+			<td><span>LOL</span></td>
+			<td><span data-ssml='{"say-as": "characters"}'>LOL</span></td>
+		</tr>
+		<tr>
+			<td><span>UX</span> (non-problem)</td>
+			<td><span data-ssml='{"say-as": "characters"}'>UX</span></td>
+		</tr>
+		<tr>
+			<td><span>10100</span> (non-binary)</td>
+			<td><span data-ssml='{"say-as": "characters"}'>10100</span> (binary)</td>
+		</tr>
+		<tr>
+			<td><span>416 555 3792</span> (phone number)</td>
+			<td><span data-ssml='{"say-as": "characters"}'>416 555 3792</span> (phone number)</td>
+		</tr>
+		<tr>
+			<td><span>ABCDEFGHIJKLMNOP</span></td>
+			<td><span data-ssml='{"say-as": "characters"}'>ABCDEFGHIJKLMNOP</span></td>
+		</tr>
+	</tbody>
+</table>
+
+
+<h2>SSML Phonemes</h2>
+Fix only works with synth=OneCore.<br>
+<!-- It's unclear where I got these IPAs from, or if they're correct.  at least the IPAs below for "tear" didn't match any of those at https://dictionary.cambridge.org/pronunciation/english/tear --> 
+<span data-ssml='{"ph": "wuːnd"}'>wound</span> as in "injury"<br>
+<span data-ssml='{"ph": "waʊnd"}'>wound</span> as in "wrapped"<br>
+wound without SSML<br>
+<span data-ssml='{"ph": "lɛd"}'>lead</span> as in "heavy metal"<br>
+<span data-ssml='{"ph": "liːd"}'>lead</span> as in "follow the leader"<br>
+lead without SSML<br>
+<span data-ssml='{"ph": "teɚ"}'>tear</span> as in "rip"<br> 
+<span data-ssml='{"ph": "tɪɚ"}'>tear</span> as in "cry"<br>
+tear without SSML<br>
+<span data-ssml='{"ph": "bæs"}'>bass</span> as in "fish"<br>
+<span data-ssml='{"ph": "beɪs"}'>bass</span> as in "a low-pitched sound"<br>
+bass without SSML<br>
+
+<h2>From ETS' CSUN 2025 talk</h2>
+
+<fieldset>
+	<legend>Choose:</legend>
+
+	<input type="radio" name="choice" value="choice1" id="choice1">
+	<label for="choice1">The pre-<span data-ssml='{"sub": {"alias": "m r n A"}}'>mRNA</span> is cleaved to its <span data-ssml='{"sub": {"alias": "3 prime"}}'>3'</span> end, and approximately 200<span data-ssml='{"sub": {"alias": "A M Ps"}}'>AMPS</span> are added to the cleaved end.</label> 
+	<br>
+
+	<label>
+		<input type="radio" name="choice" value="choice2" >
+		Choice 2
+		</label>
+	<br>
+
+</fieldset>
+
+
+<h2>Misc.</h2>
+
+
+<table class="ssml-table">
+	<thead>
+		<tr>
+			<th>Without SSML</th>
+			<th>With SSML</th>
+			<th>Notes</th>
+		</tr>
+	</thead>
+	<tbody>
+		<tr>
+			<td>123 Maple Dr., St. Paul, Minn</td>
+			<td>123 Maple <span data-ssml='{"sub": {"alias": "drive"}}'>Dr.</span>, St. Paul, <span data-ssml='{"sub": {"alias": "minnesota"}}'>Minn</span></td>
+			<td>Without SSML, with synth=eSpeak, "Dr." is spoken as "Doctor".  And of course, without ssml, with all synths, "Minn" is spoken as just "Minn".  <a href="https://www.w3.org/WAI/pronunciation/">Source</a>.</td>
+		</tr>
+		<tr>
+			<td>Reading is a large town in Berkshire in England.</td>
+			<td><span data-ssml='{"sub": {"alias": "redding"}}'>Reading</span> is a large town in Berkshire in England.</td>
+			<td><a href="https://www.w3.org/WAI/pronunciation/">Source</a>.</td>
+		</tr>
+		<tr>
+			<td>Madison will eat a fruit iff it's an apple</td>
+			<td>Madison will eat a fruit <span data-ssml='{"sub": {"alias": "if and only if"}}'>iff</span> it's an apple</td>
+			<td><a href="https://benmyers.dev/blog/overriding-screenreader-pronunciations/">Source</a>.  Testing 2025-06-07: without SSML, with synth=eSpeak, "iff" is spoken as "if", and with synth=SAPI5 and synth=OneCore, "iff" is spoken as "I F F".</td>
+		</tr>
+	</tbody>
+</table>
+
+
+
+
+<div style="padding-bottom: 200px;">
+</div>
+	
+
+</main>
+
+
+</body>
+
+</html>

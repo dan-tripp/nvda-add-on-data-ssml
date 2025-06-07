@@ -53,17 +53,12 @@ chars not used AKA unused:
 '''
 ourAssert(len(set(ENCODING_CHARS)) == len(ENCODING_CHARS), "encodingChars contains duplicates")
 
-import datetime, re, base64, json, time, types
+import datetime, re, base64, json, time, types, dataclasses, sys, traceback
 import globalPluginHandler, api
 from logHandler import log
 import speech, speech.commands, speech.extensions, braille
-import gettext
 import synthDriverHandler
 from controlTypes import roleLabels
-from documentBase import textInfos
-
-
-_ = gettext.gettext
 
 # speech/SSML processing borrowed from NVDA's mathPres/mathPlayer.py
 from speech.commands import (
@@ -106,6 +101,43 @@ class StopWatch:
 		output = f"stopwatch: {self.label} {message} {self.numClicks} took {elapsedMillis:.0f} ms"
 		logInfo(output)
 
+
+
+# various data that influences how this plugin is supposed to work.
+# 
+# this reflects the web page we're on and the currently-set options of NVDA.  the main point of having this as a class is so we can write unit tests easily.  when our code is running in nvda (not a unit test): an instance of this class might be short-lived, or at least have it's values changing often.  b/c the appropriate values could change from one moment to the next eg. if the user changes browser tab, or nvda synth.
+# 
+# it /almost/ makes sense for an instance of this class to exist only if the current nvda navigator object is a web page that has our SSML stuff on it.  almost, but not quite, because when technique=inline, we don't know if the current web page has our stuff or not.  we'll only know that when and if our speech filter encounters some of our encoded characters.  so if we're on a web page that has our stuff with technique=inline, or we're on a web page that doesn't use our stuff, or we're not on a web page, then an instance of this class will exist, and have technique == 'inline'. 
+@dataclasses.dataclass 
+class State:
+	
+	# NVDA state:
+	useCharacterModeCommand: bool = True
+	isLanguageEnglish: bool = True
+
+	# our plugin state, based on the current web page: 
+	technique: str = None
+	techniqueIndexListOfSsmlObjs: list = None
+	techniquePageWideOverrideDictOfPlainTextToSpeechCommandList: dict = None
+
+		
+def getUseCharacterModeCommandFromNvdaState():
+	# A good test case for reproducing the problem that this code solves is <span data-ssml='{"say-as": "characters"}'>ABCDEFGHIJKLMNOP</span>
+
+	# Some code here was copied from MathCAT.py, which was added in https://github.com/NSoiffer/MathCATForPython/commit/76679ad206749d4d0cf20bcade4a8880831e7904 to fix https://github.com/NSoiffer/MathCATForPython/issues/32 
+	# From MathCAT.py: as of 7/23, oneCore voices do not implement the CharacterModeCommand despite it being in supported_commands
+
+	synth = synthDriverHandler.getSynth()
+	r = (CharacterModeCommand in synth.supportedCommands and synth.name != "oneCore")
+	return r
+
+def getIsLanguageEnglishFromNvdaState():
+	# This was copied from MathCAT.py.  It might not work in Chrome, as per comments at https://github.com/NSoiffer/MathCATForPython/commit/76679ad206749d4d0cf20bcade4a8880831e7904 .   I'm very unclear on whether this handles language changes in the HTML (vs. the synth) and how that all works. 
+	language = speech.getCurrentLanguage()
+	language = language.lower() # b/c MathCAT.py did this, maybe, sometimes. 
+	isLanguageEnglish = language.startswith("en")
+	return isLanguageEnglish
+
 def isPowerOfTwo(n_):
 	return n_ > 0 and (n_ & (n_ - 1)) == 0
 
@@ -137,35 +169,31 @@ class SsmlError(Exception):
     pass
 
 @profile
-def turnSsmlIntoSpeechCommandList(ssmlAsJsonStr_, nonSsmlStr_, origWholeUnmodifiedText_):
+def turnSsmlStrOrObjIntoSpeechCommandList(ssmlStrOrObj_, nonSsmlStr_: str, origWholeText_: str, state_: State):
 	try:
-		ssmlAsDict = json.loads(ssmlAsJsonStr_)
-		if len(ssmlAsDict) != 1: raise SsmlError()
-		key = next(iter(ssmlAsDict)); val = ssmlAsDict[key]
+		if isinstance(ssmlStrOrObj_, str):
+			ssmlObj = json.loads(ssmlStrOrObj_)
+			if(not isinstance(ssmlObj, dict)): raise SsmlError(f'expected a dict in the json.  got an object of type: {type(ssmlObj)}.')
+		elif isinstance(ssmlStrOrObj_, dict):
+			ssmlObj = ssmlStrOrObj_.copy()
+		else:
+			ourAssert(False)
+		if len(ssmlObj) != 1: raise SsmlError()
+		key = next(iter(ssmlObj)); val = ssmlObj[key]
 		if key == 'sub':
 			aliasVal = val['alias']
 			r = [aliasVal]
 		elif key == 'say-as':
 			if val != 'characters': raise SsmlError()
 
-			# The best test case for reproducing the problem that this code solves is <span data-ssml='{"say-as": "characters"}'>ABCDEFGHIJKLMNOP</span>
-
-			# Some code here was copied from MathCAT.py, which was added in https://github.com/NSoiffer/MathCATForPython/commit/76679ad206749d4d0cf20bcade4a8880831e7904 to fix https://github.com/NSoiffer/MathCATForPython/issues/32 
-			# From MathCAT.py: as of 7/23, oneCore voices do not implement the CharacterModeCommand despite it being in supported_commands
-			synth = synthDriverHandler.getSynth()
-			useCharacterModeCommand = (CharacterModeCommand in synth.supportedCommands and synth.name != "oneCore")
-			if useCharacterModeCommand:
+			if state_.useCharacterModeCommand:
 				r = [CharacterModeCommand(True), nonSsmlStr_, CharacterModeCommand(False)]
 			else:
-				# This language code was copied from MathCAT.py.  It might not work in Chrome, as per comments at https://github.com/NSoiffer/MathCATForPython/commit/76679ad206749d4d0cf20bcade4a8880831e7904 .   I'm very unclear on whether this handles language changes in the HTML (vs. the synth) and how that all works. 
-				language = speech.getCurrentLanguage()
-				language = language.lower() # b/c MathCAT.py did this, maybe, sometimes. 
-				isLanguageEnglish = language.startswith("en")
-
 				r = []
 				for ch in nonSsmlStr_:
-					# I'm using this "eigh" from MathCAT even though I couldn't reproduce the problem that it is solving, which is described at https://github.com/NSoiffer/MathCATForPython/issues/32 and https://github.com/nvaccess/nvda/issues/13596 , most thoroughly at the latter. 
-					r.extend((" ", "eigh" if ch == "a" and isLanguageEnglish else ch, " "))
+					# I'm using this "eigh" from MathCAT even though I couldn't reproduce the problem that it is solving, which is described at https://github.com/NSoiffer/MathCATForPython/issues/32 and https://github.com/nvaccess/nvda/issues/13596 , most thoroughly at the latter.
+					# Also, I think that this code also takes effect only on lower-case "a", not upper-case "A".  I think MathCAT did that too.  I don't know why.
+					r.extend((" ", "eigh" if ch == "a" and state_.isLanguageEnglish else ch, " "))
 
 		elif key == 'ph':
 			# With phonemes, there are some things I don't understand:
@@ -185,35 +213,29 @@ def turnSsmlIntoSpeechCommandList(ssmlAsJsonStr_, nonSsmlStr_, origWholeUnmodifi
 		else:
 			raise SsmlError()
 	except (json.decoder.JSONDecodeError, SsmlError, KeyError) as e:
-		logInfo(f'Error happened while processing SSML JSON string.  We will fall back to the plain text.  The SSML string was "{ssmlAsJsonStr_}".  The exception, which we will suppress, was:')
+		logInfo(f'Error happened while processing SSML JSON string.  We will fall back to the plain text.  The SSML string was "{ssmlStrOrObj_}".  The exception, which we will suppress, was:')
 		log.exception(e)
-		r = [origWholeUnmodifiedText_]
+		r = [origWholeText_]
 	return r
 
-# Matches the javascript encoding side.  If you change that then change this, and vice versa. 
+# Matches the javascript encoding side.  If you change this then change that, and vice versa. 
 MARKER = '\u2062'
 MACRO_END_MARKER = MARKER * 2
 
+
 @profile
-def decodeAllStrs(str_):
+def decodeAllStrs(str_: str, state_: State):
 	logInfo(f'decodeAllStrs input (len {len(str_)}): {repr(str_)}')
  
-	if g_indexTechniqueGlobalList != None:
-		technique = 'index'
-	elif g_pageWideOverrideTechniqueMapOfPlainTextToSpeechCommandList != None:
-		technique = 'page-wide-override'
-	else:
-		technique = 'inline'
-
-	if technique in ('index', 'inline'):
-		r = decodeAllStrs_indexAndInlineTechniques(str_)
-	elif technique == 'page-wide-override':
-		r = decodeAllStrs_pageWideOverrideTechnique(str_)
+	if state_.technique in ('index', 'inline'):
+		r = decodeAllStrs_indexAndInlineTechniques(str_, state_)
+	elif state_.technique == 'page-wide-override':
+		r = decodeAllStrs_pageWideOverrideTechnique(str_, state_)
 	else:
 		ourAssert(False)
 
 	# concat adjacent strings.  handles two situations: 1) technique=inline|index and we see encoding characters in the wild.  2) technique=*: consecutive sub-aliases, or a sub-alias with leading or trailing text. 
-	# in both cases: I don't know how important this code is.  but it seems prudent to do it, in the spirit of being minimally invasive. 
+	# in both cases: I don't know how important this code is.  but it seems prudent to do it, in the spirit of our speech filter being minimally invasive. 
 	newR = []
 	i = 0
 	while i < len(r):
@@ -227,13 +249,14 @@ def decodeAllStrs(str_):
 			newR.append(r[i])
 		i += 1
 	r = newR
+
 	return r
     
 
 
-def decodeAllStrs_pageWideOverrideTechnique(str_):
-	ourAssert(g_pageWideOverrideTechniqueMapOfPlainTextToSpeechCommandList != None)
-	m = g_pageWideOverrideTechniqueMapOfPlainTextToSpeechCommandList
+def decodeAllStrs_pageWideOverrideTechnique(str_: str, state_: State):
+	m = state_.techniquePageWideOverrideDictOfPlainTextToSpeechCommandList
+	ourAssert(m != None)
 	plainTexts = sorted(m.keys(), key=lambda e: -len(e)) # so that if we have plainTexts "3'" and "3'~", our pattern will match "3'~".  the way regex '|' works, it will match the leftmost branch.  so we want the longest one to be the leftmost.  this sort does that. 
 	patternForAllPlainTexts = re.compile('(?i)' + '|'.join(r'(?<!\w)'+re.escape(plainText)+r'(?!\w)' for plainText in plainTexts))
 	r = []
@@ -257,7 +280,7 @@ def decodeAllStrs_pageWideOverrideTechnique(str_):
 
 	return r
 
-def decodeAllStrs_indexAndInlineTechniques(str_):
+def decodeAllStrs_indexAndInlineTechniques(str_: str, state_: State):
 	r = []
 	prevEndIdx = 0
 	matchCount = 0
@@ -265,12 +288,11 @@ def decodeAllStrs_indexAndInlineTechniques(str_):
 	# the techniques index and inline have the same start/end markers. 
 	pattern = re.compile(f'{re.escape(MARKER)}(.*?){re.escape(MARKER)}(.*?){re.escape(MACRO_END_MARKER)}', flags=re.DOTALL)
 
-	technique = None
 	for match in pattern.finditer(str_):
 		matchCount += 1
 		startIdx, endIdx = match.span()
 		encodedStr, textToAffect = match.groups()
-		origWholeUnmodifiedText = match.group(0)
+		origWholeText = match.group(0)
 
 		logInfo(f'encodedStr: {repr(encodedStr)}')
 		logInfo(f'textToAffect (len {len(textToAffect)}): {repr(textToAffect)}')
@@ -282,34 +304,37 @@ def decodeAllStrs_indexAndInlineTechniques(str_):
 
 		success = False
 		try:
-			if technique == None:
-				technique = detectTechnique(encodedStr)
-			if technique == 'index':
-				encodedSsmlIndexInGlobalList = encodedStr
-				decodedToStrSsmlIndexInGlobalList = decodeSingleStr(encodedSsmlIndexInGlobalList)
-				logInfo(f'	decodedToStrSsmlIndexInGlobalList: "{decodedToStrSsmlIndexInGlobalList}"')
-				if decodedToStrSsmlIndexInGlobalList:
-					idxInGlobalList = int(decodedToStrSsmlIndexInGlobalList)
-					ssmlStr = g_indexTechniqueGlobalList[idxInGlobalList]
-					r.extend(turnSsmlIntoSpeechCommandList(ssmlStr, textToAffect, origWholeUnmodifiedText))
+			if state_.technique == 'index':
+				ourAssert(state_.techniqueIndexListOfSsmlObjs)
+				idxInListAsEncodedStr = encodedStr
+				if not idxInListAsEncodedStr:
+					logInfo('encoded string is empty.  we will ignore it.')
+				else:
+					idxInListAsDecodedStr = decodeSingleStr(idxInListAsEncodedStr)
+					logInfo(f'	idxInListAsDecodedStr: "{idxInListAsDecodedStr}"')
+					ourAssert(idxInListAsDecodedStr)
+					idxInList = int(idxInListAsDecodedStr)
+					if(idxInList < 0): raise SsmlError("index is negative") # sure, python (with it's -ve list indices) could handle this -ve index.  but our JS will never output a -ve index.  so our JS didn't create this.  so this must be a case of "encoding characters in the wild".  
+					ssmlObj = state_.techniqueIndexListOfSsmlObjs[idxInList]
+					r.extend(turnSsmlStrOrObjIntoSpeechCommandList(ssmlObj, textToAffect, origWholeText, state_))
 					success = True
-			elif technique == 'inline':
-				encodedSsmlStr = encodedStr
-				decodedSsmlStr = decodeSingleStr(encodedSsmlStr)
-				logInfo(f'	decodedSsmlStr: "{decodedSsmlStr}"')
-				r.extend(turnSsmlIntoSpeechCommandList(decodedSsmlStr, textToAffect, origWholeUnmodifiedText))				
+			elif state_.technique == 'inline':
+				ssmlStrEncoded = encodedStr
+				ssmlStr = decodeSingleStr(ssmlStrEncoded)
+				logInfo(f'	ssmlStr: "{ssmlStr}"')
+				r.extend(turnSsmlStrOrObjIntoSpeechCommandList(ssmlStr, textToAffect, origWholeText, state_))				
 				success = True
 			else:
 				ourAssert(False)
 		except (Exception, IndexError) as e:
-			logInfo(f"Couldn't decode or figure out what to do with string '{encodedStr} / {repr(encodedStr)}'.  Will use fall back to the plain text.")
+			logInfo(f"Couldn't decode or figure out what to do with the encoded string '{encodedStr} / {repr(encodedStr)}'.  We will fall back to the plain text.")
 			if 1:
 				logInfo('Exception, which we will suppress, was:')
 				log.exception(e)
 			#raise
 
 		if not success:
-			r.append(origWholeUnmodifiedText)
+			r.append(origWholeText)
 
 		prevEndIdx = endIdx
 
@@ -320,25 +345,17 @@ def decodeAllStrs_indexAndInlineTechniques(str_):
 
 	return r
 
-def detectTechnique(encodedStr_):
-	try:
-		int(decodeSingleStr(encodedStr_))
-		ourAssert(g_indexTechniqueGlobalList != None)
-		return 'index'
-	except (ValueError):
-		return 'inline'
-
-def getIndexTechniqueGlobalListFromHidingPlaceElem(hidingPlaceElem_):
+def getTechniqueIndexListOfSsmlObjsFromHidingPlaceElem(hidingPlaceElem_):
 	ourAssert(hidingPlaceElem_)
 	hidingPlaceElemTextContent = hidingPlaceElem_.name
 	pattern = rf'{HIDING_PLACE_GUID_FOR_ALL_TECHNIQUES} {HIDING_PLACE_GUID_FOR_INDEX_TECHNIQUE}\s*(\[.*\])'
 	match = re.search(pattern, hidingPlaceElemTextContent)
 	if not match: return None
-	globalListStr = match.group(1)
-	globalListObj = json.loads(globalListStr)
-	return globalListObj
+	listStr = match.group(1)
+	listObj = json.loads(listStr)
+	return listObj
 
-def getPageWideOverrideTechniqueGlobalMapFromHidingPlaceElem(hidingPlaceElem_):
+def getTechniquePageWideOverrideDictOfPlainTextToSpeechCommandListFromHidingPlaceElem(hidingPlaceElem_, state_):
 	ourAssert(hidingPlaceElem_)
 	hidingPlaceElemTextContent = hidingPlaceElem_.name
 	pattern = HIDING_PLACE_GUID_FOR_ALL_TECHNIQUES+' '+HIDING_PLACE_GUID_FOR_PAGE_WIDE_OVERRIDE_TECHNIQUE+r'\s*(\{.*\})'
@@ -348,7 +365,7 @@ def getPageWideOverrideTechniqueGlobalMapFromHidingPlaceElem(hidingPlaceElem_):
 	plainTextToSsmlStr = json.loads(mapStr)
 	r = {}
 	for plainText, ssmlStr in plainTextToSsmlStr.items():
-		r[plainText.lower()] = turnSsmlIntoSpeechCommandList(ssmlStr, plainText, plainText)
+		r[plainText.lower()] = turnSsmlStrOrObjIntoSpeechCommandList(ssmlStr, plainText, plainText, state_)
 	return r
 
 @profile
@@ -359,16 +376,16 @@ def getRole(nvdaObj_):
 		return f"unknown role ({nvdaObj_.role})"
 
 @profile
-def findHidingPlaceElementInA11yTree(root_):
-	logInfo(f'dom root id={id(root_)} {root_}')
+def findHidingPlaceElementInA11yTree(a11yTreeRoot_):
+	logInfo(f'dom root id={id(a11yTreeRoot_)} {a11yTreeRoot_}')
 	# document > section > text 
-	# document: root_ 
+	# document: a11yTreeRoot_ 
 	# > section: our hiding place div.  in DOM: last child of <body>.  in this tree: last child of document.  
 	# > text: only child of our hiding place div. 
 	# in both chrome and ff.  
 	# looks like this function is slow.  usually takes 13 ms.  slow parts are: .lastChild and .firstChild. 
-	if not root_: return None
-	documentLastChild = root_.lastChild
+	if not a11yTreeRoot_: return None
+	documentLastChild = a11yTreeRoot_.lastChild
 	if not documentLastChild: return None
 	if getRole(documentLastChild) != 'section': return None
 	section = documentLastChild
@@ -401,31 +418,38 @@ def a11yTreeToStr(root_, maxDepth=10):
 	return "\n".join(lines)
 
 g_a11yTreeRoot = None
-g_indexTechniqueGlobalList = None
-g_pageWideOverrideTechniqueMapOfPlainTextToSpeechCommandList = None
+g_state = State()
+g_state.technique = 'inline'
 
-def updateA11yTreeRoot(newAllTreeRoot_):
-	global g_a11yTreeRoot, g_indexTechniqueGlobalList, g_pageWideOverrideTechniqueMapOfPlainTextToSpeechCommandList
+def updateA11yTreeRoot():
+	global g_a11yTreeRoot, g_state
+
+	try:
+		newA11yTreeRoot = api.getNavigatorObject().treeInterceptor.rootNVDAObject
+	except (AttributeError) as e:
+		newA11yTreeRoot = None
+
 	oldA11yTreeRoot = g_a11yTreeRoot
-	g_a11yTreeRoot = newAllTreeRoot_
-	a11yTreeRootChanged = (id(oldA11yTreeRoot) != id(newAllTreeRoot_)) # it's unclear if "id" is necessary here.  I used it because I don't know how their equals operator is implemented. 
+	g_a11yTreeRoot = newA11yTreeRoot
+	a11yTreeRootChanged = (id(oldA11yTreeRoot) != id(newA11yTreeRoot)) # it's unclear if "id" is necessary here.  I used it because I don't know how their equals operator is implemented. 
 	logInfo(f'set g_a11yTreeRoot to {str(g_a11yTreeRoot)}.  value changed: {"yes" if a11yTreeRootChanged else "no"}.')
 	if a11yTreeRootChanged:
-		g_indexTechniqueGlobalList = g_pageWideOverrideTechniqueMapOfPlainTextToSpeechCommandList = None
-		success = False
+		g_state = State()
 		hidingPlaceElem = findHidingPlaceElementInA11yTree(g_a11yTreeRoot)
-		if hidingPlaceElem:
-			g_indexTechniqueGlobalList = getIndexTechniqueGlobalListFromHidingPlaceElem(hidingPlaceElem)
-			if g_indexTechniqueGlobalList != None:
+		if not hidingPlaceElem:
+			g_state.technique = 'inline'
+		else:
+			g_state.techniqueIndexListOfSsmlObjs = getTechniqueIndexListOfSsmlObjsFromHidingPlaceElem(hidingPlaceElem)
+			if g_state.techniqueIndexListOfSsmlObjs != None:
 				logInfo('Found global object for technique=index.')
-				success = True
+				g_state.technique = 'index'
 			else:
-				g_pageWideOverrideTechniqueMapOfPlainTextToSpeechCommandList = getPageWideOverrideTechniqueGlobalMapFromHidingPlaceElem(hidingPlaceElem)
-				if g_pageWideOverrideTechniqueMapOfPlainTextToSpeechCommandList != None:
+				g_state.techniquePageWideOverrideDictOfPlainTextToSpeechCommandList = getTechniquePageWideOverrideDictOfPlainTextToSpeechCommandListFromHidingPlaceElem(hidingPlaceElem, g_state)
+				if g_state.techniquePageWideOverrideDictOfPlainTextToSpeechCommandList != None:
 					logInfo('Found global object for technique=page-wide-override.')
-					success = True
-		if not success:
-			logInfo("Found no global object.  Either this web page uses technique=inline, or this web page didn't run our JS, or this is not a web page.")
+					g_state.technique = 'page-wide-override'
+		if g_state.technique == 'inline':
+			logInfo("Found no global object.  Will assume technique=inline.  Either this web page uses technique=inline, or this web page didn't run our JS, or this is not a web page.")
 
 class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 	
@@ -443,15 +467,10 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 	def terminate(self):
 		speech.extensions.filter_speechSequence.unregister(self.ourSpeechSequenceFilter)
 
-	def newUpdateA11yTreeRoot(self):
-		try:
-			newA11yTreeRoot = api.getNavigatorObject().treeInterceptor.rootNVDAObject
-		except (AttributeError) as e:
-			newA11yTreeRoot = None
-		updateA11yTreeRoot(newA11yTreeRoot)
-
 	def ourSpeechSequenceFilter(self, origSeq: speech.SpeechSequence) -> speech.SpeechSequence:
-		self.newUpdateA11yTreeRoot()
+		updateA11yTreeRoot()
+		g_state.useCharacterModeCommand = getUseCharacterModeCommandFromNvdaState()
+		g_state.isLanguageEnglish = getIsLanguageEnglishFromNvdaState()
 		modSeq = []
 		#logInfo(f'g_a11yTreeRoot: {g_a11yTreeRoot.name if g_a11yTreeRoot else None}') 
 		#logInfo(f'a11yTree:\n{a11yTreeToStr(g_a11yTreeRoot)}') 
@@ -460,13 +479,12 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 			if isinstance(element, str):
 				#logInfo(f'patched synth got string len {len(element)}: "{element}"')
 				logInfo(f'filter got string len {len(element)}: "{repr(element)}"')
-				modSeq.extend(decodeAllStrs(element))
+				modSeq.extend(decodeAllStrs(element, g_state))
 			else:
 				modSeq.append(element)
 		logInfo(f'modified speech sequence: {modSeq}')
 		logInfo(f'speech sequence changed: {modSeq != origSeq}')
 		return modSeq
-	
 
 def monkeyPatchBrailleHandler():
 	originalUpdateFunc = braille.handler.update

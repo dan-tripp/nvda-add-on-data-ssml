@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width">
+	<title>test page</title>
+
+	<style>
+
+p { line-height: 1.5; }
+
+/* thanks https://www.tpgi.com/the-anatomy-of-visually-hidden/#where-we-came-in */
+.visually-hidden:not(:focus):not(:active) {
+    clip-path: inset(50%);
+    height: 1px;
+    overflow: hidden;
+    position: absolute;
+    white-space: nowrap;
+    width: 1px;
+}
+
+[data-ssml] {
+	outline: 2px dashed rgb(150,150,150);
+}
+
+table.table {
+	border-collapse: collapse;
+	width: 100%;
+	margin-top: 1em;
+}
+
+table.table th,
+table.table td {
+	border: 1px solid #ccc;
+	padding: 8px 12px;
+	text-align: left;
+	vertical-align: top;
+}
+
+table.table th {
+	background-color: #f4f4f4;
+}
+
+	</style>
+
+	<script>
+
+window.addEventListener("load", function(event) {
+
+	let testCases = [
+		{html: `<span data-ssml='{"say-as": "characters"}'>abcabcabc</span>`, expected: 'A B C A B C A B C'}, 
+		{html: `<label data-ssml='{"sub": {"alias": "gold"}}'>silver<textarea>default text</textarea></label>`, expected: 'gold'}, 
+		{html: `<span data-ssml='{"sub": {"alias": "3 prime"}}'>3'</span>`, expected: '3 prime'}, 
+		{html: `<a href="#" data-ssml='{"sub": {"alias": "3 prime"}}'>3'</a>`, expected: 'link 3 prime'},
+		{html: `<button>the <span data-ssml='{"sub": {"alias": "3 prime"}}'>3'</span> end</button>`, expected: `button the 3 prime end`},
+		{html: `<label><input type="checkbox">the <span data-ssml='{"sub": {"alias": "3 prime"}}'>3'</span> end</label>`, expected: `checkbox not checked the 3 prime end`},
+		{html: `<span data-ssml='{"sub": {"alias": "3 feet"}}'>3'</span>`, expected: '3 feet'},
+		{html: `mid-line <span data-ssml='{"sub": {"alias": "3 prime"}}'>3'</span> test`, expected: 'mid-line 3 prime test'},
+		{html: `<span data-ssml='{"sub": {"alias": "3 prime"}}'>3'</span> <span data-ssml='{"sub": {"alias": "3 feet"}}'>3'</span> <span data-ssml='{"sub": {"alias": "this"}}'>x</span> <span data-ssml='{"sub": {"alias": "that"}}'>y</span> <span data-ssml='{"sub": {"alias": "other"}}'>z</span>`, expected: `3 prime 3 feet this that other.  (with technique=inline: this will be flakey.  won't work half the time.)`},
+		{html: `<span data-ssml='{"say-as": "characters"}'>ETA</span>`, expected: 'E T A'},
+		{html: `<span data-ssml='{"say-as": "characters"}'>ABCDEFG</span>`, expected: 'A B C D E F G'},
+		{html: `<span data-ssml='{"ph": "lɛd"}'>lead</span>`, expected: 'if synth==OneCore: led (as in "heavy metal").  else: who knows.'},
+		{html: `<span data-ssml='{"ph": "liːd"}'>lead</span>`, expected: 'if synth==OneCore: leed (as in "follow the leader").  else: who knows.'},
+		{html: `<span data-ssml='{"ph": "θ"}'>th</span>`, expected: `"TH" (a toothy "T H" sound, like the start of the word "thought".  unlike most phonemes, this phoneme works with all synths (i.e. synth=eSpeak|SAPI5|OneCore).  I don't know why.  <a href="https://github.com/nvaccess/nvda/blob/b501e16a2392aaa89892879d77725f02b9f2835d/source/synthDrivers/sapi5.py#L423">source</a>.)`},
+		{html: `
+			<span data-ssml='abc'>A</span> 
+			<span data-ssml=''>B</span> 
+			<span data-ssml='{"sub"}'>C</span> 
+			<span data-ssml='{"sub": {"xyzalias": "3 prime"}}'>D</span> 
+			<span data-ssml>E</span> 
+			<span data-ssml='[]'>F</span> 
+			<span data-ssml='{}'>G</span> 
+			<span data-ssml='["sub"]'>H</span> 
+			<span data-ssml='{'>I</span> 
+			<span data-ssml='{'>J</span> 
+			<span data-ssml='{"sub": {"alias": "no"}}}'>K</span> 
+			<span data-ssml='{"sub": {"alias": [ '>L</span>
+			<span data-ssml='[0]'>M</span>`, 
+			expected: `A B C D E F G H I J K L M.  this is all broken ssml.`},
+		{html: `<span data-ssml='{"sub": {"alias": "[ yes ]"}}'>no</span>`, 
+			expected: `yes  <!-- for technique=index this is testing a certain regex that had a bug once.  fixed in commit 5a32fdfbdb1d5461fd5067faa6a22cb94bd67a00. -->`},
+		{html: `&#xFFF9;&#x200C;&#x200D;&#x2060;&#x2061;&#xFEFF;&#x2063;&#x2064;&#xFFFB;&#xFFFA;&#x206A;&#x206B;&#x206C;&#x206D;&#x206E;&#x206F;`, 
+			expected: `(silence)  <!-- encoding characters in the wild.  no marker.  these will be silently ignored - no exception in our logs. -->`},
+		{html: `&#x2062;&#x200d;&#x206d;&#x2060;&#x200c;&#x2062;red&#x2062;&#x2062;`, 
+			expected: `red  <!-- encoding characters in the wild.  looks like an encoded index of "-1", which is negative (= invalid), so it will cause a harmless exception in our logs. -->`},
+		{html: `&#x2062;&#x2060;&#xfffa;&#x2060;&#xfffa;&#x2060;&#xfffa;&#x2060;&#xfffa;&#x2060;&#xfffa;&#x2062;green&#x2062;&#x2062;`, 
+			expected: `green  <!-- encoding characters in the wild. looks like an encoded index of "99999", which is out of range, so it will cause a harmless exception in our logs. -->`},
+		{html: `&#x2062;&#x2062;&#x2062;&#x2062; &#x2062;&#x2062;3&#x2062;&#x2062; &#x2062;&#xfffa;y&#x206F; &#x2062;4&#x2062;&#x2062; &#x2062;&#x2064;&#x2061;&#x2062;5&#x2062;&#x2062; &#x2062;&#x2064;&#x2061;&#x2064;&#xfeff;&#x2064;&#x2063;&#x2062;6&#x2062;&#x2062; &#x2062;&#x2064;&#x2062;&#x2062;&#x2062;7`, 
+			expected: `3 why 4 5 6 7<!-- encoding characters in the wild.  contains several messes, in this order:
+			1) "encoded string" (= what might seem to be a string that was encoded by our JS, but really is encoding chars in the wild) is empty and plain text is empty.  
+			2) "encoded string" is empty and plain text is not empty.
+			3) "encoded string" contains an invalid encoding character: "z".
+			4) botched macro end marker. 
+			5) "encoded string" is an encoded letter "t" which will never work b/c it's neither ssml json (for technique=inline) nor an integer (for technique=index). 
+			6) similar to previous, but this time the encoded string is "tuv". 
+			7) "encoded string" is just one encoding character.  I don't know what that one character could possibly mean.  probably nothing useful.  
+
+			some of the above messes will cause an ugly-but-harmless exception in our logs.  others will be silently or semi-silently ignored. -->`},
+
+	
+	];
+	let tbody = document.getElementById('table').querySelector('tbody');
+	for(let testCase of testCases) {
+		let tr = document.createElement('tr');
+		tr.innerHTML = `
+			<td>${testCase.html}</td>
+			<td>${testCase.expected}</td>
+		`;
+		let tdHtmlWithSsml = tr.querySelector('td');
+		let tdHtmlWithoutSsml = tdHtmlWithSsml.cloneNode(true);
+		for(let e of tdHtmlWithoutSsml.querySelectorAll('[data-ssml]')) {
+			e.removeAttribute('data-ssml');
+		}
+		tdHtmlWithSsml.insertAdjacentElement('beforebegin', tdHtmlWithoutSsml);
+		tbody.appendChild(tr);
+	}
+
+
+});
+
+	</script>
+
+	<script	src="../js/nvda-add-on-data-ssml.js"></script>
+
+</head>
+
+
+
+
+<body>
+<main>
+
+
+<h1>test page</h1>
+
+
+
+<table class="table" id="table">
+	<thead>
+		<tr>
+			<th>without ssml</th>
+			<th>with ssml</th>
+			<th>expected</th>
+		</tr>
+	</thead>
+	<tbody>
+	</tbody>
+</table>
+
+
+
+
+
+
+</main>
+
+
+</body>
+
+</html>
