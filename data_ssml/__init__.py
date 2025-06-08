@@ -53,7 +53,7 @@ chars not used AKA unused:
 '''
 ourAssert(len(set(ENCODING_CHARS)) == len(ENCODING_CHARS), "encodingChars contains duplicates")
 
-import datetime, re, base64, json, time, types, dataclasses
+import datetime, re, base64, json, time, types, dataclasses, sys, traceback
 import globalPluginHandler, api
 from logHandler import log
 import speech, speech.commands, speech.extensions, braille
@@ -305,10 +305,14 @@ def decodeAllStrs_indexAndInlineTechniques(str_: str, state_: State):
 			if state_.technique == 'index':
 				ourAssert(state_.techniqueIndexListOfSsmlObjs)
 				idxInListAsEncodedStr = encodedStr
-				idxInListAsDecodedStr = decodeSingleStr(idxInListAsEncodedStr)
-				logInfo(f'	idxInListAsDecodedStr: "{idxInListAsDecodedStr}"')
-				if idxInListAsDecodedStr:
+				if not idxInListAsEncodedStr:
+					logInfo('encoded string is empty.  we will ignore it.')
+				else:
+					idxInListAsDecodedStr = decodeSingleStr(idxInListAsEncodedStr)
+					logInfo(f'	idxInListAsDecodedStr: "{idxInListAsDecodedStr}"')
+					ourAssert(idxInListAsDecodedStr)
 					idxInList = int(idxInListAsDecodedStr)
+					if(idxInList < 0): raise SsmlError("index is negative") # sure, python (with it's -ve list indices) could handle this -ve index.  but our JS will never output a -ve index.  so our JS didn't create this.  so this must be a case of "encoding characters in the wild".  
 					ssmlObj = state_.techniqueIndexListOfSsmlObjs[idxInList]
 					r.extend(turnSsmlStrOrObjIntoSpeechCommandList(ssmlObj, textToAffect, origWholeText, state_))
 					success = True
@@ -321,7 +325,7 @@ def decodeAllStrs_indexAndInlineTechniques(str_: str, state_: State):
 			else:
 				ourAssert(False)
 		except (Exception, IndexError) as e:
-			logInfo(f"Couldn't decode or figure out what to do with string '{encodedStr} / {repr(encodedStr)}'.  Will use fall back to the plain text.")
+			logInfo(f"Couldn't decode or figure out what to do with the encoded string '{encodedStr} / {repr(encodedStr)}'.  We will fall back to the plain text.")
 			if 1:
 				logInfo('Exception, which we will suppress, was:')
 				log.exception(e)
