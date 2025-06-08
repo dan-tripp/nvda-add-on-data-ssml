@@ -31,11 +31,11 @@ EOF
 	exit 1
 fi
 
-if [ -n "$1" ]; then
+if (( $# > 0 )); then
 	grepRegex="$1"
-    powershell.exe -Command "Get-Content 'C:\\Users\\dt\\AppData\\Local\\Temp\\nvda.log' -Wait" | grep --line-buffered "$grepRegex" | stdin-squeeze-into-column.py 50 
+	powershell.exe -Command "Get-Content 'C:\\Users\\dt\\AppData\\Local\\Temp\\nvda.log' -Wait" | grep --ignore-case --line-buffered "$grepRegex" | stdin-squeeze-into-column.py 50 
 else
-    powershell.exe -Command "Get-Content 'C:\\Users\\dt\\AppData\\Local\\Temp\\nvda.log' -Wait" | stdin-squeeze-into-column.py 50 
+	powershell.exe -Command "Get-Content 'C:\\Users\\dt\\AppData\\Local\\Temp\\nvda.log' -Wait" | stdin-squeeze-into-column.py 50 
 fi
 
 
