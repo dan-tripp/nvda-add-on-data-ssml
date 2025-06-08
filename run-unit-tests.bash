@@ -31,7 +31,7 @@ EOF
 	exit 1
 fi
 
-./copy-scratchpad-files-to-here.bash
+# not using this any more, b/c we use a symlink (from there to here) instead:  ./copy-scratchpad-files-to-here.bash
 
 python3 unit_tests.py 
 

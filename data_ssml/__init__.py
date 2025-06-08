@@ -53,17 +53,12 @@ chars not used AKA unused:
 '''
 ourAssert(len(set(ENCODING_CHARS)) == len(ENCODING_CHARS), "encodingChars contains duplicates")
 
-import datetime, re, base64, json, time, types
+import datetime, re, base64, json, time, types, dataclasses
 import globalPluginHandler, api
 from logHandler import log
 import speech, speech.commands, speech.extensions, braille
-import gettext
 import synthDriverHandler
 from controlTypes import roleLabels
-from documentBase import textInfos
-
-
-_ = gettext.gettext
 
 # speech/SSML processing borrowed from NVDA's mathPres/mathPlayer.py
 from speech.commands import (
@@ -105,6 +100,63 @@ class StopWatch:
 		self.lastTime = nowTime
 		output = f"stopwatch: {self.label} {message} {self.numClicks} took {elapsedMillis:.0f} ms"
 		logInfo(output)
+
+
+
+# various aspects of how this plugin is supposed to work.  it reflects the web page we're on and the currently-set options of NVDA.  the main point of having this as a class is so we can write unit tests easily.  when our code is running in nvda (not a unit test): an instance of this class is usually short-lived.  b/c the appropriate values could change from one moment to the next.  
+@dataclasses.dataclass 
+class State:
+	
+	technique: str
+	useCharacterMode: bool
+	isLanguageEnglish: bool
+	techniqueIndexListOfSpeechCommandLists: list
+	techniquePageWideOverrideDictOfPlainTextToSpeechCommandList: dict
+
+	def __init__(self, **kwargs):
+		technique = kwargs['technique']
+		if technique not in ('inline', 'index', 'page-wide-override'):
+			raise ValueError(f'invalid technique: "{technique}"')
+		super().__init__(**kwargs)
+
+	# by "env" we mean "our global vars and the return values of NVDA API calls when this code is running in NVDA, as opposed to running in a unit test." 
+	@classmethod
+	def makeFromEnv(cls):
+		if g_indexTechniqueGlobalList != None:
+			technique = 'index'
+		elif g_pageWideOverrideTechniqueMapOfPlainTextToSpeechCommandList != None:
+			technique = 'page-wide-override'
+		else:
+			technique = 'inline'
+			
+		useCharacterMode = cls.getUseCharacterModeCommandFromNvdaApis()
+		isLanguageEnglish = cls.getIsLanguageEnglishFromNvdaApis()
+		r = cls(technique, useCharacterMode, isLanguageEnglish)
+		return r
+		
+	@staticmethod
+	def getUseCharacterModeCommandFromNvdaApis():
+		# The best test case for reproducing the problem that this code solves is <span data-ssml='{"say-as": "characters"}'>ABCDEFGHIJKLMNOP</span>
+
+		# Some code here was copied from MathCAT.py, which was added in https://github.com/NSoiffer/MathCATForPython/commit/76679ad206749d4d0cf20bcade4a8880831e7904 to fix https://github.com/NSoiffer/MathCATForPython/issues/32 
+		# From MathCAT.py: as of 7/23, oneCore voices do not implement the CharacterModeCommand despite it being in supported_commands
+
+		synth = synthDriverHandler.getSynth()
+		r = (CharacterModeCommand in synth.supportedCommands and synth.name != "oneCore")
+		return r
+
+	@staticmethod
+	def getIsLanguageEnglishFromNvdaApis():
+		# This language code was copied from MathCAT.py.  It might not work in Chrome, as per comments at https://github.com/NSoiffer/MathCATForPython/commit/76679ad206749d4d0cf20bcade4a8880831e7904 .   I'm very unclear on whether this handles language changes in the HTML (vs. the synth) and how that all works. 
+		language = speech.getCurrentLanguage()
+		language = language.lower() # b/c MathCAT.py did this, maybe, sometimes. 
+		isLanguageEnglish = language.startswith("en")
+		return isLanguageEnglish
+		
+
+
+
+
 
 def isPowerOfTwo(n_):
 	return n_ > 0 and (n_ & (n_ - 1)) == 0
@@ -148,19 +200,9 @@ def turnSsmlIntoSpeechCommandList(ssmlAsJsonStr_, nonSsmlStr_, origWholeUnmodifi
 		elif key == 'say-as':
 			if val != 'characters': raise SsmlError()
 
-			# The best test case for reproducing the problem that this code solves is <span data-ssml='{"say-as": "characters"}'>ABCDEFGHIJKLMNOP</span>
-
-			# Some code here was copied from MathCAT.py, which was added in https://github.com/NSoiffer/MathCATForPython/commit/76679ad206749d4d0cf20bcade4a8880831e7904 to fix https://github.com/NSoiffer/MathCATForPython/issues/32 
-			# From MathCAT.py: as of 7/23, oneCore voices do not implement the CharacterModeCommand despite it being in supported_commands
-			synth = synthDriverHandler.getSynth()
-			useCharacterModeCommand = (CharacterModeCommand in synth.supportedCommands and synth.name != "oneCore")
 			if useCharacterModeCommand:
 				r = [CharacterModeCommand(True), nonSsmlStr_, CharacterModeCommand(False)]
 			else:
-				# This language code was copied from MathCAT.py.  It might not work in Chrome, as per comments at https://github.com/NSoiffer/MathCATForPython/commit/76679ad206749d4d0cf20bcade4a8880831e7904 .   I'm very unclear on whether this handles language changes in the HTML (vs. the synth) and how that all works. 
-				language = speech.getCurrentLanguage()
-				language = language.lower() # b/c MathCAT.py did this, maybe, sometimes. 
-				isLanguageEnglish = language.startswith("en")
 
 				r = []
 				for ch in nonSsmlStr_:
@@ -194,21 +236,15 @@ def turnSsmlIntoSpeechCommandList(ssmlAsJsonStr_, nonSsmlStr_, origWholeUnmodifi
 MARKER = '\u2062'
 MACRO_END_MARKER = MARKER * 2
 
-@profile
-def decodeAllStrs(str_):
-	logInfo(f'decodeAllStrs input (len {len(str_)}): {repr(str_)}')
- 
-	if g_indexTechniqueGlobalList != None:
-		technique = 'index'
-	elif g_pageWideOverrideTechniqueMapOfPlainTextToSpeechCommandList != None:
-		technique = 'page-wide-override'
-	else:
-		technique = 'inline'
 
-	if technique in ('index', 'inline'):
-		r = decodeAllStrs_indexAndInlineTechniques(str_)
-	elif technique == 'page-wide-override':
-		r = decodeAllStrs_pageWideOverrideTechnique(str_)
+@profile
+def decodeAllStrs(str_, stateParams_):
+	logInfo(f'decodeAllStrsImpl input (len {len(str_)}): {repr(str_)}')
+ 
+	if stateParams_.technique in ('index', 'inline'):
+		r = decodeAllStrs_indexAndInlineTechniques(str_, stateParams_)
+	elif stateParams_.technique == 'page-wide-override':
+		r = decodeAllStrs_pageWideOverrideTechnique(str_, stateParams_)
 	else:
 		ourAssert(False)
 
@@ -231,7 +267,7 @@ def decodeAllStrs(str_):
     
 
 
-def decodeAllStrs_pageWideOverrideTechnique(str_):
+def decodeAllStrs_pageWideOverrideTechnique(str_, stateParams_):
 	ourAssert(g_pageWideOverrideTechniqueMapOfPlainTextToSpeechCommandList != None)
 	m = g_pageWideOverrideTechniqueMapOfPlainTextToSpeechCommandList
 	plainTexts = sorted(m.keys(), key=lambda e: -len(e)) # so that if we have plainTexts "3'" and "3'~", our pattern will match "3'~".  the way regex '|' works, it will match the leftmost branch.  so we want the longest one to be the leftmost.  this sort does that. 
@@ -257,7 +293,7 @@ def decodeAllStrs_pageWideOverrideTechnique(str_):
 
 	return r
 
-def decodeAllStrs_indexAndInlineTechniques(str_):
+def decodeAllStrs_indexAndInlineTechniques(str_, technique_, useCharacterModeCommand_):
 	r = []
 	prevEndIdx = 0
 	matchCount = 0
@@ -282,9 +318,7 @@ def decodeAllStrs_indexAndInlineTechniques(str_):
 
 		success = False
 		try:
-			if technique == None:
-				technique = detectTechnique(encodedStr)
-			if technique == 'index':
+			if technique_ == 'index':
 				encodedSsmlIndexInGlobalList = encodedStr
 				decodedToStrSsmlIndexInGlobalList = decodeSingleStr(encodedSsmlIndexInGlobalList)
 				logInfo(f'	decodedToStrSsmlIndexInGlobalList: "{decodedToStrSsmlIndexInGlobalList}"')
@@ -293,7 +327,7 @@ def decodeAllStrs_indexAndInlineTechniques(str_):
 					ssmlStr = g_indexTechniqueGlobalList[idxInGlobalList]
 					r.extend(turnSsmlIntoSpeechCommandList(ssmlStr, textToAffect, origWholeUnmodifiedText))
 					success = True
-			elif technique == 'inline':
+			elif technique_ == 'inline':
 				encodedSsmlStr = encodedStr
 				decodedSsmlStr = decodeSingleStr(encodedSsmlStr)
 				logInfo(f'	decodedSsmlStr: "{decodedSsmlStr}"')
@@ -319,14 +353,6 @@ def decodeAllStrs_indexAndInlineTechniques(str_):
 		r.append(trailing)
 
 	return r
-
-def detectTechnique(encodedStr_):
-	try:
-		int(decodeSingleStr(encodedStr_))
-		ourAssert(g_indexTechniqueGlobalList != None)
-		return 'index'
-	except (ValueError):
-		return 'inline'
 
 def getIndexTechniqueGlobalListFromHidingPlaceElem(hidingPlaceElem_):
 	ourAssert(hidingPlaceElem_)
@@ -404,11 +430,17 @@ g_a11yTreeRoot = None
 g_indexTechniqueGlobalList = None
 g_pageWideOverrideTechniqueMapOfPlainTextToSpeechCommandList = None
 
-def updateA11yTreeRoot(newAllTreeRoot_):
+def updateA11yTreeRoot():
 	global g_a11yTreeRoot, g_indexTechniqueGlobalList, g_pageWideOverrideTechniqueMapOfPlainTextToSpeechCommandList
+
+	try:
+		newA11yTreeRoot = api.getNavigatorObject().treeInterceptor.rootNVDAObject
+	except (AttributeError) as e:
+		newA11yTreeRoot = None
+
 	oldA11yTreeRoot = g_a11yTreeRoot
-	g_a11yTreeRoot = newAllTreeRoot_
-	a11yTreeRootChanged = (id(oldA11yTreeRoot) != id(newAllTreeRoot_)) # it's unclear if "id" is necessary here.  I used it because I don't know how their equals operator is implemented. 
+	g_a11yTreeRoot = newA11yTreeRoot
+	a11yTreeRootChanged = (id(oldA11yTreeRoot) != id(newA11yTreeRoot)) # it's unclear if "id" is necessary here.  I used it because I don't know how their equals operator is implemented. 
 	logInfo(f'set g_a11yTreeRoot to {str(g_a11yTreeRoot)}.  value changed: {"yes" if a11yTreeRootChanged else "no"}.')
 	if a11yTreeRootChanged:
 		g_indexTechniqueGlobalList = g_pageWideOverrideTechniqueMapOfPlainTextToSpeechCommandList = None
@@ -443,24 +475,18 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 	def terminate(self):
 		speech.extensions.filter_speechSequence.unregister(self.ourSpeechSequenceFilter)
 
-	def newUpdateA11yTreeRoot(self):
-		try:
-			newA11yTreeRoot = api.getNavigatorObject().treeInterceptor.rootNVDAObject
-		except (AttributeError) as e:
-			newA11yTreeRoot = None
-		updateA11yTreeRoot(newA11yTreeRoot)
-
 	def ourSpeechSequenceFilter(self, origSeq: speech.SpeechSequence) -> speech.SpeechSequence:
-		self.newUpdateA11yTreeRoot()
+		updateA11yTreeRoot()
 		modSeq = []
 		#logInfo(f'g_a11yTreeRoot: {g_a11yTreeRoot.name if g_a11yTreeRoot else None}') 
 		#logInfo(f'a11yTree:\n{a11yTreeToStr(g_a11yTreeRoot)}') 
 		logInfo(f'original speech sequence: {origSeq}')
+		stateParams = StateParams.makeFromEnv()
 		for element in origSeq:
 			if isinstance(element, str):
 				#logInfo(f'patched synth got string len {len(element)}: "{element}"')
 				logInfo(f'filter got string len {len(element)}: "{repr(element)}"')
-				modSeq.extend(decodeAllStrs(element))
+				modSeq.extend(decodeAllStrs(element, stateParams))
 			else:
 				modSeq.append(element)
 		logInfo(f'modified speech sequence: {modSeq}')
