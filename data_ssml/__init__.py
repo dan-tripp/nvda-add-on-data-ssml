@@ -173,6 +173,7 @@ def turnSsmlStrOrObjIntoSpeechCommandList(ssmlStrOrObj_, nonSsmlStr_: str, origW
 	try:
 		if isinstance(ssmlStrOrObj_, str):
 			ssmlObj = json.loads(ssmlStrOrObj_)
+			if(not isinstance(ssmlObj, dict)): raise SsmlError(f'expected a dict in the json.  got an object of type: {type(ssmlObj)}.')
 		elif isinstance(ssmlStrOrObj_, dict):
 			ssmlObj = ssmlStrOrObj_.copy()
 		else:
