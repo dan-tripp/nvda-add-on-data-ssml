@@ -1,14 +1,14 @@
 (function () {
 
-const TECHNIQUE = ['inline', 'index', 'page-wide-override'][1];
+window.NvdaAddOnDataSsml = window.NvdaAddOnDataSsml || {};
+
+window.NvdaAddOnDataSsml.init = function(technique_) {
+	encodeAllDataSsmlAttribs(technique_);
+}
 
 const HIDING_PLACE_GUID_FOR_ALL_TECHNIQUES = '4b9b696c-8fc8-49ca-9bb9-73afc9bd95f7';
 const HIDING_PLACE_GUID_FOR_INDEX_TECHNIQUE = 'b4f55cd4-8d9e-40e1-b344-353fe387120f';
 const HIDING_PLACE_GUID_FOR_PAGE_WIDE_OVERRIDE_TECHNIQUE = 'c7a998a5-4b7e-4683-8659-f2da4aa96eee';
-
-function go() {
-	encodeAllDataSsmlAttribs();
-}
 
 function isPowerOfTwo(n_) {
 	return (n_ & (n_ - 1)) !== 0;
@@ -162,20 +162,16 @@ function encodeAllDataSsmlAttribs_indexTechnique_encodeEachOccurrenceAsAnIndex()
 	return globalListOfSsmlStrs;
 }
 
-function encodeAllDataSsmlAttribs() {
-	if(TECHNIQUE === 'index') {
+function encodeAllDataSsmlAttribs(technique_) {
+	if(technique_ === 'index') {
 		encodeAllDataSsmlAttribs_indexTechnique();
-	} else if(TECHNIQUE === 'inline') {
+	} else if(technique_ === 'inline') {
 		encodeAllDataSsmlAttribs_inlineTechnique();
-	} else if(TECHNIQUE === 'page-wide-override') {
+	} else if(technique_ === 'page-wide-override') {
 		encodeAllDataSsmlAttribs_pageWideOverrideTechnique();
 	} else {
 		throw new Error();
 	}
 }
-
-window.addEventListener("load", function(event) {
-	go();
-});
 
 })();
