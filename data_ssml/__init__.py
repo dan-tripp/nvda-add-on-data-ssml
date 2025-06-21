@@ -120,6 +120,10 @@ class State:
 	techniqueIndexListOfSsmlObjs: list = None
 	techniquePageWideOverrideDictOfPlainTextToSpeechCommandList: dict = None
 
+	def initNvdaStateFieldsFromRealNvdaState(self):
+		self.useCharacterModeCommand = getUseCharacterModeCommandFromNvdaState()
+		self.isLanguageEnglish = getIsLanguageEnglishFromNvdaState()
+
 		
 def getUseCharacterModeCommandFromNvdaState():
 	# A good test case for reproducing the problem that this code solves is <span data-ssml='{"say-as": "characters"}'>ABCDEFGHIJKLMNOP</span>
@@ -418,7 +422,7 @@ def a11yTreeToStr(root_, maxDepth=10):
 	return "\n".join(lines)
 
 g_a11yTreeRoot = None
-g_state = State()
+g_state = State() # never None 
 g_state.technique = 'inline'
 
 def updateA11yTreeRoot():
@@ -435,6 +439,7 @@ def updateA11yTreeRoot():
 	logInfo(f'set g_a11yTreeRoot to {str(g_a11yTreeRoot)}.  value changed: {"yes" if a11yTreeRootChanged else "no"}.')
 	if a11yTreeRootChanged:
 		g_state = State()
+		g_state.initNvdaStateFieldsFromRealNvdaState()
 		hidingPlaceElem = findHidingPlaceElementInA11yTree(g_a11yTreeRoot)
 		if not hidingPlaceElem:
 			g_state.technique = 'inline'
@@ -469,8 +474,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 
 	def ourSpeechSequenceFilter(self, origSeq: speech.SpeechSequence) -> speech.SpeechSequence:
 		updateA11yTreeRoot()
-		g_state.useCharacterModeCommand = getUseCharacterModeCommandFromNvdaState()
-		g_state.isLanguageEnglish = getIsLanguageEnglishFromNvdaState()
+		g_state.initNvdaStateFieldsFromRealNvdaState()
 		modSeq = []
 		#logInfo(f'g_a11yTreeRoot: {g_a11yTreeRoot.name if g_a11yTreeRoot else None}') 
 		#logInfo(f'a11yTree:\n{a11yTreeToStr(g_a11yTreeRoot)}') 
