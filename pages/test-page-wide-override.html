@@ -45,9 +45,18 @@ table.table th {
 
 	<script>
 
-
 window.addEventListener("load", function(event) {
 	let testCases = [
+		{html: `<span>Yes</span> <span>Yes</span>`, expected: `oh-kay oh-kay`}, 
+		{html: `<span>Yes</span>\n<span>Yes</span>`, expected: `oh-kay oh-kay`}, 
+		{html: `<span>Yes</span> <!-- --> <span>Yes</span>`, expected: `"Yess Yess" (strange behaviour on html comment.  it's not desirable, but it is expected.)`}, 
+		{html: `<span>Yes</span><!-- --><span>Yes</span>`, expected: `"Yess Yess" (another html comment test.)`}, 
+		{html: `<span>Yes</span><!-- x --><span>Yes</span>`, expected: `"Yess Yess" (another html comment test.)`}, 
+		{html: `<span>Yes</span> <!-- x --> <span>Yes</span>`, expected: `"Yess Yess" (another html comment test.)`}, 
+		{html: `<span>Yes</span>\n<!-- x -->\n<span>Yes</span>`, expected: `"Yess Yess" (another html comment test.)`}, 
+		{html: `<span>Yes</span><br><!-- x --><br><span>Yes</span>`, expected: `"oh-kay oh-kay" (another html comment test.)`}, 
+		{html: `<span>Yes</span><br><!-- x --><span>Yes</span>`, expected: `"oh-kay oh-kay" (another html comment test.)`}, 
+		{html: `<span>Yes</span><!-- x --><br><span>Yes</span>`, expected: `"oh-kay oh-kay" (another html comment test.)`}, 
 		{html: `yes abcdefg`, expected: `oh-kay A B C D E F G`}, 
 		{html: `yes filler abcdefg`, expected: `oh-kay filler A B C D E F G`}, 
 		{html: `3'`, expected: `3 feet`}, 
@@ -145,20 +154,6 @@ window.addEventListener("load", function(event) {
 	<tbody>
 	</tbody>
 </table>
-
-
-<!--
-<div>
-	html comment strangeness: <br>
-	works:<br>
-	<span data-ssml='{"sub": {"alias": "yes"}}'>def</span>
-	<span data-ssml='{"sub": {"alias": "yes"}}'>def</span><br>
-	does not work:<br>
-	<span data-ssml='{"sub": {"alias": "yes"}}'>def</span> <!-- this is strange.  this comment here will cause the speech filter to see this as "defdef" (w/o a space).  so our string matching (w/ technique=page-wide-override) won't work.  -->
-	<!--
-	<span data-ssml='{"sub": {"alias": "yes"}}'>def</span><br>
-</div>
--->
 
 
 </main>
