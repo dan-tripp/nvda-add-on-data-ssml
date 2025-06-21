@@ -401,10 +401,10 @@ def findHidingPlaceElementInA11yTree(a11yTreeRoot_):
 	if HIDING_PLACE_GUID_FOR_ALL_TECHNIQUES in textContent: 
 		return text
 
-def a11yTreeToStr(root_, maxDepth=10):
+def a11yTreeToStr(root_, maxDepth=None):
 	lines = []
 	def recurse(node, indent=0):
-		if node is None or indent > maxDepth:
+		if (node is None) or (maxDepth != None and indent > maxDepth):
 			return
 		indentStr = "  " * indent
 		try:

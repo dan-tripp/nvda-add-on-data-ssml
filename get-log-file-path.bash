@@ -26,10 +26,12 @@ numArgsMax=0
 if [[ ( "$#" -le "$numArgsMin"-1 ) || ( "$#" -ge "$numArgsMax"+1 ) || ( "$#" == 1 && "$1" == "--help" ) ]] ; then
 	cat >&2 << EOF
 Usage example(s): 
-$nameOfThisProgram # no args
+$nameOfThisProgram # no args 
 EOF
 	exit 1
 fi
 
-vi + "$(wslpath -ua 'C:\Users\dt\AppData\Local\Temp\nvda.log')"
-
+windowsLocalAppDataDirWindows="$(cmd.exe /c echo %LOCALAPPDATA% 2>/dev/null | tr -d '\r')"  # I'm assuming that we're running inside WSL, not cygwin.  LOCALAPPDATA (and all it's windows env var friends eg. USERPROFILE) isn't defined inside WSL.  it is defined inside cmd.exe. 
+windowsLocalAppDataDirUnix="$(wslpath -ua "$windowsLocalAppDataDirWindows")"
+nvdaLogFilePath="$windowsLocalAppDataDirUnix"/Temp/nvda.log
+echo -n "$nvdaLogFilePath"
