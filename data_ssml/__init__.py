@@ -382,24 +382,40 @@ def getRole(nvdaObj_):
 @profile
 def findHidingPlaceElementInA11yTree(a11yTreeRoot_):
 	logInfo(f'dom root id={id(a11yTreeRoot_)} {a11yTreeRoot_}')
-	# document > section > text 
-	# document: a11yTreeRoot_ 
-	# > section: our hiding place div.  in DOM: last child of <body>.  in this tree: last child of document.  
-	# > text: only child of our hiding place div. 
-	# in both chrome and ff.  
-	# looks like this function is slow.  usually takes 13 ms.  slow parts are: .lastChild and .firstChild. 
+	''' 
+	the location (in xpath-like syntax) of our hiding place element: 
+		if a11yRoot is an instance of NVDAObjects.IAccessible.chromium.Document: 
+			then it's at /document/section/text 
+		elif a11yRoot is an instance of NVDAObjects.Dynamic_ChromiumUIADocumentEditableTextWithAutoSelectDetectionUIA: 
+			then it's /document/grouping/text 
+	- ^^ the former is the usual.  the latter: I found difficult to reproduce.  steps to reproduce are probably in the commit message for the commit where this comment appeared. 
+	- so the curve-ball for us - and cause of a former bug - is "section" vs. "grouping".  IDK for reason for that difference.  neither makes much sense, b/c it's a plain div. 
+	- document is: a11yTreeRoot_ 
+	- section|grouping is: our hiding place div.  in the DOM: last child of <body>.  in this tree: last child of document.  
+	- text is: only child of our hiding place div. 
+	- ... in both chrome and ff.  
+	- this function is slow.  usually takes 13 ms.  slow parts are: .lastChild and .firstChild.
+	'''
 	if not a11yTreeRoot_: return None
 	documentLastChild = a11yTreeRoot_.lastChild
 	if not documentLastChild: return None
-	if getRole(documentLastChild) != 'section': return None
-	section = documentLastChild
-	sectionFirstChild = section.firstChild
-	if getRole(sectionFirstChild) != 'text': return None
-	text = sectionFirstChild
+
+	# normally I would do an "isinstance()" here, but I don't know where NVDAObjects.Dynamic_ChromiumUIADocumentEditableTextWithAutoSelectDetectionUIA is defined.  I couldn't even find it via google or github search. 
+	if "NVDAObjects.Dynamic_ChromiumUIADocumentEditableTextWithAutoSelectDetectionUIA" in str(type(a11yTreeRoot_)):
+		ourHidingPlaceElemRole = 'grouping'
+	else:
+		ourHidingPlaceElemRole = 'section'
+
+	if getRole(documentLastChild) != ourHidingPlaceElemRole: return None
+	ourHidingPlaceElem = documentLastChild
+	ourHidingPlaceElemFirstChild = ourHidingPlaceElem.firstChild
+	if getRole(ourHidingPlaceElemFirstChild) != 'text': return None
+	text = ourHidingPlaceElemFirstChild
 	name = text.name
 	textContent = name
 	if HIDING_PLACE_GUID_FOR_ALL_TECHNIQUES in textContent: 
 		return text
+	return None
 
 def a11yTreeToStr(root_, maxDepth=None):
 	lines = []
