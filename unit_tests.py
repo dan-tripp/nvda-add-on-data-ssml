@@ -114,6 +114,9 @@ class Test1(unittest.TestCase):
 		decodedSpeechCommands = data_ssml.decodeAllStrs(encoded, state)
 		self.assertEqual(decodedSpeechCommands, [' f  eigh  q '])
 
+		state.isLanguageEnglish = False
+		decodedSpeechCommands = data_ssml.decodeAllStrs(encoded, state)
+		self.assertEqual(decodedSpeechCommands, [' f  a  q '])
 	
 
 
