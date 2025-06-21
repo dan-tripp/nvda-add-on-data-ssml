@@ -379,23 +379,25 @@ def getRole(nvdaObj_):
 	except (KeyError, IndexError, TypeError):
 		return f"unknown role ({nvdaObj_.role})"
 
+''' 
+the location (in xpath-like syntax) of our hiding place text node: 
+	if a11yRoot is an instance of NVDAObjects.IAccessible.chromium.Document (chrome) or NVDAObjects.Dynamic_DocumentMozillaIAccessible (firefox): 
+		then it's at /document/section/text 
+	elif a11yRoot is an instance of NVDAObjects.Dynamic_ChromiumUIADocumentEditableTextWithAutoSelectDetectionUIA (chrome): 
+		then it's at /document/grouping/text 
+- ^^ the former is the usual.  the latter: I found difficult to reproduce.  steps to reproduce are probably in the commit message for the commit where this comment appeared. 
+- we work around it in chrome.  we don't work around it in firefox, b/c I can't see how, b/c nvda in firefox is broken under those steps to reproduce - even w/o this plugin loaded.  
+	- I think I'm running into the same problem as https://github.com/nvaccess/nvda/issues/17766 > "pressing tab brings NVDA directly on track again and the virtual document is loaded as expected".
+- for chrome, we work around that strangeness by looking for a "section" or a "grouping" based on the type of a11yRoot.  IDK for reason for that difference in role.  neither role makes much sense, b/c it's a plain div. 
+- document is: a11yTreeRoot_ 
+- section|grouping is: our hiding place div.  in the DOM: last child of <body>.  in this tree: last child of document.  
+- text is: a text node, and it's the only child of our hiding place div. 
+- most of the above is true in both chrome and ff.  
+- this function is slow.  usually takes 13 ms.  slow parts are: .lastChild and .firstChild.
+'''
 @profile
 def findHidingPlaceTextNodeInA11yTree(a11yTreeRoot_):
 	logInfo(f'dom root id={id(a11yTreeRoot_)} {a11yTreeRoot_}')
-	''' 
-	the location (in xpath-like syntax) of our hiding place text node: 
-		if a11yRoot is an instance of NVDAObjects.IAccessible.chromium.Document: 
-			then it's at /document/section/text 
-		elif a11yRoot is an instance of NVDAObjects.Dynamic_ChromiumUIADocumentEditableTextWithAutoSelectDetectionUIA: 
-			then it's /document/grouping/text 
-	- ^^ the former is the usual.  the latter: I found difficult to reproduce.  steps to reproduce are probably in the commit message for the commit where this comment appeared. 
-	- so the curve-ball for us - and cause of a former bug - is "section" vs. "grouping".  IDK for reason for that difference.  neither makes much sense, b/c it's a plain div. 
-	- document is: a11yTreeRoot_ 
-	- section|grouping is: our hiding place div.  in the DOM: last child of <body>.  in this tree: last child of document.  
-	- text is: a text node, and it's the only child of our hiding place div. 
-	- ... in both chrome and ff.  
-	- this function is slow.  usually takes 13 ms.  slow parts are: .lastChild and .firstChild.
-	'''
 	if not a11yTreeRoot_: return None
 	documentLastChild = a11yTreeRoot_.lastChild
 	if not documentLastChild: return None
@@ -497,7 +499,6 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		logInfo(f'original speech sequence: {origSeq}')
 		for element in origSeq:
 			if isinstance(element, str):
-				#logInfo(f'patched synth got string len {len(element)}: "{element}"')
 				logInfo(f'filter got string len {len(element)}: "{repr(element)}"')
 				modSeq.extend(decodeAllStrs(element, g_state))
 			else:
