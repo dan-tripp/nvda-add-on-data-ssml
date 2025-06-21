@@ -349,21 +349,21 @@ def decodeAllStrs_indexAndInlineTechniques(str_: str, state_: State):
 
 	return r
 
-def getTechniqueIndexListOfSsmlObjsFromHidingPlaceElem(hidingPlaceElem_):
-	ourAssert(hidingPlaceElem_)
-	hidingPlaceElemTextContent = hidingPlaceElem_.name
+def getTechniqueIndexListOfSsmlObjsFromHidingPlaceTextNode(hidingPlaceTextNode_):
+	ourAssert(hidingPlaceTextNode_)
+	hidingPlaceTextNodeValue = hidingPlaceTextNode_.name
 	pattern = rf'{HIDING_PLACE_GUID_FOR_ALL_TECHNIQUES} {HIDING_PLACE_GUID_FOR_INDEX_TECHNIQUE}\s*(\[.*\])'
-	match = re.search(pattern, hidingPlaceElemTextContent)
+	match = re.search(pattern, hidingPlaceTextNodeValue)
 	if not match: return None
 	listStr = match.group(1)
 	listObj = json.loads(listStr)
 	return listObj
 
-def getTechniquePageWideOverrideDictOfPlainTextToSpeechCommandListFromHidingPlaceElem(hidingPlaceElem_, state_):
-	ourAssert(hidingPlaceElem_)
-	hidingPlaceElemTextContent = hidingPlaceElem_.name
+def getTechniquePageWideOverrideDictOfPlainTextToSpeechCommandListFromHidingPlaceTextNode(hidingPlaceTextNode_, state_):
+	ourAssert(hidingPlaceTextNode_)
+	hidingPlaceTextNodeValue = hidingPlaceTextNode_.name
 	pattern = HIDING_PLACE_GUID_FOR_ALL_TECHNIQUES+' '+HIDING_PLACE_GUID_FOR_PAGE_WIDE_OVERRIDE_TECHNIQUE+r'\s*(\{.*\})'
-	match = re.search(pattern, hidingPlaceElemTextContent)
+	match = re.search(pattern, hidingPlaceTextNodeValue)
 	if not match: return None
 	mapStr = match.group(1)
 	plainTextToSsmlStr = json.loads(mapStr)
@@ -380,10 +380,10 @@ def getRole(nvdaObj_):
 		return f"unknown role ({nvdaObj_.role})"
 
 @profile
-def findHidingPlaceElementInA11yTree(a11yTreeRoot_):
+def findHidingPlaceTextNodeInA11yTree(a11yTreeRoot_):
 	logInfo(f'dom root id={id(a11yTreeRoot_)} {a11yTreeRoot_}')
 	''' 
-	the location (in xpath-like syntax) of our hiding place element: 
+	the location (in xpath-like syntax) of our hiding place text node: 
 		if a11yRoot is an instance of NVDAObjects.IAccessible.chromium.Document: 
 			then it's at /document/section/text 
 		elif a11yRoot is an instance of NVDAObjects.Dynamic_ChromiumUIADocumentEditableTextWithAutoSelectDetectionUIA: 
@@ -392,7 +392,7 @@ def findHidingPlaceElementInA11yTree(a11yTreeRoot_):
 	- so the curve-ball for us - and cause of a former bug - is "section" vs. "grouping".  IDK for reason for that difference.  neither makes much sense, b/c it's a plain div. 
 	- document is: a11yTreeRoot_ 
 	- section|grouping is: our hiding place div.  in the DOM: last child of <body>.  in this tree: last child of document.  
-	- text is: only child of our hiding place div. 
+	- text is: a text node, and it's the only child of our hiding place div. 
 	- ... in both chrome and ff.  
 	- this function is slow.  usually takes 13 ms.  slow parts are: .lastChild and .firstChild.
 	'''
@@ -410,11 +410,11 @@ def findHidingPlaceElementInA11yTree(a11yTreeRoot_):
 	ourHidingPlaceElem = documentLastChild
 	ourHidingPlaceElemFirstChild = ourHidingPlaceElem.firstChild
 	if getRole(ourHidingPlaceElemFirstChild) != 'text': return None
-	text = ourHidingPlaceElemFirstChild
-	name = text.name
+	textNode = ourHidingPlaceElemFirstChild
+	name = textNode.name
 	textContent = name
 	if HIDING_PLACE_GUID_FOR_ALL_TECHNIQUES in textContent: 
-		return text
+		return textNode
 	return None
 
 def a11yTreeToStr(root_, maxDepth=None):
@@ -456,16 +456,16 @@ def updateA11yTreeRoot():
 	if a11yTreeRootChanged:
 		g_state = State()
 		g_state.initNvdaStateFieldsFromRealNvdaState()
-		hidingPlaceElem = findHidingPlaceElementInA11yTree(g_a11yTreeRoot)
-		if not hidingPlaceElem:
+		hidingPlaceTextNode = findHidingPlaceTextNodeInA11yTree(g_a11yTreeRoot)
+		if not hidingPlaceTextNode:
 			g_state.technique = 'inline'
 		else:
-			g_state.techniqueIndexListOfSsmlObjs = getTechniqueIndexListOfSsmlObjsFromHidingPlaceElem(hidingPlaceElem)
+			g_state.techniqueIndexListOfSsmlObjs = getTechniqueIndexListOfSsmlObjsFromHidingPlaceTextNode(hidingPlaceTextNode)
 			if g_state.techniqueIndexListOfSsmlObjs != None:
 				logInfo('Found global object for technique=index.')
 				g_state.technique = 'index'
 			else:
-				g_state.techniquePageWideOverrideDictOfPlainTextToSpeechCommandList = getTechniquePageWideOverrideDictOfPlainTextToSpeechCommandListFromHidingPlaceElem(hidingPlaceElem, g_state)
+				g_state.techniquePageWideOverrideDictOfPlainTextToSpeechCommandList = getTechniquePageWideOverrideDictOfPlainTextToSpeechCommandListFromHidingPlaceTextNode(hidingPlaceTextNode, g_state)
 				if g_state.techniquePageWideOverrideDictOfPlainTextToSpeechCommandList != None:
 					logInfo('Found global object for technique=page-wide-override.')
 					g_state.technique = 'page-wide-override'
