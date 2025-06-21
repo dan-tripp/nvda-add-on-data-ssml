@@ -47,18 +47,40 @@ table.table th {
 
 
 window.addEventListener("load", function(event) {
-
 	let testCases = [
+		{html: `yes abcdefg`, expected: `oh-kay A B C D E F G`}, 
+		{html: `yes filler abcdefg`, expected: `oh-kay filler A B C D E F G`}, 
+		{html: `3'`, expected: `3 feet`}, 
+		{html: `'3'`, expected: `3 feet`}, 
+		{html: `sub-3'`, expected: `sub 3 feet`}, 
+		{html: `3'-ish`, expected: `3 feet ish`}, 
+		{html: `_3'`, expected: `3  (don't override)`}, 
+		{html: `3'_`, expected: `3  (don't override)`}, 
+		{html: `03'`, expected: `03  (don't override)`}, 
+		{html: `3'9`, expected: `3 foot 9, or similar.  (don't override)`}, 
+		{html: `~3'`, expected: `approximately 3 feet`}, 
+		{html: `3'~`, expected: `3 feet approximately`}, 
+		{html: `red`, expected: `red`}, 
+		{html: `green`, expected: `green`}, 
+		{html: `blue`, expected: `blue`}, 
+		{html: `Yes yEs yES`, expected: `Oh-kay Oh-kay Oh-kay`}, 
+		{html: `^[^].{9}.*!@#$%^&*()_+-=_+*$`, expected: `mess`}, 
+		{html: `x^[^].{9}.*!@#$%^&*()_+-=_+*$`, expected: `(many symbols)`}, 
+		{html: `^[^].{9}.*!@#$%^&*()_+-=_+*$x`, expected: `(many symbols)`}, 
+		{html: `^^[^].{9}.*!@#$%^&*()_+-=_+*$`, expected: `mess`}, 
+		{html: `^[^].{9}.*!@#$%^&*()_+-=_+*$$`, expected: `mess`}, 
+		{html: `^[^].{9}.*!@#$%^&*()_+-=_+*$ ^[^].{9}.*!@#$%^&*()_+-=_+*$`, expected: `mess mess`}, 
+		{html: `^[^].{9}.*!@#$%^&*()_+-=_+*$^[^].{9}.*!@#$%^&*()_+-=_+*$`, expected: `messmess`}, 
 		{html: `NoYesNo`, expected: 'No Yess No'}, 
 		{html: `No<span>Yes</span>No`, expected: 'No Yess No'}, 
 		{html: `No<span style="margin: 0.3em">Yes</span>No`, expected: `No Yess No (but it's borderline)`}, 
 		{html: `No YesNo`, expected: `No Yess No`}, 
-		{html: `No <span>Yes</span> No`, expected: `No Okay No`}, 
-		{html: `No Yes No`, expected: `No Okay No`}, 
-		{html: `No<div>Yes</div>No`, expected: `No Okay No`}, 
-		{html: `No pre-Yes No`, expected: `No Pre-Okay No`}, 
-		{html: `No Yes/No`, expected: `No Okay No`}, 
-		{html: `No"Yes"No`, expected: `No Okay No`}, 
+		{html: `No <span>Yes</span> No`, expected: `No Oh-Kay No`}, 
+		{html: `No Yes No`, expected: `No Oh-kay No`}, 
+		{html: `No<div>Yes</div>No`, expected: `No Oh-Kay No`}, 
+		{html: `No pre-Yes No`, expected: `No Pre-Oh-Kay No`}, 
+		{html: `No Yes/No`, expected: `No Oh-Kay No`}, 
+		{html: `No"Yes"No`, expected: `No Oh-Kay No`}, 
 	];
 	let tbody = document.getElementById('table').querySelector('tbody');
 	for(let testCase of testCases) {
@@ -97,6 +119,19 @@ window.addEventListener("load", function(event) {
 
 <div style="display: none">
 	<span data-ssml='{"sub": {"alias": "okay"}}'>yes</span>
+	<span data-ssml='{"sub": {"alias": "no no no if you hear this it is bad"}}'>okay</span> <!-- this is a test to make sure that "recursion" won't happen i.e. that the string okay, which appears as a result of our data-ssml, is not in turn substituted with something else by us. --> 
+	<span data-ssml='{"sub": {"alias": "okay"}}'>yes</span> <!-- redundant w/ the first override of "yes".  will not log a warning. -->
+	<span data-ssml='{"sub": {"alias": "no no no log a warning on this"}}'>yes</span> <!-- not redundant.  will log a warning and otherwise be ignored. -->
+	<span data-ssml='{'>red</span>
+	<span data-ssml='{"say-as": "brokenbroken"}'>green</span>
+	<span data-ssml='{"broken": "brokenbroken"}'>blue</span>
+	<span data-ssml=''>yes</span> <!-- will be ignored, we hope. -->
+	<span data-ssml>yes</span> <!-- will be ignored, we hope. -->
+	<span data-ssml='{"sub": {"alias": "3 feet"}}'>3'</span>
+	<span data-ssml='{"sub": {"alias": "approximately 3 feet"}}'>~3'</span>
+	<span data-ssml='{"sub": {"alias": "3 feet approximately"}}'>3'~</span>
+	<span data-ssml='{"sub": {"alias": "mess"}}'>^[^].{9}.*!@#$%^&*()_+-=_+*$</span>
+	<span data-ssml='{"say-as": "characters"}'>abcdefg</span>
 </div>
 
 
