@@ -68,7 +68,7 @@ window.addEventListener("load", function(event) {
 		{html: `x^[^].{9}.*!@#$%^&*()_+-=_+*$`, expected: `(many symbols)`}, 
 		{html: `^[^].{9}.*!@#$%^&*()_+-=_+*$x`, expected: `(many symbols)`}, 
 		{html: `^^[^].{9}.*!@#$%^&*()_+-=_+*$`, expected: `mess`}, 
-		{html: `^[^].{9}.*!@#$%^&*()_+-=_+*$$`, expected: `mess`}, 
+		{html: `^[^].{9}.*!@#$%^&*()_+-=_+*$$`, expected: `"mess" (or maybe "mess dollar")`}, 
 		{html: `^[^].{9}.*!@#$%^&*()_+-=_+*$ ^[^].{9}.*!@#$%^&*()_+-=_+*$`, expected: `mess mess`}, 
 		{html: `^[^].{9}.*!@#$%^&*()_+-=_+*$^[^].{9}.*!@#$%^&*()_+-=_+*$`, expected: `messmess`}, 
 		{html: `NoYesNo`, expected: 'No Yess No'}, 
@@ -79,7 +79,7 @@ window.addEventListener("load", function(event) {
 		{html: `No Yes No`, expected: `No Oh-kay No`}, 
 		{html: `No<div>Yes</div>No`, expected: `No Oh-Kay No`}, 
 		{html: `No pre-Yes No`, expected: `No Pre-Oh-Kay No`}, 
-		{html: `No Yes/No`, expected: `No Oh-Kay No`}, 
+		{html: `No Yes/No`, expected: `"No Oh-Kay No" or "No Oh-Kay Slash No"`}, 
 		{html: `No"Yes"No`, expected: `No Oh-Kay No`}, 
 	];
 	let tbody = document.getElementById('table').querySelector('tbody');
