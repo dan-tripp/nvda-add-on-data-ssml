@@ -77,6 +77,11 @@ function* getAllElemsWithDataSsml() {
 	for(let element of document.querySelectorAll('[data-ssml]')) {
 		let dataSsmlVal = element.getAttribute('data-ssml')?.trim();
 		if(!dataSsmlVal) continue;
+		if(element.children.length > 0) {
+			console.error("This element which has a data-ssml attribute has child elements.  This plugin doesn't support that.  So we will ignore the data-ssml attribute on this element.  To fix this, you need to rearrange your HTML along these lines: put a <span> around the text that you want to override the spoken presentation of, and make it the tightest span possible (i.e. make it cover the text that you want to cover and nothing else), then put the data-ssml attribute on that <span>.  The failing element was: ", element);
+			/* we don't support it b/c it's difficult-to-impossible to deal with on the python end.  (assuming technique=index|inline.)  our macro_start / macro_end markers can end up appearing in the speech filter's input sequence in different (string) elements of the speech command list that is passed to our speech filter.  and there might be eg. a LangChangeCommand or any number of non-strings between the two.  I've seen it.  I don't know how to deal with that.  it's reproduced by eg. this: <label data-ssml='...>yes<textarea></textarea></label>.  so instead do this: <label><span data-ssml='...>yes</span><textarea></textarea></label>*/
+			continue;
+		}
 		yield [element, dataSsmlVal];
 	}
 }
