@@ -73,12 +73,16 @@ function encodeStrAsZeroWidthChars(str_) {
     return result;
 }
 
+function* getAllElemsWithDataSsml() {
+	for(let element of document.querySelectorAll('[data-ssml]')) {
+		let dataSsmlVal = element.getAttribute('data-ssml')?.trim();
+		if(!dataSsmlVal) continue;
+		yield [element, dataSsmlVal];
+	}
+}
+
 function encodeAllDataSsmlAttribs_inlineTechnique() {
-	let elements = [...document.querySelectorAll('[data-ssml]')]
-		.filter(el => el.getAttribute('data-ssml')?.trim() !== '');
-	for(let elem of elements) {
-		let dataSsmlValue = elem.getAttribute('data-ssml');
-		if(!dataSsmlValue) continue;
+	for(let [elem, dataSsmlValue] of getAllElemsWithDataSsml()) {
 		let encodedSsml = encodeStrAsZeroWidthChars(dataSsmlValue);
 		const START_END_MARKER = '\u2062';
 		elem.insertBefore(document.createTextNode(START_END_MARKER+encodedSsml+START_END_MARKER), elem.firstChild);
@@ -140,11 +144,7 @@ function encodeAllDataSsmlAttribs_indexTechnique_addCentralHidingPlaceElement(gl
 
 function encodeAllDataSsmlAttribs_indexTechnique_encodeEachOccurrenceAsAnIndex() {
 	let globalListOfSsmlStrs = [];
-	let elements = [...document.querySelectorAll('[data-ssml]')]
-		.filter(el => el.getAttribute('data-ssml')?.trim() !== '');
-	for(let elem of elements) {
-		let curSsmlStr = elem.getAttribute('data-ssml');
-		if(!curSsmlStr) continue;
+	for(let [elem, curSsmlStr] of getAllElemsWithDataSsml()) {
 		let indexOfCurSsmlStrInGlobalList = globalListOfSsmlStrs.indexOf(curSsmlStr);
 		if(indexOfCurSsmlStrInGlobalList == -1) {
 			globalListOfSsmlStrs.push(curSsmlStr);

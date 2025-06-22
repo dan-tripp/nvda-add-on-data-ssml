@@ -49,7 +49,7 @@ window.addEventListener("load", function(event) {
 
 	let testCases = [
 		{html: `<span data-ssml='{"say-as": "characters"}'>abcabcabc</span>`, expected: 'A B C A B C A B C'}, 
-		{html: `<label data-ssml='{"sub": {"alias": "gold"}}'>silver<textarea>default text</textarea></label>`, expected: 'gold'}, 
+		{html: `<label data-ssml='{"sub": {"alias": "gold"}}'>silver<textarea value="default text"></textarea></label>`, expected: 'gold'}, 
 		{html: `<span data-ssml='{"sub": {"alias": "3 prime"}}'>3'</span>`, expected: '3 prime'}, 
 		{html: `<a href="#" data-ssml='{"sub": {"alias": "3 prime"}}'>3'</a>`, expected: 'link 3 prime'},
 		{html: `<button>the <span data-ssml='{"sub": {"alias": "3 prime"}}'>3'</span> end</button>`, expected: `button the 3 prime end`},
@@ -76,7 +76,7 @@ window.addEventListener("load", function(event) {
 			<span data-ssml='{"sub": {"alias": "no"}}}'>K</span> 
 			<span data-ssml='{"sub": {"alias": [ '>L</span>
 			<span data-ssml='[0]'>M</span>`, 
-			expected: `A B C D E F G H I J K L M.  this is all broken ssml.`},
+			expected: `A B C D E F G H I J K L M.  this is all broken ssml or empty data-ssml attributes.`},
 		{html: `<span data-ssml='{"sub": {"alias": "[ yes ]"}}'>no</span>`, 
 			expected: `yes  <!-- for technique=index this is testing a certain regex that had a bug once.  fixed in commit 5a32fdfbdb1d5461fd5067faa6a22cb94bd67a00. -->`},
 		{html: `&#xFFF9;&#x200C;&#x200D;&#x2060;&#x2061;&#xFEFF;&#x2063;&#x2064;&#xFFFB;&#xFFFA;&#x206A;&#x206B;&#x206C;&#x206D;&#x206E;&#x206F;`, 
@@ -123,7 +123,8 @@ window.addEventListener("load", function(event) {
 	<script	src="../js/nvda-add-on-data-ssml.js"></script>
 	<script>
 	window.addEventListener("load", function(event) {
-		NvdaAddOnDataSsml.init('index');
+		let technique = 'index';
+		NvdaAddOnDataSsml.init(technique);
 	});
 	</script>
 
