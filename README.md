@@ -80,6 +80,12 @@ This plugin can be configured to use one of several "techniques", but regardless
 			<td>Tied for the worst technique.  Substantial junk here.
 			<td>Tied for the worst technique.  Same amount of junk, roughly. 
 		</tr>
+		<tr>
+			<th scope="row">Supports SSML on the <i>contents</i> (not label) of a &lt;textarea&gt;
+			<td>Not supported.
+			<td>Not supported.
+			<td>Supported.  Whether supporting this is a good thing or not is another question.
+		</tr>
 	</tbody>
 </table>
 
