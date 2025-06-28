@@ -73,7 +73,8 @@ function encodeStrAsZeroWidthChars(str_) {
     return result;
 }
 
-function* getAllElemsWithDataSsml() {
+function* getAllElemsWithDataSsml(technique_) {
+	
 	for(let element of document.querySelectorAll('[data-ssml]')) {
 		let dataSsmlVal = element.getAttribute('data-ssml')?.trim();
 		if(!dataSsmlVal) continue;
@@ -81,13 +82,16 @@ function* getAllElemsWithDataSsml() {
 			console.error("This element which has a data-ssml attribute has child elements.  This plugin doesn't support that.  So we will ignore the data-ssml attribute on this element.  To fix this, you need to rearrange your HTML along these lines: put a <span> around the text that you want to override the spoken presentation of, and make it the tightest span possible (i.e. make it cover the text that you want to cover and nothing else), then put the data-ssml attribute on that <span>.  The failing element was: ", element);
 			/* we don't support it b/c it's difficult-to-impossible to deal with on the python end.  (assuming technique=index|inline.)  our macro_start / macro_end markers can end up appearing in the speech filter's input sequence in different (string) elements of the speech command list that is passed to our speech filter.  and there might be eg. a LangChangeCommand or any number of non-strings between the two.  I've seen it.  I don't know how to deal with that.  it's reproduced by eg. this: <label data-ssml='...>yes<textarea></textarea></label>.  so instead do this: <label><span data-ssml='...>yes</span><textarea></textarea></label>*/
 			continue;
+		} else if(element.tagName === 'TEXTAREA') {
+			console.error(`Found data-ssml on a <textarea> element. This plugin doesn't support that.   So we will ignore the data-ssml attribute on this element.  If you want to use SSML on the /label/ of this textarea, then put data-ssml on the label element instead (or - if your label wraps another element - put data-ssml on a text-only child element of the label).  If you want to use SSML on the /contents/ of this textarea, then your only option is to use technique=page-wide-override.  Currently using technique=${technique_}.  The failing element was: `, element);
+			continue;
 		}
 		yield [element, dataSsmlVal];
 	}
 }
 
 function encodeAllDataSsmlAttribs_inlineTechnique() {
-	for(let [elem, dataSsmlValue] of getAllElemsWithDataSsml()) {
+	for(let [elem, dataSsmlValue] of getAllElemsWithDataSsml('inline')) {
 		let encodedSsml = encodeStrAsZeroWidthChars(dataSsmlValue);
 		const START_END_MARKER = '\u2062';
 		elem.insertBefore(document.createTextNode(START_END_MARKER+encodedSsml+START_END_MARKER), elem.firstChild);
@@ -149,7 +153,7 @@ function encodeAllDataSsmlAttribs_indexTechnique_addCentralHidingPlaceElement(gl
 
 function encodeAllDataSsmlAttribs_indexTechnique_encodeEachOccurrenceAsAnIndex() {
 	let globalListOfSsmlStrs = [];
-	for(let [elem, curSsmlStr] of getAllElemsWithDataSsml()) {
+	for(let [elem, curSsmlStr] of getAllElemsWithDataSsml('index')) {
 		let indexOfCurSsmlStrInGlobalList = globalListOfSsmlStrs.indexOf(curSsmlStr);
 		if(indexOfCurSsmlStrInGlobalList == -1) {
 			globalListOfSsmlStrs.push(curSsmlStr);
