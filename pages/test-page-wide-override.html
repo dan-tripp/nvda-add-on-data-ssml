@@ -3,7 +3,7 @@
 <head>
 	<meta charset="UTF-8">
 	<meta name="viewport" content="width=device-width">
-	<title>test page</title>
+	<title>test page page-wide-override</title>
 
 	<style>
 
@@ -49,6 +49,11 @@ window.addEventListener("load", function(event) {
 	let testCases = [
 		{html: `<span>Yes</span> <span>Yes</span>`, expected: `oh-kay oh-kay`}, 
 		{html: `<span>Yes</span>\n<span>Yes</span>`, expected: `oh-kay oh-kay`}, 
+		{html: `<label>silver<textarea></textarea></label>`, expected: 'gold'}, 
+		{html: `<label>filler silver filler<textarea></textarea></label>`, expected: 'filler gold filler'}, 
+		{html: `<label><textarea>silver</textarea></label>`, expected: 'gold'}, 
+		{html: `<label><textarea>filler silver filler</textarea></label>`, expected: 'filler gold filler'}, 
+		{html: `<label><textarea rows="3">filler\nsilver\nfiller</textarea></label>`, expected: 'filler gold filler'}, 
 		{html: `<span>Yes</span> <!-- --> <span>Yes</span>`, expected: `if chrome: "Yess Yess".  elif firefox: "oh-kay oh-kay".  (chrome shows strange behaviour on html comment.  it's not desirable, but it is expected.  the html comment here, which is between the first and second "Yes"es, will cause the speech filter to see "YesYes" (w/o any space between the two.)  so our regex-based code that makes page-wide-override work doesn't work here.)`}, 
 		{html: `<span>Yes</span> <!-- x --> <span>Yes</span>`, expected: `if chrome: "Yess Yess".  elif firefox: "oh-kay oh-kay".   (another html comment test.)`}, 
 		{html: `<span>Yes</span><!-- --><span>Yes</span>`, expected: `"Yess Yess" (another html comment test.)`}, 
@@ -124,10 +129,11 @@ window.addEventListener("load", function(event) {
 <main>
 
 
-<h1>test page</h1>
+<h1>test page page-wide-override</h1>
 
 
 <div style="display: none">
+	<span data-ssml='{"sub": {"alias": "gold"}}'>silver</span>
 	<span data-ssml='{"sub": {"alias": "okay"}}'>yes</span>
 	<span data-ssml='{"sub": {"alias": "no no no if you hear this it is bad"}}'>okay</span> <!-- this is a test to make sure that "recursion" won't happen i.e. that the string okay, which appears as a result of our data-ssml, is not in turn substituted with something else by us. --> 
 	<span data-ssml='{"sub": {"alias": "okay"}}'>yes</span> <!-- redundant w/ the first override of "yes".  will not log a warning. -->

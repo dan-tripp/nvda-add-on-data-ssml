@@ -154,6 +154,9 @@ function encodeAllDataSsmlAttribs_indexTechnique_encodeEachOccurrenceAsAnIndex()
 		if(indexOfCurSsmlStrInGlobalList == -1) {
 			globalListOfSsmlStrs.push(curSsmlStr);
 			indexOfCurSsmlStrInGlobalList = globalListOfSsmlStrs.length-1;
+			console.info(`New index: ${indexOfCurSsmlStrInGlobalList}.  SSML: "${curSsmlStr}".  For element: `, elem);
+		} else {
+			console.info(`Reusing index ${indexOfCurSsmlStrInGlobalList}.  SSML: "${curSsmlStr}".  For element: `, elem);
 		}
 		let indexOfCurSsmlStrInGlobalListEncoded = encodeStrAsZeroWidthChars(indexOfCurSsmlStrInGlobalList.toString());
 		const MARKER = '\u2062';
