@@ -34,4 +34,4 @@ fi
 windowsLocalAppDataDirWindows="$(cmd.exe /c echo %APPDATA% 2>/dev/null | tr -d '\r')"  # I'm assuming that we're running inside WSL, not cygwin.  LOCALAPPDATA (and all it's windows env var friends eg. USERPROFILE) isn't defined inside WSL.  it is defined inside cmd.exe. 
 windowsLocalAppDataDirUnix="$(wslpath -ua "$windowsLocalAppDataDirWindows")"
 nvdaIniFilePath="$windowsLocalAppDataDirUnix"/nvda/nvda.ini
-vi + "$nvdaIniFilePath"
+echo -n "$nvdaIniFilePath"

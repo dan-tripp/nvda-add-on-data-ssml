@@ -1,6 +1,7 @@
 
 PROFILE = None
 LOG_BRAILLE = None
+NEXT_SYNTH_SHORTCUT = None
 
 NVDA_CONFIG_KEY = 'data-ssml'
 HIDING_PLACE_GUID_FOR_ALL_TECHNIQUES = '4b9b696c-8fc8-49ca-9bb9-73afc9bd95f7'
@@ -55,7 +56,7 @@ chars not used AKA unused:
 ourAssert(len(set(ENCODING_CHARS)) == len(ENCODING_CHARS), "encodingChars contains duplicates")
 
 import datetime, re, base64, json, time, types, dataclasses, sys, traceback
-import globalPluginHandler, api
+import globalPluginHandler, api, scriptHandler, ui
 from logHandler import log
 import speech, speech.commands, speech.extensions, braille
 import synthDriverHandler, config
@@ -75,14 +76,15 @@ from speech.commands import (
 )
 
 def setGlobalVarsBasedOnNvdaConfig():
-	global PROFILE, LOG_BRAILLE
+	global PROFILE, LOG_BRAILLE, NEXT_SYNTH_SHORTCUT
 	if NVDA_CONFIG_KEY not in config.conf:
 		config.conf[NVDA_CONFIG_KEY] = {}
 	settings = config.conf[NVDA_CONFIG_KEY]
 	def strToBool(str__):
 		return {'True': True, 'False': False}[str__]
-	PROFILE = strToBool(settings.get('profile', False))
-	LOG_BRAILLE = strToBool(settings.get('logBraille', False))
+	PROFILE = strToBool(settings.get('profile', 'False'))
+	LOG_BRAILLE = strToBool(settings.get('logBraille', 'False'))
+	NEXT_SYNTH_SHORTCUT = strToBool(settings.get('nextSynthShortcut', 'False'))
 
 def profile(fn):
 	def wrapped(*args, **kwargs):
@@ -492,6 +494,22 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		self._ourSpeechSequenceFilter = speech.extensions.filter_speechSequence.register(self.ourSpeechSequenceFilter)
 		if LOG_BRAILLE:
 			braille.pre_writeCells.register(self.ourBraillePreWriteCells)
+		if NEXT_SYNTH_SHORTCUT:
+			self.bindGesture("kb:NVDA+control+alt+n", "nextSynth")
+
+	@scriptHandler.script(description="next synth")
+	def script_nextSynth(self, gesture):
+		allSynthsExceptSilence = [shortName for shortName, longName in synthDriverHandler.getSynthList()]
+		allSynthsExceptSilence.remove('silence')
+		curSynth = synthDriverHandler.getSynth().name
+		if curSynth == 'silence':
+			newSynth = allSynthsExceptSilence[0]
+		else:
+			curSynthIdx = allSynthsExceptSilence.index(curSynth)
+			nextIdx = (curSynthIdx + 1) % len(allSynthsExceptSilence)
+			newSynth = allSynthsExceptSilence[nextIdx]
+		synthDriverHandler.setSynth(newSynth)
+		ui.message(f'''set synth to {newSynth}''')
 
 	def ourBraillePreWriteCells(self, cells, rawText, currentCellCount):
 		logInfo(f'braille: cells={cells}, rawText={rawText}, currentCellCount={currentCellCount}')
@@ -531,4 +549,7 @@ def monkeyPatchBrailleHandler():
 		return originalUpdateFunc()
 
 	braille.handler.update = types.MethodType(ourUpdateFunc, braille.handler)
-	
+
+
+
+
