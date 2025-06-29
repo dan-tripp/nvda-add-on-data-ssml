@@ -404,27 +404,37 @@ the location (in xpath-like syntax) of our hiding place text node:
 '''
 @profile
 def findHidingPlaceTextNodeInA11yTree(a11yTreeRoot_):
-	logInfo(f'dom root id={id(a11yTreeRoot_)} {a11yTreeRoot_}')
+	logInfo(f'looking for hiding place element.  dom root id={id(a11yTreeRoot_)} {a11yTreeRoot_}')
 	if not a11yTreeRoot_: return None
-	documentLastChild = a11yTreeRoot_.lastChild
-	if not documentLastChild: return None
+	a11yTreeRootCurChild = a11yTreeRoot_.lastChild
+	if not a11yTreeRootCurChild: return None
 
-	# normally I would do an "isinstance()" here, but I don't know where NVDAObjects.Dynamic_ChromiumUIADocumentEditableTextWithAutoSelectDetectionUIA is defined.  I couldn't even find it via google or github search. 
+	# normally I would do an "isinstance()" here, but I don't know where the class NVDAObjects.Dynamic_ChromiumUIADocumentEditableTextWithAutoSelectDetectionUIA is defined.  I couldn't even find it via google or github search. 
 	if "NVDAObjects.Dynamic_ChromiumUIADocumentEditableTextWithAutoSelectDetectionUIA" in str(type(a11yTreeRoot_)):
 		ourHidingPlaceElemRole = 'grouping'
 	else:
 		ourHidingPlaceElemRole = 'section'
 
-	if getRole(documentLastChild) != ourHidingPlaceElemRole: return None
-	ourHidingPlaceElem = documentLastChild
-	ourHidingPlaceElemFirstChild = ourHidingPlaceElem.firstChild
-	if getRole(ourHidingPlaceElemFirstChild) != 'text': return None
-	textNode = ourHidingPlaceElemFirstChild
-	name = textNode.name
-	textContent = name
-	if HIDING_PLACE_GUID_FOR_ALL_TECHNIQUES in textContent: 
-		return textNode
-	return None
+	r = None
+	while a11yTreeRootCurChild:
+		if getRole(a11yTreeRootCurChild) != ourHidingPlaceElemRole:
+			logInfo('looking for hiding place element.  skipping, case 1')
+		else:
+			a11yTreeRootCurChildFirstChild = a11yTreeRootCurChild.firstChild
+			if getRole(a11yTreeRootCurChildFirstChild) != 'text':
+				logInfo('looking for hiding place element.  skipping, case 2')
+			else:
+				textNode = a11yTreeRootCurChildFirstChild
+				name = textNode.name
+				textContent = name
+				if HIDING_PLACE_GUID_FOR_ALL_TECHNIQUES not in textContent: 
+					logInfo('looking for hiding place element.  skipping, case 3')
+				else:
+					r = textNode
+					break
+		a11yTreeRootCurChild = a11yTreeRootCurChild.previous
+	logInfo(f'found hiding place element: {r != None}.')
+	return r
 
 def a11yTreeToStr(root_, maxDepth=None):
 	lines = []
