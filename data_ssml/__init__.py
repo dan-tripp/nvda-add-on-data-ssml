@@ -496,14 +496,14 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		modSeq = []
 		#logInfo(f'g_a11yTreeRoot: {g_a11yTreeRoot.name if g_a11yTreeRoot else None}') 
 		#logInfo(f'a11yTree:\n{a11yTreeToStr(g_a11yTreeRoot)}') 
-		logInfo(f'original speech sequence: {origSeq}')
+		logInfo(f'--> original speech sequence: {origSeq}')
 		for element in origSeq:
 			if isinstance(element, str):
 				logInfo(f'filter got string len {len(element)}: "{repr(element)}"')
 				modSeq.extend(decodeAllStrs(element, g_state))
 			else:
 				modSeq.append(element)
-		logInfo(f'modified speech sequence: {modSeq}')
+		logInfo(f'--> modified speech sequence: {modSeq}')
 		logInfo(f'speech sequence changed: {modSeq != origSeq}')
 		return modSeq
 
