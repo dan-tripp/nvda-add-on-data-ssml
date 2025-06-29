@@ -1,7 +1,8 @@
 
-PROFILE = False
-LOG_BRAILLE = False
+PROFILE = None
+LOG_BRAILLE = None
 
+NVDA_CONFIG_KEY = 'data-ssml'
 HIDING_PLACE_GUID_FOR_ALL_TECHNIQUES = '4b9b696c-8fc8-49ca-9bb9-73afc9bd95f7'
 HIDING_PLACE_GUID_FOR_INDEX_TECHNIQUE = 'b4f55cd4-8d9e-40e1-b344-353fe387120f'
 HIDING_PLACE_GUID_FOR_PAGE_WIDE_OVERRIDE_TECHNIQUE = 'c7a998a5-4b7e-4683-8659-f2da4aa96eee'
@@ -57,7 +58,7 @@ import datetime, re, base64, json, time, types, dataclasses, sys, traceback
 import globalPluginHandler, api
 from logHandler import log
 import speech, speech.commands, speech.extensions, braille
-import synthDriverHandler
+import synthDriverHandler, config
 from controlTypes import roleLabels
 
 # speech/SSML processing borrowed from NVDA's mathPres/mathPlayer.py
@@ -73,19 +74,26 @@ from speech.commands import (
 	IndexCommand,
 )
 
+def setGlobalVarsBasedOnNvdaConfig():
+	global PROFILE, LOG_BRAILLE
+	if NVDA_CONFIG_KEY not in config.conf:
+		config.conf[NVDA_CONFIG_KEY] = {}
+	settings = config.conf[NVDA_CONFIG_KEY]
+	def strToBool(str__):
+		return {'True': True, 'False': False}[str__]
+	PROFILE = strToBool(settings.get('profile', False))
+	LOG_BRAILLE = strToBool(settings.get('logBraille', False))
 
 def profile(fn):
-	if PROFILE:
-		def wrapped(*args, **kwargs):
-			t0 = time.perf_counter()
-			try:
-				return fn(*args, **kwargs)
-			finally:
-				t1 = time.perf_counter()
+	def wrapped(*args, **kwargs):
+		t0 = time.perf_counter()
+		try:
+			return fn(*args, **kwargs)
+		finally:
+			t1 = time.perf_counter()
+			if PROFILE:
 				logInfo(f"profile: {fn.__name__} took {int((t1-t0)*1000)} ms.")
-		return wrapped
-	else:
-		return fn
+	return wrapped
 	
 class StopWatch:
 	def __init__(self, label=""):
@@ -478,6 +486,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 	
 	def __init__(self):
 		super().__init__()
+		setGlobalVarsBasedOnNvdaConfig()
 		#monkeyPatchBrailleHandler()
 		# Thank you Dalen at https://nvda-addons.groups.io/g/nvda-addons/message/25811 for this idea of using filter_speechSequence instead of monkey-patching the synth. 
 		self._ourSpeechSequenceFilter = speech.extensions.filter_speechSequence.register(self.ourSpeechSequenceFilter)

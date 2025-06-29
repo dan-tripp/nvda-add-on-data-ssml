@@ -51,7 +51,7 @@ mock_logHandler.log = MockLog()
 sys.modules["logHandler"] = mock_logHandler
 
 
-for mod in ["globalPluginHandler", "speech", "ui", "synthDriverHandler", "api", "speech", "speech.extensions", "braille", "controlTypes", "globalPluginHandler"]:
+for mod in ["globalPluginHandler", "speech", "ui", "synthDriverHandler", "api", "speech", "speech.extensions", "braille", "controlTypes", "globalPluginHandler", "config"]:
 	if mod not in sys.modules:
 		sys.modules[mod] = unittest.mock.MagicMock()
 
