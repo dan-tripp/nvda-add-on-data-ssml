@@ -59,9 +59,16 @@ window.addEventListener("load", function(event) {
 		NvdaAddOnDataSsml.init(technique);
 
 		// create some deceptive elements 
-		let div = document.createElement('div');
-		div.textContent = 'deception';
-		document.body.appendChild(div);
+		for(let i=0; i<30; i++) {
+			let div = document.createElement('span');
+			div.textContent = 'deception span ';
+			document.body.appendChild(div);
+		}
+		for(let i=0; i<30; i++) {
+			let div = document.createElement('div');
+			div.textContent = 'deception div';
+			document.body.appendChild(div);
+		}
 
 	});
 	</script>
