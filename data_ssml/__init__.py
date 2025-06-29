@@ -127,7 +127,7 @@ class State:
 
 	# our plugin state, based on the current web page: 
 	technique: str = None
-	techniqueIndexListOfSsmlObjs: list = None
+	techniqueIndexListOfSsmlStrs: list = None
 	techniquePageWideOverrideDictOfPlainTextToSpeechCommandList: dict = None
 
 	def initNvdaStateFieldsFromRealNvdaState(self):
@@ -315,7 +315,7 @@ def decodeAllStrs_indexAndInlineTechniques(str_: str, state_: State):
 		success = False
 		try:
 			if state_.technique == 'index':
-				ourAssert(state_.techniqueIndexListOfSsmlObjs)
+				ourAssert(state_.techniqueIndexListOfSsmlStrs)
 				idxInListAsEncodedStr = encodedStr
 				if not idxInListAsEncodedStr:
 					logInfo('encoded string is empty.  we will ignore it.')
@@ -325,8 +325,8 @@ def decodeAllStrs_indexAndInlineTechniques(str_: str, state_: State):
 					ourAssert(idxInListAsDecodedStr)
 					idxInList = int(idxInListAsDecodedStr)
 					if(idxInList < 0): raise SsmlError("index is negative") # sure, python (with it's -ve list indices) could handle this -ve index.  but our JS will never output a -ve index.  so our JS didn't create this.  so this must be a case of "encoding characters in the wild".  
-					ssmlObj = state_.techniqueIndexListOfSsmlObjs[idxInList]
-					r.extend(turnSsmlStrIntoSpeechCommandList(ssmlObj, textToAffect, origWholeText, state_))
+					ssmlStr = state_.techniqueIndexListOfSsmlStrs[idxInList]
+					r.extend(turnSsmlStrIntoSpeechCommandList(ssmlStr, textToAffect, origWholeText, state_))
 					success = True
 			elif state_.technique == 'inline':
 				ssmlStrEncoded = encodedStr
@@ -355,7 +355,7 @@ def decodeAllStrs_indexAndInlineTechniques(str_: str, state_: State):
 
 	return r
 
-def getTechniqueIndexListOfSsmlObjsFromHidingPlaceTextNode(hidingPlaceTextNode_):
+def getTechniqueIndexListOfSsmlStrsFromHidingPlaceTextNode(hidingPlaceTextNode_):
 	ourAssert(hidingPlaceTextNode_)
 	hidingPlaceTextNodeValue = hidingPlaceTextNode_.name
 	pattern = rf'{HIDING_PLACE_GUID_FOR_ALL_TECHNIQUES} {HIDING_PLACE_GUID_FOR_INDEX_TECHNIQUE}\s*(\[.*\])'
@@ -468,8 +468,8 @@ def updateA11yTreeRoot():
 		if not hidingPlaceTextNode:
 			g_state.technique = 'inline'
 		else:
-			g_state.techniqueIndexListOfSsmlObjs = getTechniqueIndexListOfSsmlObjsFromHidingPlaceTextNode(hidingPlaceTextNode)
-			if g_state.techniqueIndexListOfSsmlObjs != None:
+			g_state.techniqueIndexListOfSsmlStrs = getTechniqueIndexListOfSsmlStrsFromHidingPlaceTextNode(hidingPlaceTextNode)
+			if g_state.techniqueIndexListOfSsmlStrs != None:
 				logInfo('Found global object for technique=index.')
 				g_state.technique = 'index'
 			else:
