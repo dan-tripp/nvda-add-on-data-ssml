@@ -55,7 +55,7 @@ window.addEventListener("load", function(event) {
 
 		/* <input> */
 		{html: `<input type="text" data-ssml='{"sub": {"alias": "3 prime"}}'>`, 
-		expected: `ignore.  because this is an error - see JS logs.`},
+		expected: `ignore this test case.  because this is an error - see JS logs.`},
 
 		/* <select> */
 		{html: `<select aria-label="length"><option data-ssml='{"sub": {"alias": "3 feet"}}'>3'</option><option data-ssml='{"sub": {"alias": "4 feet"}}'>4'</option></select>`,
@@ -99,17 +99,17 @@ window.addEventListener("load", function(event) {
 			<span data-ssml='{"sub": {"alias": "no"}}}'>K</span> 
 			<span data-ssml='{"sub": {"alias": [ '>L</span>
 			<span data-ssml='[0]'>M</span>`, 
-			expected: `A B C D E F G H I J K L M.  this is all broken ssml or empty data-ssml attributes.`},
+			expected: `A B C D E F G H I J K L M.  this is all broken ssml or empty data-ssml attributes.  so passthrough the plain text gracefully.`},
 		{html: `<span data-ssml='{"sub": {"alias": "[ yes ]"}}'>no</span>`, 
-			expected: `yes  <!-- for technique=index this is testing a certain regex that had a bug once.  fixed in commit 5a32fdfbdb1d5461fd5067faa6a22cb94bd67a00. -->`},
+			expected: `"yes".  for technique=index this is testing a certain regex that had a bug once.  fixed in commit 5a32fdfbdb1d5461fd5067faa6a22cb94bd67a00.`},
 		{html: `&#xFFF9;&#x200C;&#x200D;&#x2060;&#x2061;&#xFEFF;&#x2063;&#x2064;&#xFFFB;&#xFFFA;&#x206A;&#x206B;&#x206C;&#x206D;&#x206E;&#x206F;`, 
-			expected: `(silence)  <!-- encoding characters in the wild.  no marker.  these will be silently ignored - no exception in our logs. -->`},
+			expected: `(silence).  encoding characters in the wild.  no marker.  these will be silently ignored - no exception in our logs.`},
 		{html: `&#x2062;&#x200d;&#x206d;&#x2060;&#x200c;&#x2062;red&#x2062;&#x2062;`, 
-			expected: `red  <!-- encoding characters in the wild.  looks like an encoded index of "-1", which is negative (= invalid), so it will cause a harmless exception in our logs. -->`},
+			expected: `"red".   encoding characters in the wild.  looks like an encoded index of "-1", which is negative (= invalid), so it will cause a harmless exception in our logs.`},
 		{html: `&#x2062;&#x2060;&#xfffa;&#x2060;&#xfffa;&#x2060;&#xfffa;&#x2060;&#xfffa;&#x2060;&#xfffa;&#x2062;green&#x2062;&#x2062;`, 
-			expected: `green  <!-- encoding characters in the wild. looks like an encoded index of "99999", which is out of range, so it will cause a harmless exception in our logs. -->`},
+			expected: `"green".  encoding characters in the wild. looks like an encoded index of "99999", which is out of range, so it will cause a harmless exception in our logs.`},
 		{html: `&#x2062;&#x2062;&#x2062;&#x2062; &#x2062;&#x2062;3&#x2062;&#x2062; &#x2062;&#xfffa;y&#x206F; &#x2062;4&#x2062;&#x2062; &#x2062;&#x2064;&#x2061;&#x2062;5&#x2062;&#x2062; &#x2062;&#x2064;&#x2061;&#x2064;&#xfeff;&#x2064;&#x2063;&#x2062;6&#x2062;&#x2062; &#x2062;&#x2064;&#x2062;&#x2062;&#x2062;7`, 
-			expected: `3 why 4 5 6 7<!-- encoding characters in the wild.  contains several messes, in this order:
+			expected: `"3 why 4 5 6 7".  see comment for details.  <!-- encoding characters in the wild.  contains several messes, in this order:
 			1) "encoded string" (= what might seem to be a string that was encoded by our JS, but really is encoding chars in the wild) is empty and plain text is empty.  
 			2) "encoded string" is empty and plain text is not empty.
 			3) "encoded string" contains an invalid encoding character: "z".
@@ -118,7 +118,7 @@ window.addEventListener("load", function(event) {
 			6) similar to previous, but this time the encoded string is "tuv". 
 			7) "encoded string" is just one encoding character.  I don't know what that one character could possibly mean.  probably nothing useful.  
 
-			some of the above messes will cause an ugly-but-harmless exception in our logs.  others will be silently or semi-silently ignored. -->`},
+			some of the above messes will cause an ugly-but-harmless exception in our logs.  others will be silently or semi-silently ignored.-->`},
 
 	
 	];
@@ -176,7 +176,7 @@ window.addEventListener("load", function(event) {
 	</tbody>
 </table>
 
-
+<div style="height: 50vh"></div>
 
 
 

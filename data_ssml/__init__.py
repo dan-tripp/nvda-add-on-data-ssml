@@ -183,15 +183,11 @@ class SsmlError(Exception):
     pass
 
 @profile
-def turnSsmlStrOrObjIntoSpeechCommandList(ssmlStrOrObj_, nonSsmlStr_: str, origWholeText_: str, state_: State):
+def turnSsmlStrIntoSpeechCommandList(ssmlStr_, nonSsmlStr_: str, origWholeText_: str, state_: State):
+	ourAssert(isinstance(ssmlStr_, str))
 	try:
-		if isinstance(ssmlStrOrObj_, str):
-			ssmlObj = json.loads(ssmlStrOrObj_)
-			if(not isinstance(ssmlObj, dict)): raise SsmlError(f'expected a dict in the json.  got an object of type: {type(ssmlObj)}.')
-		elif isinstance(ssmlStrOrObj_, dict):
-			ssmlObj = ssmlStrOrObj_.copy()
-		else:
-			ourAssert(False)
+		ssmlObj = json.loads(ssmlStr_)
+		if(not isinstance(ssmlObj, dict)): raise SsmlError(f'expected a dict in the json.  got an object of type: {type(ssmlObj)}.')
 		if len(ssmlObj) != 1: raise SsmlError()
 		key = next(iter(ssmlObj)); val = ssmlObj[key]
 		if key == 'sub':
@@ -227,7 +223,7 @@ def turnSsmlStrOrObjIntoSpeechCommandList(ssmlStrOrObj_, nonSsmlStr_: str, origW
 		else:
 			raise SsmlError()
 	except (json.decoder.JSONDecodeError, SsmlError, KeyError) as e:
-		logInfo(f'Error happened while processing SSML JSON string.  We will fall back to the plain text.  The SSML string was "{ssmlStrOrObj_}".  The exception, which we will suppress, was:')
+		logInfo(f'Error happened while processing SSML JSON string.  We will fall back to the plain text.  The SSML string was "{ssmlStr_}".  The exception, which we will suppress, was:')
 		log.exception(e)
 		r = [origWholeText_]
 	return r
@@ -330,13 +326,13 @@ def decodeAllStrs_indexAndInlineTechniques(str_: str, state_: State):
 					idxInList = int(idxInListAsDecodedStr)
 					if(idxInList < 0): raise SsmlError("index is negative") # sure, python (with it's -ve list indices) could handle this -ve index.  but our JS will never output a -ve index.  so our JS didn't create this.  so this must be a case of "encoding characters in the wild".  
 					ssmlObj = state_.techniqueIndexListOfSsmlObjs[idxInList]
-					r.extend(turnSsmlStrOrObjIntoSpeechCommandList(ssmlObj, textToAffect, origWholeText, state_))
+					r.extend(turnSsmlStrIntoSpeechCommandList(ssmlObj, textToAffect, origWholeText, state_))
 					success = True
 			elif state_.technique == 'inline':
 				ssmlStrEncoded = encodedStr
 				ssmlStr = decodeSingleStr(ssmlStrEncoded)
 				logInfo(f'	ssmlStr: "{ssmlStr}"')
-				r.extend(turnSsmlStrOrObjIntoSpeechCommandList(ssmlStr, textToAffect, origWholeText, state_))				
+				r.extend(turnSsmlStrIntoSpeechCommandList(ssmlStr, textToAffect, origWholeText, state_))				
 				success = True
 			else:
 				ourAssert(False)
@@ -379,7 +375,7 @@ def getTechniquePageWideOverrideDictOfPlainTextToSpeechCommandListFromHidingPlac
 	plainTextToSsmlStr = json.loads(mapStr)
 	r = {}
 	for plainText, ssmlStr in plainTextToSsmlStr.items():
-		r[plainText.lower()] = turnSsmlStrOrObjIntoSpeechCommandList(ssmlStr, plainText, plainText, state_)
+		r[plainText.lower()] = turnSsmlStrIntoSpeechCommandList(ssmlStr, plainText, plainText, state_)
 	return r
 
 @profile
