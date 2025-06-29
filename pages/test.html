@@ -48,8 +48,14 @@ table.table th {
 window.addEventListener("load", function(event) {
 
 	let testCases = [
-		{html: `<span data-ssml='{"sub": {"alias": "3 prime"}}'>3'</span>`, expected: `3 prime`}, 
-		{html: `<a href="#" data-ssml='{"sub": {"alias": "3 prime"}}'>3'</a>`, expected: `link 3 prime`},
+		{html: `<span data-ssml='{"sub": {"alias": "3 prime"}}'>3'</span>`, 
+		expected: `3 prime`}, 
+		{html: `<a href="#" data-ssml='{"sub": {"alias": "3 prime"}}'>3'</a>`, 
+		expected: `link 3 prime`},
+
+		/* <input> */
+		{html: `<input type="text" data-ssml='{"sub": {"alias": "3 prime"}}'>`, 
+		expected: `ignore.  because this is an error - see JS logs.`},
 
 		/* <select> */
 		{html: `<select aria-label="length"><option data-ssml='{"sub": {"alias": "3 feet"}}'>3'</option><option data-ssml='{"sub": {"alias": "4 feet"}}'>4'</option></select>`,

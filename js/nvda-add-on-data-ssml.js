@@ -9,6 +9,7 @@ window.NvdaAddOnDataSsml.init = function(technique_) {
 const HIDING_PLACE_GUID_FOR_ALL_TECHNIQUES = '4b9b696c-8fc8-49ca-9bb9-73afc9bd95f7';
 const HIDING_PLACE_GUID_FOR_INDEX_TECHNIQUE = 'b4f55cd4-8d9e-40e1-b344-353fe387120f';
 const HIDING_PLACE_GUID_FOR_PAGE_WIDE_OVERRIDE_TECHNIQUE = 'c7a998a5-4b7e-4683-8659-f2da4aa96eee';
+const INPUT_TYPES_SUPPORTED = new Set(['checkbox', 'radio', 'button', 'reset', 'submit', ]);
 
 function isPowerOfTwo(n_) {
 	return (n_ & (n_ - 1)) !== 0;
@@ -83,8 +84,14 @@ function* getAllElemsWithDataSsml(technique_) {
 			/* we don't support it b/c it's difficult-to-impossible to deal with on the python end.  (assuming technique=index|inline.)  our macro_start / macro_end markers can end up appearing in the speech filter's input sequence in different (string) elements of the speech command list that is passed to our speech filter.  and there might be eg. a LangChangeCommand or any number of non-strings between the two.  I've seen it.  I don't know how to deal with that.  it's reproduced by eg. this: <label data-ssml='...>yes<textarea></textarea></label>.  so instead do this: <label><span data-ssml='...>yes</span><textarea></textarea></label>*/
 			continue;
 		} else if(element.tagName === 'TEXTAREA') {
-			console.error(`Found data-ssml on a <textarea> element. This plugin doesn't support that.   So we will ignore the data-ssml attribute on this element.  If you want to use SSML on the /label/ of this textarea, then put data-ssml on the label element instead (or - if your label wraps another element - put data-ssml on a text-only child element of the label).  If you want to use SSML on the /contents/ of this textarea, then your only option is to use technique=page-wide-override.  Currently using technique=${technique_}.  The failing element was: `, element);
+			console.error(`Found data-ssml on a <textarea> element. This plugin doesn't support that.   So we will ignore the data-ssml attribute on this element.  If you want to use SSML on the /label/ of this <textarea>, then put data-ssml on the label element instead (or - if your label wraps another element - put data-ssml on a text-only child element of the label).  If you want to use SSML on the /contents/ of this <textarea>, then your only option is to use technique=page-wide-override.  Currently using technique=${technique_}.  The failing element was: `, element);
 			continue;
+		} else if(element.tagName === 'INPUT') {
+			let type = element.getAttribute('type');
+			if(!INPUT_TYPES_SUPPORTED.has(type)) {
+				console.error(`Found data-ssml on an <input type="${type}">.  This plugin doesn't support that.   So we will ignore the data-ssml attribute on this element.  Our list of supported types is: ${[...INPUT_TYPES_SUPPORTED]}.  If you want to use SSML on the /label/ of this <input>, then put data-ssml on the label element instead (or - if your label wraps another element - put data-ssml on a text-only child element of the label).  If you want to use SSML on the /contents/ of this <input>: we don't support that, because it's unclear what it would mean.  data-ssml makes the most sense if you imagine it being put on a DOM text node that never changes.  Equivalently: on a DOM element which contains nothing but text that never changes.  And that DOM element can be a widget, or inside of a widget, or not.  But the following ideas don't make sense: 1) data-ssml on a value that can be edited by the user, and 2) data-ssml on an element that has content which is more complicated than just text.  The input types that we don't support fall into those categories.  (To elaborate on #1: we mean a /value/ of a widget, not a widget.  And a value that is /edited/ - not selected - by the user.)  The failing element was: `, element);
+				continue;
+			}
 		}
 		yield [element, dataSsmlVal];
 	}
