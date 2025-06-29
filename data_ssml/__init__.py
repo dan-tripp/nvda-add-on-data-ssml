@@ -128,7 +128,7 @@ class State:
 	# our plugin state, based on the current web page: 
 	technique: str = None
 	techniqueIndexListOfSsmlStrs: list = None
-	techniquePageWideOverrideDictOfPlainTextToSpeechCommandList: dict = None
+	techniquePageWideOverrideDictOfPlainTextToSsmlStr: dict = None
 
 	def initNvdaStateFieldsFromRealNvdaState(self):
 		self.useCharacterModeCommand = getUseCharacterModeCommandFromNvdaState()
@@ -238,9 +238,9 @@ def decodeAllStrs(str_: str, state_: State):
 	logInfo(f'decodeAllStrs input (len {len(str_)}): {repr(str_)}')
  
 	if state_.technique in ('index', 'inline'):
-		r = decodeAllStrs_indexAndInlineTechniques(str_, state_)
+		r = decodeAllStrs_techniquesIndexAndInline(str_, state_)
 	elif state_.technique == 'page-wide-override':
-		r = decodeAllStrs_pageWideOverrideTechnique(str_, state_)
+		r = decodeAllStrs_techniquePageWideOverride(str_, state_)
 	else:
 		ourAssert(False)
 
@@ -264,8 +264,8 @@ def decodeAllStrs(str_: str, state_: State):
     
 
 
-def decodeAllStrs_pageWideOverrideTechnique(str_: str, state_: State):
-	m = state_.techniquePageWideOverrideDictOfPlainTextToSpeechCommandList
+def decodeAllStrs_techniquePageWideOverride(str_: str, state_: State):
+	m = state_.techniquePageWideOverrideDictOfPlainTextToSsmlStr
 	ourAssert(m != None)
 	plainTexts = sorted(m.keys(), key=lambda e: -len(e)) # so that if we have plainTexts "3'" and "3'~", our pattern will match "3'~".  the way regex '|' works, it will match the leftmost branch.  so we want the longest one to be the leftmost.  this sort does that. 
 	patternForAllPlainTexts = re.compile('(?i)' + '|'.join(r'(?<!\w)'+re.escape(plainText)+r'(?!\w)' for plainText in plainTexts))
@@ -279,7 +279,8 @@ def decodeAllStrs_pageWideOverrideTechnique(str_: str, state_: State):
 			textBeforeMatch = str_[prevEndIdx:startIdx]
 			logInfo(f'	text before this match: {repr(textBeforeMatch)}')
 			r.append(textBeforeMatch)
-		speechCommandList = m[plainText.lower()]
+		ssmlStr = m[plainText.lower()]
+		speechCommandList = turnSsmlStrIntoSpeechCommandList(ssmlStr, plainText, plainText, state_)
 		r.extend(speechCommandList)
 		prevEndIdx = endIdx
 
@@ -290,7 +291,7 @@ def decodeAllStrs_pageWideOverrideTechnique(str_: str, state_: State):
 
 	return r
 
-def decodeAllStrs_indexAndInlineTechniques(str_: str, state_: State):
+def decodeAllStrs_techniquesIndexAndInline(str_: str, state_: State):
 	r = []
 	prevEndIdx = 0
 	matchCount = 0
@@ -365,7 +366,7 @@ def getTechniqueIndexListOfSsmlStrsFromHidingPlaceTextNode(hidingPlaceTextNode_)
 	listObj = json.loads(listStr)
 	return listObj
 
-def getTechniquePageWideOverrideDictOfPlainTextToSpeechCommandListFromHidingPlaceTextNode(hidingPlaceTextNode_, state_):
+def getTechniquePageWideOverrideDictOfPlainTextToSsmlStrFromHidingPlaceTextNode(hidingPlaceTextNode_, state_):
 	ourAssert(hidingPlaceTextNode_)
 	hidingPlaceTextNodeValue = hidingPlaceTextNode_.name
 	pattern = HIDING_PLACE_GUID_FOR_ALL_TECHNIQUES+' '+HIDING_PLACE_GUID_FOR_PAGE_WIDE_OVERRIDE_TECHNIQUE+r'\s*(\{.*\})'
@@ -375,7 +376,7 @@ def getTechniquePageWideOverrideDictOfPlainTextToSpeechCommandListFromHidingPlac
 	plainTextToSsmlStr = json.loads(mapStr)
 	r = {}
 	for plainText, ssmlStr in plainTextToSsmlStr.items():
-		r[plainText.lower()] = turnSsmlStrIntoSpeechCommandList(ssmlStr, plainText, plainText, state_)
+		r[plainText.lower()] = ssmlStr
 	return r
 
 @profile
@@ -473,8 +474,8 @@ def updateA11yTreeRoot():
 				logInfo('Found global object for technique=index.')
 				g_state.technique = 'index'
 			else:
-				g_state.techniquePageWideOverrideDictOfPlainTextToSpeechCommandList = getTechniquePageWideOverrideDictOfPlainTextToSpeechCommandListFromHidingPlaceTextNode(hidingPlaceTextNode, g_state)
-				if g_state.techniquePageWideOverrideDictOfPlainTextToSpeechCommandList != None:
+				g_state.techniquePageWideOverrideDictOfPlainTextToSsmlStr = getTechniquePageWideOverrideDictOfPlainTextToSsmlStrFromHidingPlaceTextNode(hidingPlaceTextNode, g_state)
+				if g_state.techniquePageWideOverrideDictOfPlainTextToSsmlStr != None:
 					logInfo('Found global object for technique=page-wide-override.')
 					g_state.technique = 'page-wide-override'
 		if g_state.technique == 'inline':
