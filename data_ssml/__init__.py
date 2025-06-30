@@ -532,7 +532,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		#logInfo(f'a11yTree:\n{a11yTreeToStr(g_a11yTreeRoot)}') 
 		logInfo(f'--> original speech sequence: {origSeq}')
 		for element in origSeq:
-			if isinstance(element, str):
+			if isinstance(element, str) and len(element) > 0:
 				logInfo(f'filter got string len {len(element)}: "{repr(element)}"')
 				modSeq.extend(decodeAllStrs(element, g_state))
 			else:
