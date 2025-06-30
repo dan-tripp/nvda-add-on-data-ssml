@@ -62,13 +62,14 @@ window.addEventListener("load", function(event) {
 		expected: `this test case is testing the options, not the select.  expected: "3 feet" / "4 feet".`}, 
 		{html: `<select aria-labelledby="label98724"><option>yes</option><option>no</option></select> <br>  `,
 		expected: `this test case is testing the select, not the options. <br>- expected on tab: "3 prime combo box yes collapsed". <br>- expected on arrow nav / table arrow nav: just "combo box collapsed  yes" i.e. the aria-labelledby target is not being used at all, much less our data-ssml.  this behaviour might be defined by nvda, not our plugin.  here is the aria-labelledby target: <span data-ssml='{"sub": {"alias": "3 prime"}}' id="label98724">error</span> `},
-		{html: `<select aria-labelledby="label9283434"><option>yes</option><option>no</option></select> <br>here is the aria-labelledby target: <span data-ssml='{"sub": {"alias": "3 prime"}}' id="label9283434">error</span> `,
-		expected: `chaos.  ignore, probably.  in chrome (not ff) on tab nav: all of the text in the table cell is announced as if it was part of the value of the select.  this test case worked when I put it outside of the table.  this behaviour might be defined by nvda, not our plugin.  also tihs test case has the problem (shown more narrowly in another test case) that an aria-labelledby target in the same table cell as the source doesn't work.`},
+		{html: `<select aria-labelledby="label9283434"><option>yes</option><option>no</option></select>`,
+		expected: `chaos.  ignore, probably.  in chrome (not ff) on tab nav: all of the text in the table cell is announced as if it was part of the value of the select.  this test case worked when I put it outside of the table.  this behaviour might be defined by nvda, not our plugin.  here is the aria-labelledby target: <span data-ssml='{"sub": {"alias": "3 prime"}}' id="label9283434">error</span>`},
 
 		/* aria-labelledby: */ 
-		{html: `<button aria-labelledby="label1">3'</button>`, expected: `"button 3 prime".  aria-labelledby works here.  and in most cases.<br>ignore this part: this is the aria-labelledby target: <span data-ssml='{"sub": {"alias": "3 prime"}}' id="label1">failure</span>`}, 
-		{html: `<button aria-labelledby="label2">3'</button>`, expected: `"button 3 prime".  aria-labelledby works here too.  this time the target has "display: none".  <br>ignore this part: this is the aria-labelledby target (w/ "display: none"): <span style="display: none" data-ssml='{"sub": {"alias": "3 prime"}}' id="label2">wrong</span>`}, 
-		{html: `<button aria-labelledby="label3">3'</button><br><span data-ssml='{"sub": {"alias": "3 prime"}}' id="label3">error</span>`, expected: `"button error" on the button, unfortunately.  (and "3 prime" on the non-button, but that's not interesting.)  we get "button error" on the button b/c aria-labelledby doesn't work here: when the aria-labelledby target is in the same table cell as the source.  I don't know why.  this test case worked when I put it outside of the table.`}, 
+		{html: `<button aria-labelledby="label1">3'</button>`, 
+		expected: `"button 3 prime".  aria-labelledby.  <br>ignore this part: this is the aria-labelledby target: <span data-ssml='{"sub": {"alias": "3 prime"}}' id="label1">failure</span>`}, 
+		{html: `<button aria-labelledby="label2">3'</button>`, 
+		expected: `"button 3 prime".  aria-labelledby w/ "display: none".  <br>ignore this part: this is the aria-labelledby target (w/ "display: none"): <span style="display: none" data-ssml='{"sub": {"alias": "3 prime"}}' id="label2">wrong</span>`}, 
 
 		{html: `<span data-ssml='{"sub": {"alias": "3 prime"}}'><!-- -->3<!-- -->'<!-- --></span>`, expected: `3 prime`}, 
 		{html: `<span data-ssml='{"say-as": "characters"}'>abcabcabc</span>`, expected: 'A B C A B C A B C'}, 
@@ -131,8 +132,12 @@ window.addEventListener("load", function(event) {
 		`;
 		let tdHtmlWithSsml = tr.querySelector('td');
 		let tdHtmlWithoutSsml = tdHtmlWithSsml.cloneNode(true);
-		for(let e of tdHtmlWithoutSsml.querySelectorAll('[data-ssml]')) {
-			e.removeAttribute('data-ssml');
+		if(tdHtmlWithoutSsml.querySelector('[id]')) {
+			tdHtmlWithoutSsml.innerHTML = `<strong>ERROR: test case html has an id attribute, so we can't clone it.  If you need to use an id attribute, put it in the "expected" column.</strong>`;
+		} else {
+			for(let e of tdHtmlWithoutSsml.querySelectorAll('[data-ssml]')) {
+				e.removeAttribute('data-ssml');
+			}
 		}
 		tdHtmlWithSsml.insertAdjacentElement('beforebegin', tdHtmlWithoutSsml);
 		tbody.appendChild(tr);
@@ -177,7 +182,6 @@ window.addEventListener("load", function(event) {
 </table>
 
 <div style="height: 50vh"></div>
-
 
 
 

@@ -32,8 +32,10 @@ EOF
 	exit 1
 fi
 
-cd "$(dirname "$0")"
-cp test-page.html nvda-add-on-data-ssml.js ../dan-tripp.github.io 
+dirOfThisProgram="$(realpath "$(dirname "$0")")"
+dirNameOfThisProgram="$(basename "$dirOfThisProgram")"
+cd "$dirOfThisProgram"
+rsync --recursive --delete pages js ../dan-tripp.github.io/nvda-add-on-data-ssml
 cd ../dan-tripp.github.io 
 git-add-commit-push 
 
