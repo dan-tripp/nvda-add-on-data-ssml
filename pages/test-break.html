@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width">
+	<title>test page</title>
+
+	<style>
+
+p { line-height: 1.5; }
+
+/* thanks https://www.tpgi.com/the-anatomy-of-visually-hidden/#where-we-came-in */
+.visually-hidden:not(:focus):not(:active) {
+    clip-path: inset(50%);
+    height: 1px;
+    overflow: hidden;
+    position: absolute;
+    white-space: nowrap;
+    width: 1px;
+}
+
+[data-ssml] {
+	outline: 2px dashed rgb(150,150,150);
+}
+
+table.table {
+	border-collapse: collapse;
+	width: 100%;
+	margin-top: 1em;
+	word-break: break-word; 
+}
+
+table.table th,
+table.table td {
+	border: 1px solid #ccc;
+	padding: 8px 12px;
+	text-align: left;
+	vertical-align: top;
+}
+
+table.table th {
+	background-color: #f4f4f4;
+}
+
+	</style>
+
+	<script	src="./common.js"></script>
+
+	<script>
+
+window.addEventListener("load", function(event) {
+
+	let testCases = [
+		{html: `alpha beta`, 
+		expected: `"alpha (no pause) beta`}, 
+		{html: `alpha <span data-ssml='{"break":{"time":"100ms"}}'></span> beta`, 
+		expected: `"alpha (pause 100) beta`}, 
+		{html: `alpha <span data-ssml='{"break":{"time":"250ms"}}'></span> beta`, 
+		expected: `"alpha (pause 250) beta`},
+		{html: `alpha <span data-ssml='{"break":{"time":"500ms"}}'></span> beta`, 
+		expected: `"alpha (pause 500) beta`}, 
+		{html: `alpha <span data-ssml='{"break":{"time":"1000ms"}}'></span> beta`, 
+		expected: `"alpha (pause 1000) beta`}, 
+		{html: `alpha <span data-ssml='{"break":{"time":"2000ms"}}'></span> beta`, 
+		expected: `"alpha (pause 2000) beta`}, 
+		{html: `alpha <span data-ssml='{"break":{"time":"3000ms"}}'></span> beta`, 
+		expected: `"alpha (pause 3000) beta`}, 
+
+	];
+
+	let table = document.getElementById('table');
+	addTestCasesToTable(testCases, table, true);
+
+});
+
+	</script>
+
+	<script	src="../js/nvda-add-on-data-ssml.js"></script>
+	<script>
+	window.addEventListener("load", function(event) {
+		let technique = 'index';
+		NvdaAddOnDataSsml.init(technique);
+	});
+	</script>
+
+</head>
+
+
+
+
+<body>
+<main>
+
+
+<h1>test page</h1>
+
+<table class="table" id="table">
+	<thead>
+		<tr>
+			<th>without ssml</th>
+			<th>with ssml</th>
+			<th>expected</th>
+		</tr>
+	</thead>
+	<tbody>
+
+		
+	</tbody>
+</table>
+
+<div style="height: 50vh"></div>
+
+
+
+</main>
+
+
+</body>
+
+</html>

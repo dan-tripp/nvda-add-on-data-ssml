@@ -182,6 +182,15 @@ def decodeSingleStr(str_):
 class SsmlError(Exception):
     pass
 
+def getBreakTimeMillisFromStr(str_):
+	if str_.endswith("ms"):
+		r = float(str_[:-2])
+	elif str_.endswith("s"):
+		r = float(str_[:-1]) * 1000
+	else:
+		assert False
+	return r
+
 @profile
 def turnSsmlStrIntoSpeechCommandList(ssmlStr_, nonSsmlStr_: str, origWholeText_: str, state_: State):
 	ourAssert(isinstance(ssmlStr_, str))
@@ -224,9 +233,15 @@ def turnSsmlStrIntoSpeechCommandList(ssmlStr_, nonSsmlStr_: str, origWholeText_:
 				# ~ march 2025: this is here because of my aural observation that NVDA's announcement sounded like "woundlink" (i.e. with no space).
 				# 2025-05-19: today when I disabled this code, I couldn't hear the problem.  so it's unclear if this code is necessary.  
 				r.append(" ")
+		elif key == 'break':
+			if not re.match(r'^\s*$', nonSsmlStr_): raise SsmlError(f'''found a "break" command on text content that includes non-whitespace.  we don't support this.  and it's unclear how this occurrence reached this code, b/c our JS should have prevented that.''')
+			timeStr = val['time']
+			timeMillis = getBreakTimeMillisFromStr(timeStr)
+			# Based on my experiments, the actual duration of the break doesn't match exactly the arg that we pass to BreakCommand.  Sometimes it does eg. synth=espeak at rate=50 and rate=80.  and synt=sapi5 at rate=50.  Sometimes it doesn't eg. sapi5 rate=80: the actual break was roughly 0.5 of the arg to BreakCommand.  (all of my experiments were with rate_boost=off.)  It looks like MathCAT tries to deal with this at https://github.com/NSoiffer/MathCATForPython/blob/0e33d1306db49ac4d47fb5c47348a96aa4f283d0/addon/globalPlugins/MathCAT/MathCAT.py#L152 but I don't understand the values that that MathCAT code arrives at for breakMulti.  they don't match my experiments.  and they don't use the current synth as input - but my experiments indicate that the current synth plays a big role.  as for this plugin: there is probably a bug here i.e. the actual break time does not always match the break time value in the data-ssml.  
+			r = [BreakCommand(time=timeMillis)]
 		else:
 			raise SsmlError()
-	except (json.decoder.JSONDecodeError, SsmlError, KeyError) as e:
+	except (json.decoder.JSONDecodeError, SsmlError, KeyError, ValueError) as e:
 		logInfo(f'Error happened while processing SSML JSON string.  We will fall back to the plain text.  The SSML string was "{ssmlStr_}".  The exception, which we will suppress, was:')
 		log.exception(e)
 		r = [origWholeText_]

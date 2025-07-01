@@ -27,6 +27,7 @@ table.table {
 	border-collapse: collapse;
 	width: 100%;
 	margin-top: 1em;
+	word-break: break-word; 
 }
 
 table.table th,
@@ -51,10 +52,41 @@ window.addEventListener("load", function(event) {
 
 	let testCases = [
 		{html: `<span data-ssml='{"sub": {"alias": "3 prime"}}'>3'</span>`, 
-		expected: `3 prime`}, 
+			expected: `3 prime`}, 
 		{html: `<a href="#" data-ssml='{"sub": {"alias": "3 prime"}}'>3'</a>`, 
-		expected: `link 3 prime`},
+			expected: `link 3 prime`},
 
+		/* break */
+		{html: `alpha  beta`, 
+			expected: `"alpha (no silence) beta"`}, 
+		{html: `alpha <span data-ssml='{"break":{"time":"500ms"}}'></span> beta`, 
+			expected: `"alpha (silence for approx 0.5 seconds) beta".  the 0.5 seconds will not be exact, under some synths and rates.  eg. sapi5 rate=80 rate_boost=off ==> 0.27 seconds.  I don't know why.`}, 
+		{html: `alpha <span data-ssml='{"break":{"time":"1s"}}'></span> beta`, 
+			expected: `"alpha (silence for approx 1 second) beta".`}, 
+		{html: `alpha <span data-ssml='{"break":{"time":"0.5s"}}'></span> beta`, 
+			expected: `"alpha (silence for approx 0.5 seconds) beta".`}, 
+		{html: `alpha <span data-ssml='{"break":{"time":".5s"}}'></span> beta`, 
+			expected: `"alpha (silence for approx 0.5 seconds) beta".`}, 
+		{html: `alpha <span data-ssml='{"break":{"time":"500ms"}}'>   \n  \n   </span> beta`, 
+			expected: `"alpha (silence for approx 0.5 seconds) beta".`}, 
+		{html: `alpha <span data-ssml='{"break":{"time":"500ms"}}'>beta</span> gamma`, 
+			expected: `"alpha beta gamma" (with no silences).  and a warning in the JS logs.  because this is a "break" on an element that has non-whitespace text content.`}, 
+		{html: `alpha <span data-ssml='{"break":{"time":"500ms", "garbage": "garbage"}}'></span> beta`, 
+			expected: `"alpha beta" (with no silences).  and a warning in the JS logs.  because this is invalid.`}, 
+		{html: `alpha <span data-ssml='{"break":{"garbage": "garbage"}}'></span> beta`, 
+			expected: `"alpha beta" (with no silences).  and a warning in the JS logs.  because this is invalid.`}, 
+		{html: `alpha <span data-ssml='{"break":{"time":"1"}}'></span> beta`, 
+			expected: `"alpha beta" (with no silences).  and a warning in the JS logs.  because this is invalid.`}, 
+		{html: `alpha <span data-ssml='{"break":{"time":"-500ms"}}'></span> beta`, 
+			expected: `"alpha beta" (with no silences).  and a warning in the JS logs.  because this is invalid.`}, 
+		{html: `alpha <span data-ssml='{"break":{"time":"500MS"}}'></span> beta`, 
+			expected: `"alpha beta" (with no silences).  and a warning in the JS logs.  because this is invalid.`}, 
+		{html: `alpha <span data-ssml='{"break":{"time":"500m"}}'></span> beta`, 
+			expected: `"alpha beta" (with no silences).  and a warning in the JS logs.  because this is invalid.`}, 
+		{html: `alpha <span data-ssml='{"break":{"time":"ABCms"}}'></span> beta`, 
+			expected: `"alpha beta" (with no silences).  and a warning in the JS logs.  because this is invalid.`}, 
+
+		/* say-as: spell */
 		{html: `<span data-ssml='{"say-as": {"interpret-as":"spell"}}'>Perth</span>`, 
 		expected: `"P E R T H".  this is "say-as: spell".  we treat it as an alias for "say-as: characters".  "spell" is non-standard, I gather.  I first saw it on https://demos.learnosity.com/partners/speechstream.php .  The self-voiced SpeechStream demo on that page speaks this as "Capital P E R T H".  our plugin doesn't speak the "Capital", so that's a discrepency.  I found another reference to "spell" at https://docs.nuance.com/nvp-for-speech-suite/devref/ssml-sayas.html . `},
 
@@ -104,8 +136,12 @@ window.addEventListener("load", function(event) {
 			<span data-ssml='{'>J</span> 
 			<span data-ssml='{"sub": {"alias": "no"}}}'>K</span> 
 			<span data-ssml='{"sub": {"alias": [ '>L</span>
-			<span data-ssml='[0]'>M</span>`, 
-			expected: `A B C D E F G H I J K L M.  this is all broken ssml or empty data-ssml attributes.  so passthrough the plain text gracefully.`},
+			<span data-ssml='[0]'>M</span>
+			<span data-ssml='{"sub": {"alias": "3 prime"}}'><span>N</span></span>
+			<span data-ssml='{"sub": {"alias": "3 prime"}}'><span data-ssml='{"sub": {"alias": "3 prime"}}'>O</span></span>
+			<span data-ssml='{"sub": {"alias": "3 prime"}}'><span><span data-ssml='{"sub": {"alias": "3 prime"}}'>P</span></span></span>
+			`, 
+			expected: `"A B C ... ".  this is all broken ssml or empty data-ssml attributes.  so passthrough the plain text gracefully.`},
 		{html: `<span data-ssml='{"sub": {"alias": "[ yes ]"}}'>no</span>`, 
 			expected: `"yes".  for technique=index this is testing a certain regex that had a bug once.  fixed in commit 5a32fdfbdb1d5461fd5067faa6a22cb94bd67a00.`},
 		{html: `&#xFFF9;&#x200C;&#x200D;&#x2060;&#x2061;&#xFEFF;&#x2063;&#x2064;&#xFFFB;&#xFFFA;&#x206A;&#x206B;&#x206C;&#x206D;&#x206E;&#x206F;`, 

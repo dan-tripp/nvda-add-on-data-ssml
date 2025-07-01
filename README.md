@@ -86,6 +86,12 @@ This plugin can be configured to use one of several "techniques", but regardless
 			<td>Not supported.
 			<td>Supported.  Whether supporting this is a good thing or not is another question.
 		</tr>
+		<tr>
+			<th scope="row">SSML "break" instruction
+			<td>"time" attribute: supported.  eg. data-ssml='{"break":{"time":"500ms"}'  Other spuported "time" values include "500ms", "1s", "0.5s".<br>"strength" attribute (weak, strong, etc.): not supported.  
+			<td>Same as technique=inline (the table cell to the left of this one.)
+			<td>Not supported.  Reason: "break" is typically used on an element which has no text content, and page-wide-override relies on that text content: it effectively searches the rest of the page for matching text content.
+		</tr>
 	</tbody>
 </table>
 
