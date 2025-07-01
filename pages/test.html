@@ -55,6 +55,9 @@ window.addEventListener("load", function(event) {
 		{html: `<a href="#" data-ssml='{"sub": {"alias": "3 prime"}}'>3'</a>`, 
 		expected: `link 3 prime`},
 
+		{html: `<span data-ssml='{"say-as": {"interpret-as":"spell"}}'>Perth</span>`, 
+		expected: `"P E R T H".  this is "say-as: spell".  we treat it as an alias for "say-as: characters".  "spell" is non-standard, I gather.  I first saw it on https://demos.learnosity.com/partners/speechstream.php .  The self-voiced SpeechStream demo on that page speaks this as "Capital P E R T H".  our plugin doesn't speak the "Capital", so that's a discrepency.  I found another reference to "spell" at https://docs.nuance.com/nvp-for-speech-suite/devref/ssml-sayas.html . `},
+
 		/* <input> */
 		{html: `<input type="text" data-ssml='{"sub": {"alias": "3 prime"}}'>`, 
 		expected: `ignore this test case.  because this is an error - see JS logs.`},
