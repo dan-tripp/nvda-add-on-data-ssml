@@ -43,6 +43,8 @@ table.table th {
 
 	</style>
 
+	<script	src="./common.js"></script>
+
 	<script>
 
 window.addEventListener("load", function(event) {
@@ -123,26 +125,9 @@ window.addEventListener("load", function(event) {
 
 	
 	];
-	let tbody = document.getElementById('table').querySelector('tbody');
-	for(let testCase of testCases) {
-		let tr = document.createElement('tr');
-		tr.innerHTML = `
-			<td>${testCase.html}</td>
-			<td>${testCase.expected}</td>
-		`;
-		let tdHtmlWithSsml = tr.querySelector('td');
-		let tdHtmlWithoutSsml = tdHtmlWithSsml.cloneNode(true);
-		if(tdHtmlWithoutSsml.querySelector('[id]')) {
-			tdHtmlWithoutSsml.innerHTML = `<strong>ERROR: test case html has an id attribute, so we can't clone it.  If you need to use an id attribute, put it in the "expected" column.</strong>`;
-		} else {
-			for(let e of tdHtmlWithoutSsml.querySelectorAll('[data-ssml]')) {
-				e.removeAttribute('data-ssml');
-			}
-		}
-		tdHtmlWithSsml.insertAdjacentElement('beforebegin', tdHtmlWithoutSsml);
-		tbody.appendChild(tr);
-	}
 
+	let table = document.getElementById('table');
+	addTestCasesToTable(testCases, table, true);
 
 });
 

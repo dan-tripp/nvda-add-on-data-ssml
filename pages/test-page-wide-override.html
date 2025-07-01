@@ -43,6 +43,8 @@ table.table th {
 
 	</style>
 
+	<script	src="./common.js"></script>
+
 	<script>
 
 window.addEventListener("load", function(event) {
@@ -97,17 +99,9 @@ window.addEventListener("load", function(event) {
 		{html: `No Yes/No`, expected: `"No Oh-Kay No" or "No Oh-Kay Slash No"`}, 
 		{html: `No"Yes"No`, expected: `No Oh-Kay No`}, 
 	];
-	let tbody = document.getElementById('table').querySelector('tbody');
-	for(let testCase of testCases) {
-		let tr = document.createElement('tr');
-		tr.innerHTML = `
-			<td>${testCase.html}</td>
-			<td>${testCase.expected}</td>
-		`;
-		let tdHtmlWithSsml = tr.querySelector('td');
-		tbody.appendChild(tr);
-	}
 
+	let table = document.getElementById('table');
+	addTestCasesToTable(testCases, table, false);
 
 });
 
