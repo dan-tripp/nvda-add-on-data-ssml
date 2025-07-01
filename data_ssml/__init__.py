@@ -194,7 +194,10 @@ def turnSsmlStrIntoSpeechCommandList(ssmlStr_, nonSsmlStr_: str, origWholeText_:
 			aliasVal = val['alias']
 			r = [aliasVal]
 		elif key == 'say-as':
-			if val != 'characters': raise SsmlError()
+			if not isinstance(val, dict): raise SsmlError()
+			if 'interpret-as' not in val: raise SsmlError()
+			interpretAs = val['interpret-as']
+			if interpretAs != 'characters': raise SsmlError()
 
 			if state_.useCharacterModeCommand:
 				r = [CharacterModeCommand(True), nonSsmlStr_, CharacterModeCommand(False)]
