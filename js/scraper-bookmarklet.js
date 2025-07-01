@@ -13,8 +13,12 @@ function handleDocument(doc_) {
 	function gatherDataSsmlFromDescendents(root) {
 		let elements = root.querySelectorAll('[data-ssml]');
 		for (let el of elements) {
-			g_ssmlStrs.add(el.getAttribute('data-ssml'));
+			addDataSsmlElementToOurCollection(el);
 		}
+	}
+
+	function addDataSsmlElementToOurCollection(element_) {
+		g_ssmlStrs.add(element_.getAttribute('data-ssml'));
 	}
 
 	function logOurDataSsmlCollection() {
@@ -35,7 +39,7 @@ function handleDocument(doc_) {
 			for (let node of mutation.addedNodes) {
 				if (node.nodeType === 1) {
 					if (node.hasAttribute('data-ssml')) {
-						g_ssmlStrs.add(el.getAttribute('data-ssml'));
+						addDataSsmlElementToOurCollection(el);
 					}
 					gatherDataSsmlFromDescendents(node);
 				}
