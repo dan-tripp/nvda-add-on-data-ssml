@@ -224,9 +224,14 @@ def turnSsmlStrIntoSpeechCommandList(ssmlStr_, nonSsmlStr_: str, origWholeText_:
 				# ~ march 2025: this is here because of my aural observation that NVDA's announcement sounded like "woundlink" (i.e. with no space).
 				# 2025-05-19: today when I disabled this code, I couldn't hear the problem.  so it's unclear if this code is necessary.  
 				r.append(" ")
+		elif key == 'break':
+			timeStr = val['time']
+			if not timeStr.endswith('ms'): raise SsmlError()
+			timeMillis = int(timeStr[0:-2])
+			r = [BreakCommand(time=timeMillis), nonSsmlStr_]
 		else:
 			raise SsmlError()
-	except (json.decoder.JSONDecodeError, SsmlError, KeyError) as e:
+	except (json.decoder.JSONDecodeError, SsmlError, KeyError, ValueError) as e:
 		logInfo(f'Error happened while processing SSML JSON string.  We will fall back to the plain text.  The SSML string was "{ssmlStr_}".  The exception, which we will suppress, was:')
 		log.exception(e)
 		r = [origWholeText_]
