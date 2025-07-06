@@ -18,7 +18,11 @@ function handleDocument(doc_) {
 	}
 
 	function addDataSsmlElementToOurCollection(element_) {
-		g_ssmlStrs.add(element_.getAttribute('data-ssml'));
+		let ssmlStr = element_.getAttribute('data-ssml');
+		g_ssmlStrs.add(ssmlStr);
+		if(ssmlStr.includes('" "')) {
+			console.error(ssmlStr, element_);
+		}
 	}
 
 	function logOurDataSsmlCollection() {
