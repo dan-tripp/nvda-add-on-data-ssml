@@ -97,21 +97,30 @@ function doElementLevelChecks(element_, isTechniquePageWide_) {
 	let doesAncestorHaveDataSsml = element_.parentElement.closest('[data-ssml]');
 	if(doesAncestorHaveDataSsml) {
 		throw new Error("This element which has data-ssml has an ancestor which also has data-ssml.  We will ignore the data-ssml on this element, and probably the data-ssml on those ancestor element(s) too - there might be other warnings logged about them.");
-	} else if(element_.children.length > 0) {
+	}
+	if(element_.children.length > 0) {
 		throw new Error("This element which has a data-ssml attribute has child elements.  So we will ignore the data-ssml attribute on this element.  To fix this, you need to rearrange your HTML along these lines: put a <span> around the text that you want to override the spoken presentation of, and make it the tightest span possible (i.e. make it cover the text that you want to cover and nothing else), then put the data-ssml attribute on that <span>.  And maybe put that <span> in an aria-labelledby target.");
 		/* we don't support it b/c it's difficult-to-impossible to deal with on the python end.  (assuming technique=index|inline.)  our macro_start / macro_end markers can end up appearing in the speech filter's input sequence in different (string) elements of the speech command list that is passed to our speech filter.  and there might be eg. a LangChangeCommand or any number of non-strings between the two.  I've seen it.  I don't know how to deal with that.  it's reproduced by eg. this: <label data-ssml='...>yes<textarea></textarea></label>.  so instead do this: <label><span data-ssml='...>yes</span><textarea></textarea></label>*/
-	} else if(isTechniquePageWide_ && element_.tagName !== 'SPAN') {
+	}
+	if(isTechniquePageWide_ && element_.tagName !== 'SPAN') {
 		throw new Error(`Found data-ssml on an element that is not a <span>, and techique=page-wide.  This plugin doesn't support this, because it's a sign of author confusion.  With this technique, the tagName of the element doesn't matter: only its textContent and the data-ssml value matter.  Technically we could easily support data-ssml on a non-<span>, but this might mislead the author into thinking that their data-ssml will take effect only on that element, or only on elements with the same tag name.  With this technique, neither of those things are true, or likely to ever be true.  Instead, with this technique, the author should add a separate section to their page - which should probably be unperceivable to the user, so should probably with CSS "display: none" on it - where they put all of their data-ssml.  Since this section should be unperceivable, it should have no semantics or operability, so it might as well be all <span>s.  If, on the other hand, they put data-ssml throughout the parts of the page that will be percieved by the end user, then under techique=page-wide, that is a sign of author confusion.  Under the other techniques, it is normal and desirable.`);
-	} else if(element_.tagName === 'TEXTAREA') {
+	}
+	if(element_.tagName === 'TEXTAREA') {
 		assert(!isTechniquePageWide_);
 		throw new Error(`Found data-ssml on a <textarea> element.  If you want to use SSML on the /label/ of this <textarea>, then put data-ssml on the label element instead (or - if your label wraps another element - put data-ssml on a text-only child element of the label).  If you want to use SSML on the /contents/ of this <textarea>, then your only option is to use technique=page-wide.`);
-	} else if(element_.tagName === 'INPUT') {
+	}
+	if(element_.tagName === 'INPUT') {
 		assert(!isTechniquePageWide_);
 		let type = element_.getAttribute('type');
 		if(!INPUT_TYPES_SUPPORTED.has(type)) {
 			throw new Error(`Found data-ssml on an <input type="${type}">.  Our list of supported types is: ${[...INPUT_TYPES_SUPPORTED]}.  If you want to use SSML on the /label/ of this <input>, then put data-ssml on the label element instead (or - if your label wraps another element - put data-ssml on a text-only child element of the label).  If you want to use SSML on the /contents/ of this <input>: we don't support that, because it's unclear what it would mean.  data-ssml makes the most sense if you imagine it being put on a DOM text node that never changes.  Equivalently: on a DOM element which contains nothing but text that never changes.  And that DOM element can be a widget, or inside of a widget, or not.  But the following ideas don't make sense: 1) data-ssml on a value that can be edited by the user, and 2) data-ssml on an element that has content which is more complicated than just text.  The input types that we don't support fall into those categories.  (To elaborate on #1: this means the /value/ of a widget, not the name of it.  And a value that is /edited/ - not selected - by the user.)`);
 		}
 	}
+	/*
+	let isTextContentWhitespaceOnlyOrEmpty = /^\s*$/.test(element_.textContent);
+	if(isTechniquePageWide_ && isTextContentWhitespaceOnlyOrEmpty) {
+	}
+	*/
 }
 
 function insistOnDictLikeObjWithOneVal(x_, key_ = undefined) {
