@@ -10,7 +10,10 @@
 This plugin can be configured to use one of several "techniques", but regardless of technique, this is roughly how it works: 
 - Regarding this plugin vs. the spec: 
 	- This plugin implements parts of the spec at https://www.w3.org/TR/spoken-html/.  Not all of it.  The "Single-attribute Approach", not the "Multi-attribute Approach".
-	- The SSML instructions that this plugin supports are: "say-as", "phoneme", "sub", "break".  This plugin does not support: "voice", "emphasis", "prosody", "audio".
+	- The SSML instructions that this plugin supports are: "say-as", "phoneme", "sub", "break".  There are caveats to most of those.
+	- For "say-as": this plugin supports only the "interpret-as" sub-instruction, and of it: only "characters" and "spell" (as a synonym for "characters").
+	- For "phoneme": this plugin supports only the alphabet "ipa".  Not "x-sampa".
+	- This plugin does not support: "voice", "emphasis", "prosody", "audio".
 	- The spec seems ambiguous to me as to whether it's valid to have multiple SSML instructions in one data-ssml attribute eg. &lt;span data-ssml='{"sub": {"alias": "3 prime"}, "break": {"time": "500ms"}}'&gt;3'&lt;/span&gt; .  Regardless, this plugin doesn't support that.
 - The plugin has two parts: 1) some Javascript (JS) that runs on the page, and 2) the NVDA plugin python code.
 	- I use the words "plugin" and "add-on" interchangeably.
@@ -55,7 +58,7 @@ This plugin can be configured to use one of several "techniques", but regardless
 		</tr>
 		<tr>
 			<th scope="row">Max length of SSML
-			<td>The worst technique.  Plugin will only work if len(textContent) 2*len(ssmlJsonString) + 2 <= 100 , roughly.  
+			<td>The worst technique.  Plugin will only work if len(textContent) 2*len(ssmlJsonString) + 2 <= 100 , roughly.  That's for arrow nav and tab, I think.  Table nav (ctrl+alt+arrow_key) gets away with more, for some reason.  At any rate: this max length is easy to exceed.  "'{"say-as": {"interpret-as": "characters"}}'" is close to it. 
 			<td>Tied for the best technique.  No length limit. 
 			<td>Tied for the best technique.  No length limit. 
 		</tr>

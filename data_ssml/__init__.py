@@ -192,6 +192,7 @@ def getBreakTimeMillisFromStr(str_):
 	return r
 
 @profile
+# This function sometimes uses the strategy of not checking that the input SSML is valid - rather, assuming that the JS already checked that it's valid, and if it wasn't, then it wouldn't have made it into this function.  This is inconsistent.  Only parts of this function do it that way.  It would be ideal if the JS did all of the checking, because page authors are (I think) more likely to check the devtools console for error messages compared to the NVDA logs.  Also, the devtools console can be checked earlier, without starting NVDA. 
 def turnSsmlStrIntoSpeechCommandList(ssmlStr_, nonSsmlStr_: str, origWholeText_: str, state_: State):
 	ourAssert(isinstance(ssmlStr_, str))
 	try:
@@ -218,7 +219,7 @@ def turnSsmlStrIntoSpeechCommandList(ssmlStr_, nonSsmlStr_: str, origWholeText_:
 					# Also, I think that this code also takes effect only on lower-case "a", not upper-case "A".  I think MathCAT did that too.  I don't know why.
 					r.extend((" ", "eigh" if ch == "a" and state_.isLanguageEnglish else ch, " "))
 
-		elif key == 'ph':
+		elif key == 'phoneme':
 			# With phonemes, there are some things I don't understand:
 			# - judging by sound, PhonemeCommand only reliably works with synth=onecore 
 			# - PhonemeCommand appears in supportedCommands of all three synths (onecore, sapi5, espeak).  
@@ -226,7 +227,7 @@ def turnSsmlStrIntoSpeechCommandList(ssmlStr_, nonSsmlStr_: str, origWholeText_:
 			# I know of one phoneme that works in all 3 synths: "θ" i.e. "th".  this is on the test page.  
 			# 	- I found this phoneme at https://github.com/nvaccess/nvda/blob/b501e16a2392aaa89892879d77725f02b9f2835d/source/synthDrivers/sapi5.py#L423 
 
-			phonemeIpa = val
+			phonemeIpa = val['ph']
 			r = [PhonemeCommand(phonemeIpa, text=nonSsmlStr_)]
 			INSERT_HACK_SPACE_AFTER = 1
 			if INSERT_HACK_SPACE_AFTER:
