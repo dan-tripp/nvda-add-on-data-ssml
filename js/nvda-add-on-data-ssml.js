@@ -8,7 +8,7 @@ window.NvdaAddOnDataSsml.init = function(technique_) {
 
 const HIDING_PLACE_GUID_FOR_ALL_TECHNIQUES = '4b9b696c-8fc8-49ca-9bb9-73afc9bd95f7';
 const HIDING_PLACE_GUID_FOR_INDEX_TECHNIQUE = 'b4f55cd4-8d9e-40e1-b344-353fe387120f';
-const HIDING_PLACE_GUID_FOR_PAGE_WIDE_OVERRIDE_TECHNIQUE = 'c7a998a5-4b7e-4683-8659-f2da4aa96eee';
+const HIDING_PLACE_GUID_FOR_PAGE_WIDE_TECHNIQUE = 'c7a998a5-4b7e-4683-8659-f2da4aa96eee';
 const INPUT_TYPES_SUPPORTED = new Set(['checkbox', 'radio', 'button', 'reset', 'submit', ]);
 
 function isPowerOfTwo(n_) {
@@ -79,7 +79,7 @@ function assert(bool_) {
 }
 
 function* getAllElemsWithDataSsml(technique_) {
-	let isTechniquePageWide = technique_ === 'page-wide-override';
+	let isTechniquePageWide = technique_ === 'page-wide';
 	for(let element of document.querySelectorAll('[data-ssml]')) {
 		let dataSsmlVal = element.getAttribute('data-ssml')?.trim();
 		if(!dataSsmlVal) continue;
@@ -101,10 +101,10 @@ function doElementLevelChecks(element_, isTechniquePageWide_) {
 		throw new Error("This element which has a data-ssml attribute has child elements.  So we will ignore the data-ssml attribute on this element.  To fix this, you need to rearrange your HTML along these lines: put a <span> around the text that you want to override the spoken presentation of, and make it the tightest span possible (i.e. make it cover the text that you want to cover and nothing else), then put the data-ssml attribute on that <span>.  And maybe put that <span> in an aria-labelledby target.");
 		/* we don't support it b/c it's difficult-to-impossible to deal with on the python end.  (assuming technique=index|inline.)  our macro_start / macro_end markers can end up appearing in the speech filter's input sequence in different (string) elements of the speech command list that is passed to our speech filter.  and there might be eg. a LangChangeCommand or any number of non-strings between the two.  I've seen it.  I don't know how to deal with that.  it's reproduced by eg. this: <label data-ssml='...>yes<textarea></textarea></label>.  so instead do this: <label><span data-ssml='...>yes</span><textarea></textarea></label>*/
 	} else if(isTechniquePageWide_ && element_.tagName !== 'SPAN') {
-		throw new Error(`Found data-ssml on an element that is not a <span>, and techique=page-wide-override.  This plugin doesn't support this, because it's a sign of author confusion.  With this technique, the tagName of the element doesn't matter: only its textContent and the data-ssml value matter.  Technically we could easily support data-ssml on a non-<span>, but this might mislead the author into thinking that their data-ssml will take effect only on that element, or only on elements with the same tag name.  With this technique, neither of those things are true, or likely to ever be true.  Instead, with this technique, the author should add a separate section to their page - which should probably be unperceivable to the user, so should probably with CSS "display: none" on it - where they put all of their data-ssml.  Since this section should be unperceivable, it should have no semantics or operability, so it might as well be all <span>s.  If, on the other hand, they put data-ssml throughout the parts of the page that will be percieved by the end user, then under techique=page-wide-override, that is a sign of author confusion.  Under the other techniques, it is normal and desirable.`);
+		throw new Error(`Found data-ssml on an element that is not a <span>, and techique=page-wide.  This plugin doesn't support this, because it's a sign of author confusion.  With this technique, the tagName of the element doesn't matter: only its textContent and the data-ssml value matter.  Technically we could easily support data-ssml on a non-<span>, but this might mislead the author into thinking that their data-ssml will take effect only on that element, or only on elements with the same tag name.  With this technique, neither of those things are true, or likely to ever be true.  Instead, with this technique, the author should add a separate section to their page - which should probably be unperceivable to the user, so should probably with CSS "display: none" on it - where they put all of their data-ssml.  Since this section should be unperceivable, it should have no semantics or operability, so it might as well be all <span>s.  If, on the other hand, they put data-ssml throughout the parts of the page that will be percieved by the end user, then under techique=page-wide, that is a sign of author confusion.  Under the other techniques, it is normal and desirable.`);
 	} else if(element_.tagName === 'TEXTAREA') {
 		assert(!isTechniquePageWide_);
-		throw new Error(`Found data-ssml on a <textarea> element.  If you want to use SSML on the /label/ of this <textarea>, then put data-ssml on the label element instead (or - if your label wraps another element - put data-ssml on a text-only child element of the label).  If you want to use SSML on the /contents/ of this <textarea>, then your only option is to use technique=page-wide-override.`);
+		throw new Error(`Found data-ssml on a <textarea> element.  If you want to use SSML on the /label/ of this <textarea>, then put data-ssml on the label element instead (or - if your label wraps another element - put data-ssml on a text-only child element of the label).  If you want to use SSML on the /contents/ of this <textarea>, then your only option is to use technique=page-wide.`);
 	} else if(element_.tagName === 'INPUT') {
 		assert(!isTechniquePageWide_);
 		let type = element_.getAttribute('type');
@@ -133,7 +133,7 @@ function doSsmlAttribChecks(dataSsmlValStr_, textContent_, isTechniquePageWide_)
 		insistOnDictLikeObjWithOneVal(dataSsmlValObj);
 		if('break' in dataSsmlValObj) {
 			if(isTechniquePageWide_) {
-				throw new Error(`Found a data-ssml "break" command, and technique=page-wide-override.  This plugin doesn't support that, because "break" is typically used on an element which has no text content, and page-wide-override relies on that text content: it effectively searches the rest of the page for matching text content.`);
+				throw new Error(`Found a data-ssml "break" command, and technique=page-wide.  This plugin doesn't support that, because "break" is typically used on an element which has no text content, and page-wide relies on that text content: it effectively searches the rest of the page for matching text content.`);
 			} else {
 				let isTextContentWhitespaceOnlyOrEmpty = /^\s*$/.test(textContent_);
 				if(!isTextContentWhitespaceOnlyOrEmpty) {
@@ -184,15 +184,15 @@ function encodeAllDataSsmlAttribs_inlineTechnique() {
 	}
 }
 
-function encodeAllDataSsmlAttribs_pageWideOverrideTechnique() {
-	let mapOfPlainTextStrToSsmlStr = getMapOfPlainTextStrToSsmlStr_pageWideOverrideTechnique();
-	encodeAllDataSsmlAttribs_pageWideOverrideTechnique_addCentralHidingPlaceElement(mapOfPlainTextStrToSsmlStr);
+function encodeAllDataSsmlAttribs_pageWideTechnique() {
+	let mapOfPlainTextStrToSsmlStr = getMapOfPlainTextStrToSsmlStr_pageWideTechnique();
+	encodeAllDataSsmlAttribs_pageWide_addCentralHidingPlaceElement(mapOfPlainTextStrToSsmlStr);
 }
 
-function encodeAllDataSsmlAttribs_pageWideOverrideTechnique_addCentralHidingPlaceElement(mapOfPlainTextStrToSsmlStr_) {
+function encodeAllDataSsmlAttribs_pageWide_addCentralHidingPlaceElement(mapOfPlainTextStrToSsmlStr_) {
 	let div = document.createElement("div");
 	let mapAsJson = jsonStringifyJsMap(mapOfPlainTextStrToSsmlStr_);
-	div.textContent = `Please ignore. ${HIDING_PLACE_GUID_FOR_ALL_TECHNIQUES} ${HIDING_PLACE_GUID_FOR_PAGE_WIDE_OVERRIDE_TECHNIQUE} ${mapAsJson}`;
+	div.textContent = `Please ignore. ${HIDING_PLACE_GUID_FOR_ALL_TECHNIQUES} ${HIDING_PLACE_GUID_FOR_PAGE_WIDE_TECHNIQUE} ${mapAsJson}`;
 	document.body.appendChild(div);
 }
 
@@ -201,9 +201,9 @@ function jsonStringifyJsMap(map_) {
 	return r;
 }
 
-function getMapOfPlainTextStrToSsmlStr_pageWideOverrideTechnique() {
+function getMapOfPlainTextStrToSsmlStr_pageWideTechnique() {
 	let mapOfPlainTextStrToSsmlStr = new Map();
-	for(let [elem, elemSsmlStr] of getAllElemsWithDataSsml('page-wide-override')) {
+	for(let [elem, elemSsmlStr] of getAllElemsWithDataSsml('page-wide')) {
 		let elemPlainText = elem.textContent;
 		if(!mapOfPlainTextStrToSsmlStr.has(elemPlainText)) {
 			console.debug("data-ssml: map set:", JSON.stringify({elemPlainText, elemSsmlStr}, null, 0), 'from element:', elem);
@@ -255,8 +255,8 @@ function encodeAllDataSsmlAttribs(technique_) {
 		encodeAllDataSsmlAttribs_indexTechnique();
 	} else if(technique_ === 'inline') {
 		encodeAllDataSsmlAttribs_inlineTechnique();
-	} else if(technique_ === 'page-wide-override') {
-		encodeAllDataSsmlAttribs_pageWideOverrideTechnique();
+	} else if(technique_ === 'page-wide') {
+		encodeAllDataSsmlAttribs_pageWideTechnique();
 	} else {
 		throw new Error();
 	}

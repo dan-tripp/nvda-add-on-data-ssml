@@ -6,7 +6,7 @@ NEXT_SYNTH_SHORTCUT = None
 NVDA_CONFIG_KEY = 'data-ssml'
 HIDING_PLACE_GUID_FOR_ALL_TECHNIQUES = '4b9b696c-8fc8-49ca-9bb9-73afc9bd95f7'
 HIDING_PLACE_GUID_FOR_INDEX_TECHNIQUE = 'b4f55cd4-8d9e-40e1-b344-353fe387120f'
-HIDING_PLACE_GUID_FOR_PAGE_WIDE_OVERRIDE_TECHNIQUE = 'c7a998a5-4b7e-4683-8659-f2da4aa96eee'
+HIDING_PLACE_GUID_FOR_PAGE_WIDE_TECHNIQUE = 'c7a998a5-4b7e-4683-8659-f2da4aa96eee'
 
 def logInfo(str_):
 	log.info(f'data-ssml: {datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")} {str_}')
@@ -128,7 +128,7 @@ class State:
 	# our plugin state, based on the current web page: 
 	technique: str = None
 	techniqueIndexListOfSsmlStrs: list = None
-	techniquePageWideOverrideDictOfPlainTextToSsmlStr: dict = None
+	techniquePageWideDictOfPlainTextToSsmlStr: dict = None
 
 	def initNvdaStateFieldsFromRealNvdaState(self):
 		self.useCharacterModeCommand = getUseCharacterModeCommandFromNvdaState()
@@ -258,8 +258,8 @@ def decodeAllStrs(str_: str, state_: State):
  
 	if state_.technique in ('index', 'inline'):
 		r = decodeAllStrs_techniquesIndexAndInline(str_, state_)
-	elif state_.technique == 'page-wide-override':
-		r = decodeAllStrs_techniquePageWideOverride(str_, state_)
+	elif state_.technique == 'page-wide':
+		r = decodeAllStrs_techniquePageWide(str_, state_)
 	else:
 		ourAssert(False)
 
@@ -283,8 +283,8 @@ def decodeAllStrs(str_: str, state_: State):
     
 
 
-def decodeAllStrs_techniquePageWideOverride(str_: str, state_: State):
-	m = state_.techniquePageWideOverrideDictOfPlainTextToSsmlStr
+def decodeAllStrs_techniquePageWide(str_: str, state_: State):
+	m = state_.techniquePageWideDictOfPlainTextToSsmlStr
 	ourAssert(m != None)
 	plainTexts = sorted(m.keys(), key=lambda e: -len(e)) # so that if we have plainTexts "3'" and "3'~", our pattern will match "3'~".  the way regex '|' works, it will match the leftmost branch.  so we want the longest one to be the leftmost.  this sort does that. 
 	patternForAllPlainTexts = re.compile('(?i)' + '|'.join(r'(?<!\w)'+re.escape(plainText)+r'(?!\w)' for plainText in plainTexts))
@@ -385,10 +385,10 @@ def getTechniqueIndexListOfSsmlStrsFromHidingPlaceTextNode(hidingPlaceTextNode_)
 	listObj = json.loads(listStr)
 	return listObj
 
-def getTechniquePageWideOverrideDictOfPlainTextToSsmlStrFromHidingPlaceTextNode(hidingPlaceTextNode_, state_):
+def getTechniquePageWideDictOfPlainTextToSsmlStrFromHidingPlaceTextNode(hidingPlaceTextNode_, state_):
 	ourAssert(hidingPlaceTextNode_)
 	hidingPlaceTextNodeValue = hidingPlaceTextNode_.name
-	pattern = HIDING_PLACE_GUID_FOR_ALL_TECHNIQUES+' '+HIDING_PLACE_GUID_FOR_PAGE_WIDE_OVERRIDE_TECHNIQUE+r'\s*(\{.*\})'
+	pattern = HIDING_PLACE_GUID_FOR_ALL_TECHNIQUES+' '+HIDING_PLACE_GUID_FOR_PAGE_WIDE_TECHNIQUE+r'\s*(\{.*\})'
 	match = re.search(pattern, hidingPlaceTextNodeValue)
 	if not match: return None
 	mapStr = match.group(1)
@@ -503,10 +503,10 @@ def updateA11yTreeRoot():
 				logInfo('Found global object for technique=index.')
 				g_state.technique = 'index'
 			else:
-				g_state.techniquePageWideOverrideDictOfPlainTextToSsmlStr = getTechniquePageWideOverrideDictOfPlainTextToSsmlStrFromHidingPlaceTextNode(hidingPlaceTextNode, g_state)
-				if g_state.techniquePageWideOverrideDictOfPlainTextToSsmlStr != None:
-					logInfo('Found global object for technique=page-wide-override.')
-					g_state.technique = 'page-wide-override'
+				g_state.techniquePageWideDictOfPlainTextToSsmlStr = getTechniquePageWideDictOfPlainTextToSsmlStrFromHidingPlaceTextNode(hidingPlaceTextNode, g_state)
+				if g_state.techniquePageWideDictOfPlainTextToSsmlStr != None:
+					logInfo('Found global object for technique=page-wide.')
+					g_state.technique = 'page-wide'
 		if g_state.technique == 'inline':
 			logInfo("Found no global object.  Will assume technique=inline.  Either this web page uses technique=inline, or this web page didn't run our JS, or this is not a web page.")
 

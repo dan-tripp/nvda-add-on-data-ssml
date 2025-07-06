@@ -71,7 +71,8 @@ window.addEventListener("load", function(event) {
 	<script	src="../js/nvda-add-on-data-ssml.js"></script>
 	<script>
 	window.addEventListener("load", function(event) {
-		NvdaAddOnDataSsml.init('index');
+		let technique = 'index';
+		NvdaAddOnDataSsml.init(technique);
 	});
 	</script>
 
@@ -88,7 +89,7 @@ window.addEventListener("load", function(event) {
 
 <p>All elements on this page which have a data-ssml attribute have a dark grey dashed box outline, like this: <span data-ssml>abc</span><!-- The preceding span probably won't get any encoding chars and so won't cause our plugin to do anything, b/c the attrib value is empty. -->.</p>
 
-<p>This is a good demo page for the plugin's techniques "inline" and "index".  Not "page-wide-override".</p>
+<p>This is a good demo page for the plugin's techniques "inline" and "index".  Not "page-wide".</p>
 
 <h2>SSML Sub / Alias</h2>
 

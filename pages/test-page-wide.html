@@ -3,7 +3,7 @@
 <head>
 	<meta charset="UTF-8">
 	<meta name="viewport" content="width=device-width">
-	<title>test page page-wide-override</title>
+	<title>test page page-wide</title>
 
 	<style>
 
@@ -56,7 +56,7 @@ window.addEventListener("load", function(event) {
 		{html: `<label><textarea>silver</textarea></label>`, expected: 'gold'}, 
 		{html: `<label><textarea>filler silver filler</textarea></label>`, expected: 'filler gold filler'}, 
 		{html: `<label><textarea rows="3">filler\nsilver\nfiller</textarea></label>`, expected: 'filler gold filler'}, 
-		{html: `<span>Yes</span> <!-- --> <span>Yes</span>`, expected: `if chrome: "Yess Yess".  elif firefox: "oh-kay oh-kay".  (chrome shows strange behaviour on html comment.  it's not desirable, but it is expected.  the html comment here, which is between the first and second "Yes"es, will cause the speech filter to see "YesYes" (w/o any space between the two.)  so our regex-based code that makes page-wide-override work doesn't work here.)`}, 
+		{html: `<span>Yes</span> <!-- --> <span>Yes</span>`, expected: `if chrome: "Yess Yess".  elif firefox: "oh-kay oh-kay".  (chrome shows strange behaviour on html comment.  it's not desirable, but it is expected.  the html comment here, which is between the first and second "Yes"es, will cause the speech filter to see "YesYes" (w/o any space between the two.)  so our regex-based code that makes page-wide work doesn't work here.)`}, 
 		{html: `<span>Yes</span> <!-- x --> <span>Yes</span>`, expected: `if chrome: "Yess Yess".  elif firefox: "oh-kay oh-kay".   (another html comment test.)`}, 
 		{html: `<span>Yes</span><!-- --><span>Yes</span>`, expected: `"Yess Yess" (another html comment test.)`}, 
 		{html: `<span>Yes</span><!-- x --><span>Yes</span>`, expected: `"Yess Yess" (another html comment test.)`}, 
@@ -110,7 +110,7 @@ window.addEventListener("load", function(event) {
 	<script	src="../js/nvda-add-on-data-ssml.js"></script>
 	<script>
 	window.addEventListener("load", function(event) {
-		NvdaAddOnDataSsml.init('page-wide-override');
+		NvdaAddOnDataSsml.init('page-wide');
 	});
 	</script>
 
@@ -123,7 +123,7 @@ window.addEventListener("load", function(event) {
 <main>
 
 
-<h1>test page page-wide-override</h1>
+<h1>test page page-wide</h1>
 
 
 <div style="display: none">

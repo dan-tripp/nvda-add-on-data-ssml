@@ -12,7 +12,7 @@ This plugin can be configured to use one of several "techniques", but regardless
 	- I use the words "plugin" and "add-on" interchangeably.
 - The JS runs on page load.  It looks at each element that has a data-ssml attribute, encodes that attribute's value (details later), and adds that encoded value to the text content of the element.
 	- This is necessary because I don't know of any way for this NVDA plugin to get the data-ssml attribute values.  NVDA plugins don't have access to the DOM.  They have access to an accessibility tree, roughly.  The data-ssml, as well as most of the DOM's info and attributes, doesn't make it into this accessibility tree.  But all text content does.  That's why we put the (encoded) data-ssml values in the text content. 
-- The characters we use for encoding are obscure zero-width unicode characters.  So they don't show up visually, and they aren't announced (in the audio output) by either NVDA or any other screen reader I tested with.  Unfortunately they probably show up in braille output.  More on that later.  
+- The characters we use for encoding are obscure zero-width unicode characters.  So they don't show up visually, and they aren't spoken (in the audio output) by either NVDA or any other screen reader I tested with.  Unfortunately they probably show up in braille output.  More on that later.  
 - The python code intercepts the text content before it reaches the speech synth.  It looks for our encoding characters, and if it sees any, it replaces them with appropriate NVDA speech commands which will implement the wishes of the data-ssml.
 - Our encoding characters were chosen for their obscurity.  If the page uses any of them already, some part of our process might break.
 - This plugin implements my own loose dialect of the data-ssml JSON format.  Not the full version at https://www.w3.org/TR/spoken-html/. 
@@ -30,13 +30,13 @@ This plugin can be configured to use one of several "techniques", but regardless
 			<td>
 			<th>technique=inline
 			<th>technique=index
-			<th>technique=page-wide-override
+			<th>technique=page-wide
 		</tr>
 		<tr>
 			<th scope="row">Description of technique
 			<td>The JS adds an encoded version of the entire data-ssml attribute value into the text content of the element that has the data-ssml attribute.  So this technique adds a lot of our encoding characters all over the page.
 			<td>The JS adds a list of all of the data-ssml attribute values on the page into a central "hiding place" in the DOM root, near the footer.  To the text content of each element that has the data-ssml attribute, the JS only adds an encoded integer index, which represents an array index in the central "hiding place".  So this adds a lot less of our encoding characters all over the page than the "inline" technique does.
-			<td>Like technique=index, the JS uses a central "hiding place".  Unlike the other two techniques, in this technique the JS adds nothing to the text content.  Instead, the plugin does a string lookup to do a central lookup of plainText -> SSML.  This technique assumes that you only want to override plainText XYZ one way on a page.  So you can have "3'" announced as "3 prime" or "3 feet", but not both.  The string lookup uses a case-insensitive whole-word regex, roughly.
+			<td>Lets you do a "page-wide override" of how a certain string is spoken.  Doesn't let you do any kind of spoken presentation control beyond this.  So you can have "3'" spoken as "3 prime" or "3 feet", but not both - not on the same web page.  Like technique=index, the JS adds one "hiding place" to the web page.  Unlike the other two techniques, in this technique the JS doesn't add any encoded characters to the text content.  The string lookup uses a case-insensitive whole-word regex, roughly.
 		</tr>
 		<tr>
 			<th scope="row">Left/right arrow nav sees junk characters
@@ -90,7 +90,7 @@ This plugin can be configured to use one of several "techniques", but regardless
 			<th scope="row">SSML "break" instruction
 			<td>"time" attribute: supported.  eg. data-ssml='{"break":{"time":"500ms"}'  Other spuported "time" values include "500ms", "1s", "0.5s".<br>"strength" attribute (weak, strong, etc.): not supported.  
 			<td>Same as technique=inline (the table cell to the left of this one.)
-			<td>Not supported.  Reason: "break" is typically used on an element which has no text content, and page-wide-override relies on that text content: it effectively searches the rest of the page for matching text content.
+			<td>Not supported.  Reason: "break" is typically used on an element which has no text content, and page-wide relies on that text content: it effectively searches the rest of the page for matching text content.
 		</tr>
 	</tbody>
 </table>
