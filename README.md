@@ -8,6 +8,10 @@
 ## How this plugin works 
 
 This plugin can be configured to use one of several "techniques", but regardless of technique, this is roughly how it works: 
+- Regarding this plugin vs. the spec: 
+	- This plugin implements parts of the spec at https://www.w3.org/TR/spoken-html/.  Not all of it.  The "Single-attribute Approach", not the "Multi-attribute Approach".
+	- The SSML instructions that this plugin supports are: "say-as", "phoneme", "sub", "break".  This plugin does not support: "voice", "emphasis", "prosody", "audio".
+	- The spec seems ambiguous to me as to whether it's valid to have multiple SSML instructions in one data-ssml attribute eg. &lt;span data-ssml='{"sub": {"alias": "3 prime"}, "break": {"time": "500ms"}}'&gt;3'&lt;/span&gt; .  Regardless, this plugin doesn't support that.
 - The plugin has two parts: 1) some Javascript (JS) that runs on the page, and 2) the NVDA plugin python code.
 	- I use the words "plugin" and "add-on" interchangeably.
 - The JS runs on page load.  It looks at each element that has a data-ssml attribute, encodes that attribute's value (details later), and adds that encoded value to the text content of the element.
@@ -15,8 +19,7 @@ This plugin can be configured to use one of several "techniques", but regardless
 - The characters we use for encoding are obscure zero-width unicode characters.  So they don't show up visually, and they aren't spoken (in the audio output) by either NVDA or any other screen reader I tested with.  Unfortunately they probably show up in braille output.  More on that later.  
 - The python code intercepts the text content before it reaches the speech synth.  It looks for our encoding characters, and if it sees any, it replaces them with appropriate NVDA speech commands which will implement the wishes of the data-ssml.
 - Our encoding characters were chosen for their obscurity.  If the page uses any of them already, some part of our process might break.
-- This plugin implements my own loose dialect of the data-ssml JSON format.  Not the full version at https://www.w3.org/TR/spoken-html/. 
-- Regardless of technique, the audio output by NVDA will be the same.
+- In general, regardless of technique, the spoken presentation (i.e. audio output by NVDA) will be the same.  There are some exceptions: cases where one technique supports a certain thing, and another technique doesn't.
 - The negative side effects if the JS part of this plugin is run on a page and the user is not running (the python part of) this plugin, and who is...
 	- ... a user of NVDA: are the same as for a user of NVDA who _is_ running this plugin.
 	- ... a user of JAWS: I don't know, because I haven't tested on JAWS. 

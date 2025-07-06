@@ -56,6 +56,14 @@ window.addEventListener("load", function(event) {
 		{html: `<a href="#" data-ssml='{"sub": {"alias": "3 prime"}}'>3'</a>`, 
 			expected: `link 3 prime`},
 
+		/* no text content */
+		{html: `<span data-ssml='{"sub": {"alias": "surprise"}}'></span>`, 
+			expected: `"surprise".  it's a surprise because there is no text content.`},
+		{html: `<span data-ssml='{"sub": {"alias": "surprise"}}'> </span>`, 
+			expected: `"surprise".`},
+		{html: `<span data-ssml='{"sub": {"alias": "surprise"}}'> \n \t \n  </span>`, 
+			expected: `"surprise".`},
+
 		/* break */
 		{html: `alpha  beta`, 
 			expected: `"alpha (no silence) beta"`}, 
@@ -138,8 +146,9 @@ window.addEventListener("load", function(event) {
 			<span data-ssml='{"sub": {"alias": [ '>L</span>
 			<span data-ssml='[0]'>M</span>
 			<span data-ssml='{"sub": {"alias": "3 prime"}}'><span>N</span></span>
-			<span data-ssml='{"sub": {"alias": "3 prime"}}'><span data-ssml='{"sub": {"alias": "3 prime"}}'>O</span></span>
-			<span data-ssml='{"sub": {"alias": "3 prime"}}'><span><span data-ssml='{"sub": {"alias": "3 prime"}}'>P</span></span></span>
+			<span data-ssml='{"sub": {"alias": "3 prime"}}'><span data-ssml='{"sub": {"alias": "3 prime"}}'>O</span></span> <!-- data-ssml w/ data-ssml descendant -->
+			<span data-ssml='{"sub": {"alias": "3 prime"}}'><span><span data-ssml='{"sub": {"alias": "3 prime"}}'>P</span></span></span> <!-- data-ssml w/ data-ssml descendant -->
+			<span data-ssml='{"sub": {"alias": "3 prime"}, "break": {"time": "500ms"}}'>Q</span> <!-- multiple SSML instructions -->
 			`, 
 			expected: `"A B C ... ".  this is all broken ssml or empty data-ssml attributes.  so passthrough the plain text gracefully.`},
 		{html: `<span data-ssml='{"sub": {"alias": "[ yes ]"}}'>no</span>`, 

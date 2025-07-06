@@ -115,9 +115,14 @@ function doElementLevelChecks(element_, isTechniquePageWide_) {
 }
 
 function insistOnDictLikeObjWithOneVal(x_, key_ = undefined) {
-	let r = (x_ !== undefined && x_ !== null && typeof x_ === 'object' && !Array.isArray(x_) && Object.keys(x_).length === 1);
-	if(!r) {
-		throw new Error(`In parsed post-JSON object, we expected a dictionary-like object with exactly one value.  Instead we got this: ${JSON.stringify(x_)} .`);
+	let hurdle1 = (x_ !== undefined && x_ !== null && typeof x_ === 'object' && !Array.isArray(x_));
+	if(!hurdle1) {
+		throw new Error(`In parsed post-JSON object, we expected a dictionary-like object with exactly one key/value pair.  Instead we got this: ${JSON.stringify(x_)} .`);
+	}
+	let numKeys = Object.keys(x_).length;
+	let hurdle2 = (numKeys === 1);
+	if(!hurdle2) {
+		throw new Error(`In parsed post-JSON object, we expected a dictionary-like object with exactly one key/value pair.  Instead we got ${numKeys} pairs.  Object is: ${JSON.stringify(x_)} .`);
 	}
 	if(key_ !== undefined) {
 		let actualKey = Object.keys(x_)[0];
