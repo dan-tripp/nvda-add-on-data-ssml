@@ -20,9 +20,9 @@ function handleDocument(doc_) {
 	function addDataSsmlElementToOurCollection(element_) {
 		let ssmlStr = element_.getAttribute('data-ssml');
 		g_ssmlStrs.add(ssmlStr);
-		if(ssmlStr.includes('" "')) {
+		//if(ssmlStr.includes('break')) {
 			console.error(ssmlStr, element_);
-		}
+		//}
 	}
 
 	function logOurDataSsmlCollection() {
