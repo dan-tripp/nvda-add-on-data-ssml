@@ -52,8 +52,7 @@ table td {
 	<script	src="../js/nvda-add-on-data-ssml.js"></script>
 	<script>
 	window.addEventListener("load", function(event) {
-		let technique = 'index';
-		NvdaAddOnDataSsml.init(technique);
+		NvdaAddOnDataSsml.initByUrlParams(window.location.search, 'index');
 	});
 	</script>
 

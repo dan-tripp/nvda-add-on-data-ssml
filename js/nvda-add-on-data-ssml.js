@@ -2,7 +2,13 @@
 
 window.NvdaAddOnDataSsml = window.NvdaAddOnDataSsml || {};
 
-window.NvdaAddOnDataSsml.init = function(technique_) {
+window.NvdaAddOnDataSsml.initByUrlParams = function(urlParams_, defaultTechnique_) {
+	let urlParams = new URLSearchParams(urlParams_);
+	let technique = urlParams.has('technique') ? urlParams.get('technique') : defaultTechnique_;	
+	encodeAllDataSsmlAttribs(technique);
+}
+
+window.NvdaAddOnDataSsml.initByTechnique = function(technique_) {
 	encodeAllDataSsmlAttribs(technique_);
 }
 
@@ -115,7 +121,7 @@ function doElementLevelChecks(element_, isTechniquePageWide_) {
 		/* we don't support it b/c it's difficult-to-impossible to deal with on the python end.  (assuming technique=index|inline.)  our macro_start / macro_end markers can end up appearing in the speech filter's input sequence in different (string) elements of the speech command list that is passed to our speech filter.  and there might be eg. a LangChangeCommand or any number of non-strings between the two.  I've seen it.  I don't know how to deal with that.  it's reproduced by eg. this: <label data-ssml='...>yes<textarea></textarea></label>.  so instead do this: <label><span data-ssml='...>yes</span><textarea></textarea></label>*/
 	}
 	if(isTechniquePageWide_ && element_.tagName !== 'SPAN') {
-		throw new SsmlError(`Found data-ssml on an element that is not a <span>, and techique=page-wide.  This plugin doesn't support this, because it's a sign of author confusion.  With this technique, the tagName of the element doesn't matter: only its textContent and the data-ssml value matter.  Technically we could easily support data-ssml on a non-<span>, but this might mislead the author into thinking that their data-ssml will take effect only on that element, or only on elements with the same tag name.  With this technique, neither of those things are true, or likely to ever be true.  Instead, with this technique, the author should add a separate section to their page - which should probably be unperceivable to the user, so should probably with CSS "display: none" on it - where they put all of their data-ssml.  Since this section should be unperceivable, it should have no semantics or operability, so it might as well be all <span>s.  If, on the other hand, they put data-ssml throughout the parts of the page that will be percieved by the end user, then under techique=page-wide, that is a sign of author confusion.  Under the other techniques, it is normal and desirable.`);
+		throw new SsmlError(`Found data-ssml on an element that is not a <span>, and technique=page-wide.  This plugin doesn't support this, because it's a sign of author confusion.  With this technique, the tagName of the element doesn't matter: only its textContent and the data-ssml value matter.  Technically we could easily support data-ssml on a non-<span>, but this might mislead the author into thinking that their data-ssml will take effect only on that element, or only on elements with the same tag name.  With this technique, neither of those things are true, or likely to ever be true.  Instead, with this technique, the author should add a separate section to their page - which should probably be unperceivable to the user, so should probably with CSS "display: none" on it - where they put all of their data-ssml.  Since this section should be unperceivable, it should have no semantics or operability, so it might as well be all <span>s.  If, on the other hand, they put data-ssml throughout the parts of the page that will be percieved by the end user, then under technique=page-wide, that is a sign of author confusion.  Under the other techniques, it is normal and desirable.`);
 	}
 	if(element_.tagName === 'TEXTAREA') {
 		assert(!isTechniquePageWide_);

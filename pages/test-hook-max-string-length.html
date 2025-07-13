@@ -95,7 +95,7 @@ window.addEventListener("load", function(event) {
 	<script	src="../js/nvda-add-on-data-ssml.js"></script>
 	<script>
 	window.addEventListener("load", function(event) {
-		NvdaAddOnDataSsml.init('inline');
+		NvdaAddOnDataSsml.initByUrlParams(window.location.search, 'inline');
 	});
 	</script>
 	
