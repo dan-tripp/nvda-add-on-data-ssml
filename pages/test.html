@@ -56,6 +56,24 @@ window.addEventListener("load", function(event) {
 		{html: `<a href="#" data-ssml='{"sub": {"alias": "3 prime"}}'>3'</a>`, 
 			expected: `link 3 prime`},
 
+		{html: `<span data-ssml='{"sub": {"alias": "digits"}}'>0123456789 0123456789 0123456789 0123456789 0123456789 0123456789 0123456789 0123456789</span>`, 
+			expected: `(assuming technique != inline && !table-arrow-nav) "digits".  i.e. the SSML works, b/c the length of plainText is under the max length.`},
+		{html: `<span data-ssml='{"sub": {"alias": "digits"}}'>0123456789 0123456789 0123456789 0123456789 0123456789 0123456789 0123456789 0123456789 0123456789</span>`, 
+			expected: `(assuming technique != inline && !table-arrow-nav) "0 1 2 3 4 5 ..."  i.e. the SSML doesn't work, b/c plainText is over the max length`},
+		{html: `<span data-ssml='{"sub": {"alias": "digits"}}'>012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789</span>`, 
+			expected: `(assuming technique != inline && !table-arrow-nav) "digits".  i.e. the SSML works, b/c the length of plainText is under the max length.`},
+		{html: `<span data-ssml='{"sub": {"alias": "digits"}}'>0123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789</span>`, 
+			expected: `(assuming technique != inline && !table-arrow-nav) "0 1 2 3 4 5 ..."  i.e. the SSML doesn't work, b/c plainText is over the max length`},
+
+		{html: `<div style="width: 2em;" data-ssml='{"sub": {"alias": "gold gold gold"}}'>silver silver silver</div>`, 
+			expected: `"gold gold gold".  i.e. the SSML works across line breaks that is created by normal wrapping in a container.  this case works but there is probably a length limit to this.`}, 
+		{html: `<div style="white-space: pre-wrap;" data-ssml='{"sub": {"alias": "gold"}}'>sil\nver</div>`, 
+			expected: `<div style="white-space: pre-wrap;">if(table arrow nav) {\n\t"gold"\nelse /* i.e. regular arrow nav */ {\n\tline 1: "sil", line 2: "ver"\n}\ni.e. the SSML sometimes doesn't work, because of the newline.</div>`}, 
+		{html: `<pre data-ssml='{"sub": {"alias": "gold"}}'>sil\nver</pre>`, 
+			expected: `<div style="white-space: pre-wrap;">if(table arrow nav) {\n\t"gold"\nelse /* i.e. regular arrow nav */ {\n\tline 1: "sil", line 2: "ver"\n}\ni.e. the SSML sometimes doesn't work, because of the newline.</div>`}, 
+		{html: `<span data-ssml='{"sub": {"alias": "gold"}}'>sil<br>ver</span>`, 
+			expected: `"sil (next line) ver".  i.e. the SSML doesn't work.  b/c there's a child element: a &lt;br&gt;.`}, 
+
 		{html: `<span data-ssml='{"phoneme":{"x-alphabet":"ipa", "ph":"ˈdrɪəri"}}'>broken</span>`, 
 			expected: `broken`},
 		{html: `<span data-ssml='{"phoneme":{"alphabet":"x-ipa", "ph":"ˈdrɪəri"}}'>broken</span>`, 
@@ -119,7 +137,7 @@ window.addEventListener("load", function(event) {
 		/* <select> */
 		{html: `<select aria-label="length"><option data-ssml='{"sub": {"alias": "3 feet"}}'>3'</option><option data-ssml='{"sub": {"alias": "4 feet"}}'>4'</option></select>`,
 		expected: `this test case is testing the options, not the select.  expected: "3 feet" / "4 feet".`}, 
-		{html: `<select aria-labelledby="label98724"><option>yes</option><option>no</option></select> <br>  `,
+		{html: `<select aria-labelledby="label98724"><option>yes</option><option>no</option></select>`,
 		expected: `this test case is testing the select, not the options. <br>- expected on tab: "3 prime combo box yes collapsed". <br>- expected on arrow nav / table arrow nav: just "combo box collapsed  yes" i.e. the aria-labelledby target is not being used at all, much less our data-ssml.  this behaviour might be defined by nvda, not our plugin.  here is the aria-labelledby target: <span data-ssml='{"sub": {"alias": "3 prime"}}' id="label98724">error</span> `},
 		{html: `<select aria-labelledby="label9283434"><option>yes</option><option>no</option></select>`,
 		expected: `chaos.  ignore, probably.  in chrome (not ff) on tab nav: all of the text in the table cell is announced as if it was part of the value of the select.  this test case worked when I put it outside of the table.  this behaviour might be defined by nvda, not our plugin.  here is the aria-labelledby target: <span data-ssml='{"sub": {"alias": "3 prime"}}' id="label9283434">error</span>`},
@@ -215,7 +233,6 @@ window.addEventListener("load", function(event) {
 	<script>
 	window.addEventListener("load", function(event) {
 		let technique = 'index';
-		technique = 'inline';
 		NvdaAddOnDataSsml.init(technique);
 	});
 	</script>
