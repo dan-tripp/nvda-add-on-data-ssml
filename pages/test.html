@@ -139,8 +139,6 @@ window.addEventListener("load", function(event) {
 		expected: `this test case is testing the options, not the select.  expected: "3 feet" / "4 feet".`}, 
 		{html: `<select aria-labelledby="label98724"><option>yes</option><option>no</option></select>`,
 		expected: `this test case is testing the select, not the options. <br>- expected on tab: "3 prime combo box yes collapsed". <br>- expected on arrow nav / table arrow nav: just "combo box collapsed  yes" i.e. the aria-labelledby target is not being used at all, much less our data-ssml.  this behaviour might be defined by nvda, not our plugin.  here is the aria-labelledby target: <span data-ssml='{"sub": {"alias": "3 prime"}}' id="label98724">error</span> `},
-		{html: `<select aria-labelledby="label9283434"><option>yes</option><option>no</option></select>`,
-		expected: `chaos.  ignore, probably.  in chrome (not ff) on tab nav: all of the text in the table cell is announced as if it was part of the value of the select.  this test case worked when I put it outside of the table.  this behaviour might be defined by nvda, not our plugin.  here is the aria-labelledby target: <span data-ssml='{"sub": {"alias": "3 prime"}}' id="label9283434">error</span>`},
 
 		/* aria-labelledby: */ 
 		{html: `<button aria-labelledby="label1">3'</button>`, 
@@ -193,10 +191,10 @@ window.addEventListener("load", function(event) {
 			<span data-ssml='{"sub": {"alias": [ '>L</span>
 			<span data-ssml='[0]'>M</span>
 			<span data-ssml='{"sub": {"alias": "3 prime"}}'><span>N</span></span>
-			<span data-ssml='{"sub": {"alias": "3 prime"}}'><span data-ssml='{"sub": {"alias": "3 prime"}}'>O</span></span> <!-- data-ssml w/ data-ssml descendant -->
-			<span data-ssml='{"sub": {"alias": "3 prime"}}'><span><span data-ssml='{"sub": {"alias": "3 prime"}}'>P</span></span></span> <!-- data-ssml w/ data-ssml descendant -->
-			<span data-ssml='{"sub": {"alias": "3 prime"}, "break": {"time": "500ms"}}'>Q</span> <!-- multiple SSML instructions -->
-			<span data-ssml='{"sub-broken": {"alias": "3 prime"}}'>R</span> <!-- unknown SSML instruction -->
+			<span data-ssml='{"sub": {"alias": "3 prime"}}' data-comment='data-ssml w/ data-ssml descendant'><span data-ssml='{"sub": {"alias": "3 prime"}}'>O</span></span>
+			<span data-ssml='{"sub": {"alias": "3 prime"}}' data-comment='data-ssml w/ data-ssml descendant'><span><span data-ssml='{"sub": {"alias": "3 prime"}}'>P</span></span></span>
+			<span data-ssml='{"sub": {"alias": "3 prime"}, "break": {"time": "500ms"}}' data-comment='multiple SSML instructions'>Q</span>
+			<span data-ssml='{"sub-broken": {"alias": "3 prime"}}' data-comment='unknown SSML instruction'>R</span>
 			`, 
 			expected: `"A B C ... ".  this is all broken ssml or empty data-ssml attributes.  so passthrough the plain text gracefully.`},
 		{html: `<span data-ssml='{"sub": {"alias": "[ yes ]"}}'>no</span>`, 
@@ -204,9 +202,9 @@ window.addEventListener("load", function(event) {
 		{html: `&#xFFF9;&#x200C;&#x200D;&#x2060;&#x2061;&#xFEFF;&#x2063;&#x2064;&#xFFFB;&#xFFFA;&#x206A;&#x206B;&#x206C;&#x206D;&#x206E;&#x206F;`, 
 			expected: `(silence).  encoding characters in the wild.  no marker.  these will be silently ignored - no exception in our logs.`},
 		{html: `&#x2062;&#x200d;&#x206d;&#x2060;&#x200c;&#x2062;red&#x2062;&#x2062;`, 
-			expected: `"red".   encoding characters in the wild.  looks like an encoded index of "-1", which is negative (= invalid), so it will cause a harmless exception in our logs.`},
+			expected: `"red".   encoding characters in the wild.  looks like an encoded index of "-1", which is negative (= invalid), so it will cause a harmless exception in our python logs.`},
 		{html: `&#x2062;&#x2060;&#xfffa;&#x2060;&#xfffa;&#x2060;&#xfffa;&#x2060;&#xfffa;&#x2060;&#xfffa;&#x2062;green&#x2062;&#x2062;`, 
-			expected: `"green".  encoding characters in the wild. looks like an encoded index of "99999", which is out of range, so it will cause a harmless exception in our logs.`},
+			expected: `"green".  encoding characters in the wild. looks like an encoded index of "99999", which is out of range, so it will cause a harmless exception in our python logs.`},
 		{html: `&#x2062;&#x2062;&#x2062;&#x2062; &#x2062;&#x2062;3&#x2062;&#x2062; &#x2062;&#xfffa;y&#x206F; &#x2062;4&#x2062;&#x2062; &#x2062;&#x2064;&#x2061;&#x2062;5&#x2062;&#x2062; &#x2062;&#x2064;&#x2061;&#x2064;&#xfeff;&#x2064;&#x2063;&#x2062;6&#x2062;&#x2062; &#x2062;&#x2064;&#x2062;&#x2062;&#x2062;7`, 
 			expected: `"3 why 4 5 6 7".  see comment for details.  <!-- encoding characters in the wild.  contains several messes, in this order:
 			1) "encoded string" (= what might seem to be a string that was encoded by our JS, but really is encoding chars in the wild) is empty and plain text is empty.  
@@ -217,7 +215,7 @@ window.addEventListener("load", function(event) {
 			6) similar to previous, but this time the encoded string is "tuv". 
 			7) "encoded string" is just one encoding character.  I don't know what that one character could possibly mean.  probably nothing useful.  
 
-			some of the above messes will cause an ugly-but-harmless exception in our logs.  others will be silently or semi-silently ignored.-->`},
+			some of the above messes will cause an ugly-but-harmless exception in our logs.  (JS logs,  python logs, or both.)  others will be silently or semi-silently ignored. -->`},
 
 	
 	];
