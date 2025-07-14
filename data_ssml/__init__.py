@@ -441,7 +441,7 @@ def findHidingPlaceTextNodeInA11yTree(a11yTreeRoot_):
 			logInfo('looking for hiding place element.  skipping, case 1')
 		else:
 			a11yTreeRootCurChildFirstChild = a11yTreeRootCurChild.firstChild
-			if getRole(a11yTreeRootCurChildFirstChild) != 'text':
+			if not (a11yTreeRootCurChildFirstChild != None and getRole(a11yTreeRootCurChildFirstChild) == 'text'):
 				logInfo('looking for hiding place element.  skipping, case 2')
 			else:
 				textNode = a11yTreeRootCurChildFirstChild
