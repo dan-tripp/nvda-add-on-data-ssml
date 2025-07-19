@@ -8,13 +8,12 @@
 
 ## Support of the spec 
 
-- Regarding this add-on vs. the spec: 
-	- This add-on implements parts of the spec at https://www.w3.org/TR/spoken-html/.  Not all of it.  The "Single-attribute Approach", not the "Multi-attribute Approach".
-	- The SSML instructions that this add-on supports are: "say-as", "phoneme", "sub", "break".  There are caveats to most of those.
-	- For "say-as": this add-on supports only the "interpret-as" sub-instruction, and of it: only "characters" and "spell" (as a synonym for "characters").
-	- For "phoneme": this add-on supports only the alphabet "ipa".  Not "x-sampa".
-	- This add-on does not support: "voice", "emphasis", "prosody", "audio".
-	- The spec seems ambiguous to me as to whether it's valid to have multiple SSML instructions in one data-ssml attribute eg. &lt;span data-ssml='{"sub": {"alias": "3 prime"}, "break": {"time": "500ms"}}'&gt;3'&lt;/span&gt; .  Regardless, this add-on doesn't support that.
+- This add-on implements parts of the spec at https://www.w3.org/TR/spoken-html/.  Not all of it.  The "Single-attribute Approach", not the "Multi-attribute Approach".
+- The SSML instructions that this add-on supports are: "say-as", "phoneme", "sub", "break".  There are caveats to most of those.
+- For "say-as": this add-on supports only the "interpret-as" sub-instruction, and of it: only "characters" and "spell" (as a synonym for "characters").
+- For "phoneme": this add-on supports only the alphabet "ipa".  Not "x-sampa".
+- This add-on does not support: "voice", "emphasis", "prosody", "audio".
+- The spec seems ambiguous to me as to whether it's valid to have multiple SSML instructions in one data-ssml attribute eg. &lt;span data-ssml='{"sub": {"alias": "3 prime"}, "break": {"time": "500ms"}}'&gt;3'&lt;/span&gt; .  Regardless, this add-on doesn't support that.
 
 ## How this add-on works 
 
