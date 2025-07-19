@@ -58,7 +58,7 @@ for mod in ["globalPluginHandler", "speech", "ui", "synthDriverHandler", "api", 
 
 
 
-#sys.path.append('.')
+sys.path.append('./addon/globalPlugins')
 import data_ssml 
 
 class Test1(unittest.TestCase):
