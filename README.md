@@ -120,12 +120,12 @@ This add-on can be configured to use one of several "techniques", but regardless
 - To build: "Open a command line, change to the folder that has the sconstruct file (usually the root of your add-on development folder) and run the scons command. The created add-on, if there were no errors, is placed in the current directory." (copied from https://github.com/nvdaaddons/AddonTemplate/blob/master/readme.md)
 
 - To keep NVDA's copy of this add-on in sync with this repo, I use NVDA's "scratchPad" directory.  Here are some ways to make that work:
-	- A prerequisite is to enable the scratchpad directory.  nvda > preferences > settings > advanced > ... 
-	- symlink 
+	- (A prerequisite is to enable the scratchpad directory.  nvda > preferences > settings > advanced > ... )
+	- option 1: symlink 
 		- i.e. in Windows, run a command prompt as administrator, then run something like this: mklink /D "C:\Users\dt\AppData\Roaming\nvda\scratchpad\globalPlugins\data_ssml" "\\wsl.localhost\Ubuntu\root\nvda-add-on-data-ssml\addon\globalPlugins\data_ssml"  
 			- this will create a link from nvda's scratchPad directory to the git repo, not the other way around.  so nvda - via it's scratchPad directory - will find your repo this way.  the git repo in no way finds the nvda scratchPad directory.
 		- This might rely on WSL running.  It's unclear what "WSL running" means.  It seems not to mean "there are one or more interactive WSL shells running", because I shut down all my shells, and the symlink still worked.
-	- Copy files 
-		- I do all my edits to the code on NVDA's copy, then when it's time to commit I copy NVDA's copy to this repo.
+	- option 2: copy files 
+		- do all your edits to the code on NVDA's copy, then when it's time to commit I copy NVDA's copy to this repo.
 
 
