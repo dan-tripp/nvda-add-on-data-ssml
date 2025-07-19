@@ -2,29 +2,32 @@
 
 ## Intro 
 
-- Inspired by https://www.w3.org/TR/spoken-html/#data-ssml-attribute-properties-and-values , roughly. 
-- Demo video here: https://www.youtube.com/watch?v=wfTMUn4ttYI 
+- The goal of this add-on is accurate "spoken presentation" (sometimes called just "pronunciation").  Specifically on web pages. 
+- This add-on accomplishes that goal by implementing support for the "data-ssml" attribute on web pages, as per the spec at https://www.w3.org/TR/spoken-html/.
+- A demo video of this add-on is here: https://www.youtube.com/watch?v=wfTMUn4ttYI .  
 
-## How this plugin works 
+## Support of the spec 
 
-This plugin can be configured to use one of several "techniques", but regardless of technique, this is roughly how it works: 
-- Regarding this plugin vs. the spec: 
-	- This plugin implements parts of the spec at https://www.w3.org/TR/spoken-html/.  Not all of it.  The "Single-attribute Approach", not the "Multi-attribute Approach".
-	- The SSML instructions that this plugin supports are: "say-as", "phoneme", "sub", "break".  There are caveats to most of those.
-	- For "say-as": this plugin supports only the "interpret-as" sub-instruction, and of it: only "characters" and "spell" (as a synonym for "characters").
-	- For "phoneme": this plugin supports only the alphabet "ipa".  Not "x-sampa".
-	- This plugin does not support: "voice", "emphasis", "prosody", "audio".
-	- The spec seems ambiguous to me as to whether it's valid to have multiple SSML instructions in one data-ssml attribute eg. &lt;span data-ssml='{"sub": {"alias": "3 prime"}, "break": {"time": "500ms"}}'&gt;3'&lt;/span&gt; .  Regardless, this plugin doesn't support that.
-- The plugin has two parts: 1) some Javascript (JS) that runs on the page, and 2) the NVDA plugin python code.
-	- I use the words "plugin" and "add-on" interchangeably.
+- Regarding this add-on vs. the spec: 
+	- This add-on implements parts of the spec at https://www.w3.org/TR/spoken-html/.  Not all of it.  The "Single-attribute Approach", not the "Multi-attribute Approach".
+	- The SSML instructions that this add-on supports are: "say-as", "phoneme", "sub", "break".  There are caveats to most of those.
+	- For "say-as": this add-on supports only the "interpret-as" sub-instruction, and of it: only "characters" and "spell" (as a synonym for "characters").
+	- For "phoneme": this add-on supports only the alphabet "ipa".  Not "x-sampa".
+	- This add-on does not support: "voice", "emphasis", "prosody", "audio".
+	- The spec seems ambiguous to me as to whether it's valid to have multiple SSML instructions in one data-ssml attribute eg. &lt;span data-ssml='{"sub": {"alias": "3 prime"}, "break": {"time": "500ms"}}'&gt;3'&lt;/span&gt; .  Regardless, this add-on doesn't support that.
+
+## How this add-on works 
+
+This add-on can be configured to use one of several "techniques", but regardless of technique, this is roughly how it works: 
+- The add-on has two parts: 1) some Javascript (JS) that runs on the page, and 2) the NVDA add-on python code.
 - The JS runs on page load.  It looks at each element that has a data-ssml attribute, encodes that attribute's value (details later), and adds that encoded value to the text content of the element.
-	- This is necessary because I don't know of any way for this NVDA plugin to get the data-ssml attribute values.  NVDA plugins don't have access to the DOM.  They have access to an accessibility tree, roughly.  The data-ssml, as well as most of the DOM's info and attributes, doesn't make it into this accessibility tree.  But all text content does.  That's why we put the (encoded) data-ssml values in the text content. 
+	- This is necessary because I don't know of any way for this NVDA add-on to get the data-ssml attribute values.  NVDA add-ons don't have access to the DOM.  They have access to an accessibility tree, roughly.  The data-ssml, as well as most of the DOM's info and attributes, doesn't make it into this accessibility tree.  But all text content does.  That's why we put the (encoded) data-ssml values in the text content. 
 - The characters we use for encoding are obscure zero-width unicode characters.  So they don't show up visually, and they aren't spoken (in the audio output) by either NVDA or any other screen reader I tested with.  Unfortunately they probably show up in braille output.  More on that later.  
 - The python code intercepts the text content before it reaches the speech synth.  It looks for our encoding characters, and if it sees any, it replaces them with appropriate NVDA speech commands which will implement the wishes of the data-ssml.
 - Our encoding characters were chosen for their obscurity.  If the page uses any of them already, some part of our process might break.
 - In general, regardless of technique, the spoken presentation (i.e. audio output by NVDA) will be the same.  There are some exceptions: cases where one technique supports a certain thing, and another technique doesn't.
-- The negative side effects if the JS part of this plugin is run on a page and the user is not running (the python part of) this plugin, and who is...
-	- ... a user of NVDA: are the same as for a user of NVDA who _is_ running this plugin.
+- The negative side effects, if the JS part of this add-on is run on a page and the user is not running (the python part of) this add-on, and who is...
+	- ... a user of NVDA: are the same as for a user of NVDA who _is_ running this add-on.
 	- ... a user of JAWS: I don't know, because I haven't tested on JAWS. 
 	- ... a user of VoiceOver / TalkBack: none in the audio.  Some regarding the delimiting of words/sentences.  TO DO: elaborate.  
 	- ... all users, including non-screen-reader users: "clipboard junk".  See table below. 
@@ -58,7 +61,7 @@ This plugin can be configured to use one of several "techniques", but regardless
 		</tr>
 		<tr>
 			<th scope="row">Max length of SSML i.e. max length of the string $SSML in &lt;span data-ssml="$SSML"&gt;$PLAIN_TEXT&lt;/span&gt;
-			<td>The worst technique.  Plugin will only work if len($PLAIN_TEXT) 2*len($SSML) + 2 <= 100 , roughly.  That's for arrow nav and tab, I think.  Table nav (ctrl+alt+arrow_key) gets away with more, for some reason.  At any rate: this max length is easy to exceed with this technique.  e.g SSML = "'{"say-as": {"interpret-as": "characters"}}'" is close to it. 
+			<td>The worst technique.  Add-on will only work if len($PLAIN_TEXT) 2*len($SSML) + 2 <= 100 , roughly.  That's for arrow nav and tab, I think.  Table nav (ctrl+alt+arrow_key) gets away with more, for some reason.  At any rate: this max length is easy to exceed with this technique.  e.g SSML = "'{"say-as": {"interpret-as": "characters"}}'" is close to it. 
 			<td>Tied for the best technique.  No max length.
 			<td>Tied for the best technique.  No max length.
 		</tr>
@@ -117,7 +120,7 @@ This plugin can be configured to use one of several "techniques", but regardless
 
 - To build: "Open a command line, change to the folder that has the sconstruct file (usually the root of your add-on development folder) and run the scons command. The created add-on, if there were no errors, is placed in the current directory." (copied from https://github.com/nvdaaddons/AddonTemplate/blob/master/readme.md)
 
-- To keep NVDA's copy of this plugin (AKA add-on) in sync with this repo, I use NVDA's "scratchPad" directory.  Here are some ways to make that work:
+- To keep NVDA's copy of this add-on in sync with this repo, I use NVDA's "scratchPad" directory.  Here are some ways to make that work:
 	- A prerequisite is to enable the scratchpad directory.  nvda > preferences > settings > advanced > ... 
 	- symlink 
 		- i.e. in Windows, run a command prompt as administrator, then run something like this: mklink /D "C:\Users\dt\AppData\Roaming\nvda\scratchpad\globalPlugins\data_ssml" "\\wsl.localhost\Ubuntu\root\nvda-add-on-data-ssml\addon\globalPlugins\data_ssml"  
