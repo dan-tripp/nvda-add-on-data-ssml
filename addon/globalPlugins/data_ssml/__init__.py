@@ -157,33 +157,35 @@ def isPowerOfTwo(n_):
 	return n_ > 0 and (n_ & (n_ - 1)) == 0
 
 @profile
-def decodeSingleStr(str_):
+def decodeEncodedSsmlInstructionStr(str_):
+	try:
+		n = len(ENCODING_CHARS)
+		if not isPowerOfTwo(n):
+			raise ValueError("Base must be a power of 2")
 
-	n = len(ENCODING_CHARS)
-	if not isPowerOfTwo(n):
-		raise ValueError("Base must be a power of 2")
+		digitValues = [ENCODING_CHARS.index(c) for c in str_]
+		number = 0
+		for d in digitValues:
+			number = number * n + d
 
-	digitValues = [ENCODING_CHARS.index(c) for c in str_]
-	number = 0
-	for d in digitValues:
-		number = number * n + d
+		numBytes = (number.bit_length() + 7) // 8
 
-	numBytes = (number.bit_length() + 7) // 8
+		bytes = number.to_bytes(numBytes, 'big') if numBytes > 0 else b''
 
-	bytes = number.to_bytes(numBytes, 'big') if numBytes > 0 else b''
+		logInfo(f'input string (len {len(str_)}): "{str_}"')
+		logInfo(f"digitValues: {digitValues}")
+		logInfo(f"Integer: {number}")
+		logInfo(f"Decoded bytes (hex): {bytes.hex()}")
 
-	logInfo(f'input string (len {len(str_)}): "{str_}"')
-	logInfo(f"digitValues: {digitValues}")
-	logInfo(f"Integer: {number}")
-	logInfo(f"Decoded bytes (hex): {bytes.hex()}")
-
-	r = bytes.decode('utf-8')
-	return r
+		r = bytes.decode('utf-8')
+		return r
+	except ValueError as e:
+		raise NonRetriableSsmlError() from e
 
 class NonRetriableSsmlError(Exception):
     pass
 
-# our retrying involves forcing a refresh of our state from the a11y root, then retrying the decode again.  we do this retry max once (per speech filter call).
+# our retrying involves forcing a refresh of our state from the a11y root, then we try to do our whole "convert speech string into a speech command list" again.  we do this retry max once per speech filter call.
 class RetriableSsmlError(Exception):
     pass
 
@@ -198,14 +200,14 @@ def getBreakTimeMillisFromStr(str_):
 
 @profile
 # This function sometimes uses the strategy of not checking that the input SSML is valid - rather, assuming that the JS already checked that it's valid, and if it wasn't, then it wouldn't have made it into this function.  This is inconsistent.  Only parts of this function do it that way.  It would be ideal if the JS did all of the checking, because page authors are (I think) more likely to check the devtools console for error messages compared to the NVDA logs.  Also, the devtools console can be checked earlier, without starting NVDA. 
-def turnSsmlStrIntoSpeechCommandList(ssmlStr_, nonSsmlStr_: str, origWholeText_: str, state_: State):
+def convertSsmlStrIntoSpeechCommandList(ssmlStr_, textToAffect_: str, origWholeText_: str, state_: State, okToThrowRetriableError_: bool):
 	ourAssert(isinstance(ssmlStr_, str))
 	try:
 		ssmlObj = json.loads(ssmlStr_)
 		if(not isinstance(ssmlObj, dict)):
-			if type(ssmlObj) == int:
-				# probably means that on the JS side, the JS init ran after our (= the python side's) most recent update to the a11y root.
-				raise RetriableSsmlError()
+			if type(ssmlObj) == int and okToThrowRetriableError_:
+				# it's an int ==> technique=index.  but the fact that we're in this function - which is supposed to take as an arg an ssml str payload (not an index to one) indicates that we (= the python side) think that technique=inline.  the page is right.  our state on the python side is wrong.  this means that on the JS side, the JS init ran after we (= the python side) got our most recent update of our state from the a11y root.  so we force such an update by raising this: 
+				raise RetriableSsmlError('detected late JS init')
 			else:
 				raise NonRetriableSsmlError(f'expected a dict in the json.  got an object of type: {type(ssmlObj)}.')
 		if len(ssmlObj) != 1: raise NonRetriableSsmlError()
@@ -221,10 +223,10 @@ def turnSsmlStrIntoSpeechCommandList(ssmlStr_, nonSsmlStr_: str, origWholeText_:
 			# ^^ 'spell' is non-standard, I gather.  we treat it as an alias for 'characters'.  more comments in test.html. 
 
 			if state_.useCharacterModeCommand:
-				r = [CharacterModeCommand(True), nonSsmlStr_, CharacterModeCommand(False)]
+				r = [CharacterModeCommand(True), textToAffect_, CharacterModeCommand(False)]
 			else:
 				r = []
-				for ch in nonSsmlStr_:
+				for ch in textToAffect_:
 					# I'm using this "eigh" from MathCAT even though I couldn't reproduce the problem that it is solving, which is described at https://github.com/NSoiffer/MathCATForPython/issues/32 and https://github.com/nvaccess/nvda/issues/13596 , most thoroughly at the latter.
 					# Also, I think that this code also takes effect only on lower-case "a", not upper-case "A".  I think MathCAT did that too.  I don't know why.
 					r.extend((" ", "eigh" if ch == "a" and state_.isLanguageEnglish else ch, " "))
@@ -238,24 +240,22 @@ def turnSsmlStrIntoSpeechCommandList(ssmlStr_, nonSsmlStr_: str, origWholeText_:
 			# 	- I found this phoneme at https://github.com/nvaccess/nvda/blob/b501e16a2392aaa89892879d77725f02b9f2835d/source/synthDrivers/sapi5.py#L423 
 
 			phonemeIpa = val['ph']
-			r = [PhonemeCommand(phonemeIpa, text=nonSsmlStr_)]
+			r = [PhonemeCommand(phonemeIpa, text=textToAffect_)]
 			INSERT_HACK_SPACE_AFTER = 1
 			if INSERT_HACK_SPACE_AFTER:
 				# ~ march 2025: this is here because of my aural observation that NVDA's announcement sounded like "woundlink" (i.e. with no space).
 				# 2025-05-19: today when I disabled this code, I couldn't hear the problem.  so it's unclear if this code is necessary.  
 				r.append(" ")
 		elif key == 'break':
-			if not re.match(r'^\s*$', nonSsmlStr_): raise NonRetriableSsmlError(f'''found a "break" command on text content that includes non-whitespace.  we don't support this.  and it's unclear how this occurrence reached this code, b/c our JS should have prevented that.''')
+			if not re.match(r'^\s*$', textToAffect_): raise NonRetriableSsmlError(f'''found a "break" command on text content that includes non-whitespace.  we don't support this.  and it's unclear how this occurrence reached this code, b/c our JS should have prevented that.''')
 			timeStr = val['time']
 			timeMillis = getBreakTimeMillisFromStr(timeStr)
 			# Based on my experiments, the actual duration of the break doesn't match exactly the arg that we pass to BreakCommand.  Sometimes it does eg. synth=espeak at rate=50 and rate=80.  and synt=sapi5 at rate=50.  Sometimes it doesn't eg. sapi5 rate=80: the actual break was roughly 0.5 of the arg to BreakCommand.  (all of my experiments were with rate_boost=off.)  It looks like MathCAT tries to deal with this at https://github.com/NSoiffer/MathCATForPython/blob/0e33d1306db49ac4d47fb5c47348a96aa4f283d0/addon/globalPlugins/MathCAT/MathCAT.py#L152 but I don't understand the values that that MathCAT code arrives at for breakMulti.  they don't match my experiments.  and they don't use the current synth as input - but my experiments indicate that the current synth plays a big role.  as for this plugin: there is probably a bug here i.e. the actual break time does not always match the break time value in the data-ssml.  
 			r = [BreakCommand(time=timeMillis)]
 		else:
 			raise NonRetriableSsmlError()
-	except (json.decoder.JSONDecodeError, NonRetriableSsmlError, KeyError, ValueError) as e:
-		logInfo(f'Error happened while processing SSML JSON string.  We will fall back to the plain text.  The SSML string was "{ssmlStr_}".  The exception, which we will suppress, was:')
-		log.exception(e)
-		r = [origWholeText_]
+	except (json.decoder.JSONDecodeError, KeyError, ValueError) as e:
+		raise NonRetriableSsmlError() from e
 	return r
 
 # Matches the javascript encoding side.  If you change this then change that, and vice versa. 
@@ -264,13 +264,13 @@ MACRO_END_MARKER = MARKER * 2
 
 
 @profile
-def decodeAllStrs(str_: str, state_: State):
-	logInfo(f'decodeAllStrs input (len {len(str_)}): {repr(str_)}')
+def convertSpeechStrIntoSpeechCommandList_multiMatch(str_: str, state_: State, okToThrowRetriableError_: bool):
+	logInfo(f'convertSpeechStrIntoSpeechCommandList_multiMatch input (len {len(str_)}): {repr(str_)}')
  
 	if state_.technique in ('index', 'inline'):
-		r = decodeAllStrs_techniquesIndexAndInline(str_, state_)
+		r = convertSpeechStrIntoSpeechCommandList_multiMatch_techniquesIndexAndInline(str_, state_, okToThrowRetriableError_)
 	elif state_.technique == 'page-wide':
-		r = decodeAllStrs_techniquePageWide(str_, state_)
+		r = convertSpeechStrIntoSpeechCommandList_multiMatch_techniquePageWide(str_, state_)
 	else:
 		ourAssert(False)
 
@@ -294,7 +294,7 @@ def decodeAllStrs(str_: str, state_: State):
     
 
 
-def decodeAllStrs_techniquePageWide(str_: str, state_: State):
+def convertSpeechStrIntoSpeechCommandList_multiMatch_techniquePageWide(str_: str, state_: State):
 	m = state_.techniquePageWideDictOfPlainTextToSsmlStr
 	ourAssert(m != None)
 	plainTexts = sorted(m.keys(), key=lambda e: -len(e)) # so that if we have plainTexts "3'" and "3'~", our pattern will match "3'~".  the way regex '|' works, it will match the leftmost branch.  so we want the longest one to be the leftmost.  this sort does that. 
@@ -310,7 +310,7 @@ def decodeAllStrs_techniquePageWide(str_: str, state_: State):
 			logInfo(f'	text before this match: {repr(textBeforeMatch)}')
 			r.append(textBeforeMatch)
 		ssmlStr = m[plainText.lower()]
-		speechCommandList = turnSsmlStrIntoSpeechCommandList(ssmlStr, plainText, plainText, state_)
+		speechCommandList = convertSsmlStrIntoSpeechCommandList(ssmlStr, plainText, plainText, state_, False)
 		r.extend(speechCommandList)
 		prevEndIdx = endIdx
 
@@ -321,7 +321,7 @@ def decodeAllStrs_techniquePageWide(str_: str, state_: State):
 
 	return r
 
-def decodeAllStrs_techniquesIndexAndInline(str_: str, state_: State):
+def convertSpeechStrIntoSpeechCommandList_multiMatch_techniquesIndexAndInline(str_: str, state_: State, okToThrowRetriableError_: bool):
 	r = []
 	prevEndIdx = 0
 	matchCount = 0
@@ -332,62 +332,63 @@ def decodeAllStrs_techniquesIndexAndInline(str_: str, state_: State):
 	for match in pattern.finditer(str_):
 		matchCount += 1
 		startIdx, endIdx = match.span()
-		encodedStr, textToAffect = match.groups()
-		origWholeText = match.group(0)
+		ssmlInstructionStrEncoded, plainTextToAffect = match.groups()
+		plainTextWholeMatch = match.group(0)
 
-		logInfo(f'encodedStr: {repr(encodedStr)}')
-		logInfo(f'textToAffect (len {len(textToAffect)}): {repr(textToAffect)}')
+		logInfo(f'ssmlInstructionStrEncoded: {repr(ssmlInstructionStrEncoded)}')
+		logInfo(f'textToAffect (len {len(plainTextToAffect)}): {repr(plainTextToAffect)}')
 
 		if startIdx > prevEndIdx:
-			pre = str_[prevEndIdx:startIdx]
-			logInfo(f'	text before this match: {repr(pre)}')
-			r.append(pre)
+			leadingNonMatch = str_[prevEndIdx:startIdx]
+			logInfo(f'	text before this match: {repr(leadingNonMatch)}')
+			r.append(leadingNonMatch)
 
-		success = False
 		try:
-			if state_.technique == 'index':
-				ourAssert(state_.techniqueIndexListOfSsmlStrs != None)
-				idxInListAsEncodedStr = encodedStr
-				if not idxInListAsEncodedStr:
-					logInfo('encoded string is empty.  we will ignore it.')
-				else:
-					idxInListAsDecodedStr = decodeSingleStr(idxInListAsEncodedStr)
-					logInfo(f'	idxInListAsDecodedStr: "{idxInListAsDecodedStr}"')
-					ourAssert(idxInListAsDecodedStr)
-					idxInList = int(idxInListAsDecodedStr)
-					if(idxInList < 0): raise NonRetriableSsmlError("index is negative") # sure, python (with it's -ve list indices) could handle this -ve index.  but our JS will never output a -ve index.  so our JS didn't create this.  so this must be a case of "encoding characters in the wild".  
-					if idxInList >= len(state_.techniqueIndexListOfSsmlStrs):
-						# probably means that on the JS side, watchForDomChanges == true, and the data-ssml attribute corresponding to this index was added after our (= the python side's) last update to the a11y root.
-						raise RetriableSsmlError()  
-					ssmlStr = state_.techniqueIndexListOfSsmlStrs[idxInList]
-					r.extend(turnSsmlStrIntoSpeechCommandList(ssmlStr, textToAffect, origWholeText, state_))
-					success = True
-			elif state_.technique == 'inline':
-				ssmlStrEncoded = encodedStr
-				ssmlStr = decodeSingleStr(ssmlStrEncoded)
-				logInfo(f'	ssmlStr: "{ssmlStr}"')
-				r.extend(turnSsmlStrIntoSpeechCommandList(ssmlStr, textToAffect, origWholeText, state_))				
-				success = True
-			else:
-				ourAssert(False)
-		except (Exception, IndexError) as e:
-			logInfo(f"Couldn't decode or figure out what to do with the encoded string '{encodedStr} / {repr(encodedStr)}'.  We will fall back to the plain text.")
-			if 1:
-				logInfo('Exception, which we will suppress, was:')
-				log.exception(e)
-			#raise
-
-		if not success:
-			r.append(origWholeText)
-
+			r.extend(convertSpeechStrIntoSpeechCommandList_singleMatch_techniquesIndexAndInline(ssmlInstructionStrEncoded, plainTextToAffect, plainTextWholeMatch, state_, okToThrowRetriableError_))
+		except NonRetriableSsmlError as e:
+			logInfo(f'Error happened while processing SSML.  We will fall back to the plain text.  The SSML instruction string encoded was "{ssmlInstructionStrEncoded}".  The exception, which we will suppress, was:')
+			log.exception(e)
+			r.append(plainTextWholeMatch)
 		prevEndIdx = endIdx
 
 	if prevEndIdx < len(str_):
-		trailing = str_[prevEndIdx:]
-		logInfo(f'text after last match: {repr(trailing)}')
-		r.append(trailing)
+		trailingNonMatch = str_[prevEndIdx:]
+		logInfo(f'text after last match: {repr(trailingNonMatch)}')
+		r.append(trailingNonMatch)
 
 	return r
+
+def convertSpeechStrIntoSpeechCommandList_singleMatch_techniquesIndexAndInline(ssmlInstructionStrEncoded_: str, plainTextToAffect_: str, plainTextWholeMatch_: str, state_: State, okToThrowRetriableError_: bool):
+	r = [plainTextWholeMatch_]
+	if state_.technique == 'index':
+		ourAssert(state_.techniqueIndexListOfSsmlStrs != None)
+		idxInListAsEncodedStr = ssmlInstructionStrEncoded_
+		if not idxInListAsEncodedStr:
+			logInfo('ssml instruction string is empty.  we will ignore it.')
+		else:
+			idxInListAsDecodedStr = decodeEncodedSsmlInstructionStr(idxInListAsEncodedStr)
+			logInfo(f'	idxInListAsDecodedStr: "{idxInListAsDecodedStr}"')
+			ourAssert(idxInListAsDecodedStr)
+			idxInList = int(idxInListAsDecodedStr)
+			if(idxInList < 0): raise NonRetriableSsmlError("index is negative") # sure, python (with it's -ve list indices) could handle this -ve index.  but our JS will never output a -ve index.  so our JS didn't create this.  so this must be a case of "encoding characters in the wild".  
+			if idxInList >= len(state_.techniqueIndexListOfSsmlStrs):
+				if okToThrowRetriableError_:
+					# could mean that on the JS side, watchForDomChanges == true, and the data-ssml attribute corresponding to this index was added after we (= the python side) did our most recent update of our state from the a11y root.  so we raise this, to force such an update: 
+					raise RetriableSsmlError('idx is too high for us')
+				else:
+					raise NonRetriableSsmlError('idx is too high for us')
+			ssmlStr = state_.techniqueIndexListOfSsmlStrs[idxInList]
+			r = convertSsmlStrIntoSpeechCommandList(ssmlStr, plainTextToAffect_, plainTextWholeMatch_, state_, okToThrowRetriableError_)
+	elif state_.technique == 'inline':
+		ssmlStrEncoded = ssmlInstructionStrEncoded_
+		ssmlStr = decodeEncodedSsmlInstructionStr(ssmlStrEncoded)
+		logInfo(f'	ssmlStr: "{ssmlStr}"')
+		r = convertSsmlStrIntoSpeechCommandList(ssmlStr, plainTextToAffect_, plainTextWholeMatch_, state_)
+	else:
+		ourAssert(False)
+
+	return r
+	
 
 def getTechniqueIndexListOfSsmlStrsFromHidingPlaceTextNode(hidingPlaceTextNode_):
 	ourAssert(hidingPlaceTextNode_)
@@ -556,26 +557,27 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 	def terminate(self):
 		speech.extensions.filter_speechSequence.unregister(self.ourSpeechSequenceFilter)
 
+	# if this function raises an exception, then that exception will appear in the nvda logs and nvda will speak normally i.e. speak as though this filter didn't exist.  so we don't bend over backwards to catch all exceptions we might create. 
 	def ourSpeechSequenceFilter(self, origSeq: speech.SpeechSequence) -> speech.SpeechSequence:
 		updateA11yTreeRoot(False)
 		g_state.initNvdaStateFieldsFromRealNvdaState()
 		logInfo(f'--> original speech sequence: {origSeq}')
 		try:
-			modSeq = self.ourSpeechSequenceFilterImpl(origSeq)
+			modSeq = self.ourSpeechSequenceFilterImpl(origSeq, True)
 		except RetriableSsmlError as e:
-			logInfo(f'got retriable error.  will retry.')
+			logInfo(f'got retriable error w/ message string "{e}".  will retry.')
 			updateA11yTreeRoot(True)
-			modSeq = self.ourSpeechSequenceFilterImpl(origSeq)
+			modSeq = self.ourSpeechSequenceFilterImpl(origSeq, False)
 		logInfo(f'--> modified speech sequence: {modSeq}')
 		logInfo(f'speech sequence changed: {modSeq != origSeq}')
 		return modSeq
 	
-	def ourSpeechSequenceFilterImpl(self, origSeq: speech.SpeechSequence) -> speech.SpeechSequence:
+	def ourSpeechSequenceFilterImpl(self, origSeq: speech.SpeechSequence, okToThrowRetriableError_: bool) -> speech.SpeechSequence:
 		modSeq = []
 		for element in origSeq:
 			if isinstance(element, str) and len(element) > 0:
 				logInfo(f'filter got string len {len(element)}: "{repr(element)}"')
-				modSeq.extend(decodeAllStrs(element, g_state))
+				modSeq.extend(convertSpeechStrIntoSpeechCommandList_multiMatch(element, g_state, okToThrowRetriableError_))
 			else:
 				modSeq.append(element)
 		return modSeq
