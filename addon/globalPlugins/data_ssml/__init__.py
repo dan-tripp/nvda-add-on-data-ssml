@@ -346,6 +346,13 @@ def decodeAllStrs_techniquesIndexAndInline(str_: str, state_: State):
 					ourAssert(idxInListAsDecodedStr)
 					idxInList = int(idxInListAsDecodedStr)
 					if(idxInList < 0): raise SsmlError("index is negative") # sure, python (with it's -ve list indices) could handle this -ve index.  but our JS will never output a -ve index.  so our JS didn't create this.  so this must be a case of "encoding characters in the wild".  
+					if idxInList >= len(state_.techniqueIndexListOfSsmlStrs):
+						# ==> on the JS side, watchForDomChanges == true, and the data-ssml attribute corresponding to this index was added after our last a11yRoot update.  
+						hidingPlaceTextNode = findHidingPlaceTextNodeInA11yTree(g_a11yTreeRoot)
+						ourAssert(hidingPlaceTextNode)
+						state_.techniqueIndexListOfSsmlStrs = getTechniqueIndexListOfSsmlStrsFromHidingPlaceTextNode(hidingPlaceTextNode)
+						ourAssert(state_.techniqueIndexListOfSsmlStrs != None)
+						ourAssert(idxInList < len(state_.techniqueIndexListOfSsmlStrs))
 					ssmlStr = state_.techniqueIndexListOfSsmlStrs[idxInList]
 					r.extend(turnSsmlStrIntoSpeechCommandList(ssmlStr, textToAffect, origWholeText, state_))
 					success = True
