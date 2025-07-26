@@ -129,6 +129,7 @@ class State:
 	technique: str = None
 	techniqueIndexListOfSsmlStrs: list = None
 	techniquePageWideDictOfPlainTextToSsmlStr: dict = None
+	a11yTreeRoot = None
 
 	def initNvdaStateFieldsFromRealNvdaState(self):
 		self.useCharacterModeCommand = getUseCharacterModeCommandFromNvdaState()
@@ -347,8 +348,9 @@ def decodeAllStrs_techniquesIndexAndInline(str_: str, state_: State):
 					idxInList = int(idxInListAsDecodedStr)
 					if(idxInList < 0): raise SsmlError("index is negative") # sure, python (with it's -ve list indices) could handle this -ve index.  but our JS will never output a -ve index.  so our JS didn't create this.  so this must be a case of "encoding characters in the wild".  
 					if idxInList >= len(state_.techniqueIndexListOfSsmlStrs):
+						#raise RetriableSsmlError()
 						# ==> on the JS side, watchForDomChanges == true, and the data-ssml attribute corresponding to this index was added after our last a11yRoot update.  
-						hidingPlaceTextNode = findHidingPlaceTextNodeInA11yTree(g_a11yTreeRoot)
+						hidingPlaceTextNode = findHidingPlaceTextNodeInA11yTree(state_.a11yTreeRoot) # this line's reference to the a11yTreeRoot makes this line impossible to unit-test, because the a11yTreeRoot will only be non-None when this code is running as the real plugin.  i.e. we don't have a way to mock up the a11y tree in a unit test.
 						ourAssert(hidingPlaceTextNode)
 						state_.techniqueIndexListOfSsmlStrs = getTechniqueIndexListOfSsmlStrsFromHidingPlaceTextNode(hidingPlaceTextNode)
 						ourAssert(state_.techniqueIndexListOfSsmlStrs != None)
@@ -483,26 +485,25 @@ def a11yTreeToStr(root_, maxDepth=None):
 	recurse(root_)
 	return "\n".join(lines)
 
-g_a11yTreeRoot = None
 g_state = State() # never None 
 g_state.technique = 'inline'
 
 def updateA11yTreeRoot():
-	global g_a11yTreeRoot, g_state
+	global g_state
 
 	try:
 		newA11yTreeRoot = api.getNavigatorObject().treeInterceptor.rootNVDAObject
 	except (AttributeError) as e:
 		newA11yTreeRoot = None
 
-	oldA11yTreeRoot = g_a11yTreeRoot
-	g_a11yTreeRoot = newA11yTreeRoot
+	oldA11yTreeRoot = g_state.a11yTreeRoot
 	a11yTreeRootChanged = (id(oldA11yTreeRoot) != id(newA11yTreeRoot)) # it's unclear if "id" is necessary here.  I used it because I don't know how their equals operator is implemented. 
-	logInfo(f'set g_a11yTreeRoot to {str(g_a11yTreeRoot)}.  value changed: {"yes" if a11yTreeRootChanged else "no"}.')
+	logInfo(f'a11y tree root is now {str(newA11yTreeRoot)}.  value changed: {"yes" if a11yTreeRootChanged else "no"}.')
 	if a11yTreeRootChanged:
 		g_state = State()
+		g_state.a11yTreeRoot = newA11yTreeRoot
 		g_state.initNvdaStateFieldsFromRealNvdaState()
-		hidingPlaceTextNode = findHidingPlaceTextNodeInA11yTree(g_a11yTreeRoot)
+		hidingPlaceTextNode = findHidingPlaceTextNodeInA11yTree(g_state.a11yTreeRoot)
 		if not hidingPlaceTextNode:
 			g_state.technique = 'inline'
 		else:
@@ -555,8 +556,6 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		updateA11yTreeRoot()
 		g_state.initNvdaStateFieldsFromRealNvdaState()
 		modSeq = []
-		#logInfo(f'g_a11yTreeRoot: {g_a11yTreeRoot.name if g_a11yTreeRoot else None}') 
-		#logInfo(f'a11yTree:\n{a11yTreeToStr(g_a11yTreeRoot)}') 
 		logInfo(f'--> original speech sequence: {origSeq}')
 		for element in origSeq:
 			if isinstance(element, str) and len(element) > 0:

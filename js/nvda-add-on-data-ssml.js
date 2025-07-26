@@ -28,9 +28,9 @@ function startObserver(technique_) {
 		{ // tdr 
 			count += 1; // tdr
 			for(let m of mutations__) {
-				// console.log(new Date(), "here 3", m); /* tdr */
+				console.log(new Date(), "mutation", m); /* tdr */
 			}
-			if(count > 10) {
+			if(count > 50) {
 				console.log(new Date(), "disconnecting "); /* tdr */
 				observer.disconnect();
 			}
