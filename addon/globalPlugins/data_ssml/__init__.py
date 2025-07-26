@@ -180,7 +180,11 @@ def decodeSingleStr(str_):
 	r = bytes.decode('utf-8')
 	return r
 
-class SsmlError(Exception):
+class NonRetriableSsmlError(Exception):
+    pass
+
+# our retrying involves forcing a refresh of our state from the a11y root, then retrying the decode again.  we do this retry max once (per speech filter call).
+class RetriableSsmlError(Exception):
     pass
 
 def getBreakTimeMillisFromStr(str_):
@@ -198,17 +202,22 @@ def turnSsmlStrIntoSpeechCommandList(ssmlStr_, nonSsmlStr_: str, origWholeText_:
 	ourAssert(isinstance(ssmlStr_, str))
 	try:
 		ssmlObj = json.loads(ssmlStr_)
-		if(not isinstance(ssmlObj, dict)): raise SsmlError(f'expected a dict in the json.  got an object of type: {type(ssmlObj)}.')
-		if len(ssmlObj) != 1: raise SsmlError()
+		if(not isinstance(ssmlObj, dict)):
+			if type(ssmlObj) == int:
+				# probably means that on the JS side, the JS init ran after our (= the python side's) most recent update to the a11y root.
+				raise RetriableSsmlError()
+			else:
+				raise NonRetriableSsmlError(f'expected a dict in the json.  got an object of type: {type(ssmlObj)}.')
+		if len(ssmlObj) != 1: raise NonRetriableSsmlError()
 		key = next(iter(ssmlObj)); val = ssmlObj[key]
 		if key == 'sub':
 			aliasVal = val['alias']
 			r = [aliasVal]
 		elif key == 'say-as':
-			if not isinstance(val, dict): raise SsmlError()
-			if 'interpret-as' not in val: raise SsmlError()
+			if not isinstance(val, dict): raise NonRetriableSsmlError()
+			if 'interpret-as' not in val: raise NonRetriableSsmlError()
 			interpretAs = val['interpret-as']
-			if interpretAs not in ['characters', 'spell']: raise SsmlError()
+			if interpretAs not in ['characters', 'spell']: raise NonRetriableSsmlError()
 			# ^^ 'spell' is non-standard, I gather.  we treat it as an alias for 'characters'.  more comments in test.html. 
 
 			if state_.useCharacterModeCommand:
@@ -236,14 +245,14 @@ def turnSsmlStrIntoSpeechCommandList(ssmlStr_, nonSsmlStr_: str, origWholeText_:
 				# 2025-05-19: today when I disabled this code, I couldn't hear the problem.  so it's unclear if this code is necessary.  
 				r.append(" ")
 		elif key == 'break':
-			if not re.match(r'^\s*$', nonSsmlStr_): raise SsmlError(f'''found a "break" command on text content that includes non-whitespace.  we don't support this.  and it's unclear how this occurrence reached this code, b/c our JS should have prevented that.''')
+			if not re.match(r'^\s*$', nonSsmlStr_): raise NonRetriableSsmlError(f'''found a "break" command on text content that includes non-whitespace.  we don't support this.  and it's unclear how this occurrence reached this code, b/c our JS should have prevented that.''')
 			timeStr = val['time']
 			timeMillis = getBreakTimeMillisFromStr(timeStr)
 			# Based on my experiments, the actual duration of the break doesn't match exactly the arg that we pass to BreakCommand.  Sometimes it does eg. synth=espeak at rate=50 and rate=80.  and synt=sapi5 at rate=50.  Sometimes it doesn't eg. sapi5 rate=80: the actual break was roughly 0.5 of the arg to BreakCommand.  (all of my experiments were with rate_boost=off.)  It looks like MathCAT tries to deal with this at https://github.com/NSoiffer/MathCATForPython/blob/0e33d1306db49ac4d47fb5c47348a96aa4f283d0/addon/globalPlugins/MathCAT/MathCAT.py#L152 but I don't understand the values that that MathCAT code arrives at for breakMulti.  they don't match my experiments.  and they don't use the current synth as input - but my experiments indicate that the current synth plays a big role.  as for this plugin: there is probably a bug here i.e. the actual break time does not always match the break time value in the data-ssml.  
 			r = [BreakCommand(time=timeMillis)]
 		else:
-			raise SsmlError()
-	except (json.decoder.JSONDecodeError, SsmlError, KeyError, ValueError) as e:
+			raise NonRetriableSsmlError()
+	except (json.decoder.JSONDecodeError, NonRetriableSsmlError, KeyError, ValueError) as e:
 		logInfo(f'Error happened while processing SSML JSON string.  We will fall back to the plain text.  The SSML string was "{ssmlStr_}".  The exception, which we will suppress, was:')
 		log.exception(e)
 		r = [origWholeText_]
@@ -346,15 +355,10 @@ def decodeAllStrs_techniquesIndexAndInline(str_: str, state_: State):
 					logInfo(f'	idxInListAsDecodedStr: "{idxInListAsDecodedStr}"')
 					ourAssert(idxInListAsDecodedStr)
 					idxInList = int(idxInListAsDecodedStr)
-					if(idxInList < 0): raise SsmlError("index is negative") # sure, python (with it's -ve list indices) could handle this -ve index.  but our JS will never output a -ve index.  so our JS didn't create this.  so this must be a case of "encoding characters in the wild".  
+					if(idxInList < 0): raise NonRetriableSsmlError("index is negative") # sure, python (with it's -ve list indices) could handle this -ve index.  but our JS will never output a -ve index.  so our JS didn't create this.  so this must be a case of "encoding characters in the wild".  
 					if idxInList >= len(state_.techniqueIndexListOfSsmlStrs):
-						#raise RetriableSsmlError()
-						# ==> on the JS side, watchForDomChanges == true, and the data-ssml attribute corresponding to this index was added after our last a11yRoot update.  
-						hidingPlaceTextNode = findHidingPlaceTextNodeInA11yTree(state_.a11yTreeRoot) # this line's reference to the a11yTreeRoot makes this line impossible to unit-test, because the a11yTreeRoot will only be non-None when this code is running as the real plugin.  i.e. we don't have a way to mock up the a11y tree in a unit test.
-						ourAssert(hidingPlaceTextNode)
-						state_.techniqueIndexListOfSsmlStrs = getTechniqueIndexListOfSsmlStrsFromHidingPlaceTextNode(hidingPlaceTextNode)
-						ourAssert(state_.techniqueIndexListOfSsmlStrs != None)
-						ourAssert(idxInList < len(state_.techniqueIndexListOfSsmlStrs))
+						# probably means that on the JS side, watchForDomChanges == true, and the data-ssml attribute corresponding to this index was added after our (= the python side's) last update to the a11y root.
+						raise RetriableSsmlError()  
 					ssmlStr = state_.techniqueIndexListOfSsmlStrs[idxInList]
 					r.extend(turnSsmlStrIntoSpeechCommandList(ssmlStr, textToAffect, origWholeText, state_))
 					success = True
@@ -488,7 +492,7 @@ def a11yTreeToStr(root_, maxDepth=None):
 g_state = State() # never None 
 g_state.technique = 'inline'
 
-def updateA11yTreeRoot():
+def updateA11yTreeRoot(forceUpdateOfState_):
 	global g_state
 
 	try:
@@ -499,7 +503,7 @@ def updateA11yTreeRoot():
 	oldA11yTreeRoot = g_state.a11yTreeRoot
 	a11yTreeRootChanged = (id(oldA11yTreeRoot) != id(newA11yTreeRoot)) # it's unclear if "id" is necessary here.  I used it because I don't know how their equals operator is implemented. 
 	logInfo(f'a11y tree root is now {str(newA11yTreeRoot)}.  value changed: {"yes" if a11yTreeRootChanged else "no"}.')
-	if a11yTreeRootChanged:
+	if a11yTreeRootChanged or forceUpdateOfState_:
 		g_state = State()
 		g_state.a11yTreeRoot = newA11yTreeRoot
 		g_state.initNvdaStateFieldsFromRealNvdaState()
@@ -553,18 +557,27 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		speech.extensions.filter_speechSequence.unregister(self.ourSpeechSequenceFilter)
 
 	def ourSpeechSequenceFilter(self, origSeq: speech.SpeechSequence) -> speech.SpeechSequence:
-		updateA11yTreeRoot()
+		updateA11yTreeRoot(False)
 		g_state.initNvdaStateFieldsFromRealNvdaState()
-		modSeq = []
 		logInfo(f'--> original speech sequence: {origSeq}')
+		try:
+			modSeq = self.ourSpeechSequenceFilterImpl(origSeq)
+		except RetriableSsmlError as e:
+			logInfo(f'got retriable error.  will retry.')
+			updateA11yTreeRoot(True)
+			modSeq = self.ourSpeechSequenceFilterImpl(origSeq)
+		logInfo(f'--> modified speech sequence: {modSeq}')
+		logInfo(f'speech sequence changed: {modSeq != origSeq}')
+		return modSeq
+	
+	def ourSpeechSequenceFilterImpl(self, origSeq: speech.SpeechSequence) -> speech.SpeechSequence:
+		modSeq = []
 		for element in origSeq:
 			if isinstance(element, str) and len(element) > 0:
 				logInfo(f'filter got string len {len(element)}: "{repr(element)}"')
 				modSeq.extend(decodeAllStrs(element, g_state))
 			else:
 				modSeq.append(element)
-		logInfo(f'--> modified speech sequence: {modSeq}')
-		logInfo(f'speech sequence changed: {modSeq != origSeq}')
 		return modSeq
 
 def monkeyPatchBrailleHandler():
