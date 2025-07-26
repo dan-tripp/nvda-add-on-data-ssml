@@ -2,14 +2,41 @@
 
 window.NvdaAddOnDataSsml = window.NvdaAddOnDataSsml || {};
 
-window.NvdaAddOnDataSsml.initByUrlParams = function(urlParams_, defaultTechnique_) {
+window.NvdaAddOnDataSsml.g_centralHidingPlaceElement = null;
+window.NvdaAddOnDataSsml.g_centralHidingPlaceObj = null;
+
+window.NvdaAddOnDataSsml.initByUrlParams = function(urlParams_, defaultTechnique_, defaultWatchForDomChanges_) {
 	let urlParams = new URLSearchParams(urlParams_);
 	let technique = urlParams.has('technique') ? urlParams.get('technique') : defaultTechnique_;	
-	encodeAllDataSsmlAttribs(technique);
+	let watchForDomChanges = urlParams.has('watchForDomChanges') ? (urlParams.get('watchForDomChanges') === 'true') : defaultWatchForDomChanges_;	
+	NvdaAddOnDataSsml.initByTechnique(technique, watchForDomChanges);
 }
 
-window.NvdaAddOnDataSsml.initByTechnique = function(technique_) {
+window.NvdaAddOnDataSsml.initByTechnique = function(technique_, watchForDomChanges_) {
+	if(technique_ === 'page-wide' && watchForDomChanges_) throw new Error("page-wide && watch: not supported yet");
 	encodeAllDataSsmlAttribs(technique_);
+	console.log(new Date(), "here", JSON.stringify({}, null, 0)); /* tdr */
+	if(watchForDomChanges_) {
+		console.log(new Date(), "here 2", JSON.stringify({}, null, 0)); /* tdr */
+		startObserver(technique_);
+	}
+}
+
+function startObserver(technique_) {
+	let count = 0; // tdr 
+	let observer = new MutationObserver((mutations__) => {
+		{ // tdr 
+			count += 1; // tdr
+			for(let m of mutations__) {
+				console.log(new Date(), "here 3", m); /* tdr */
+			}
+			if(count > 10) {
+				observer.disconnect();
+			}
+		}
+		encodeAllDataSsmlAttribs(technique_);
+	});
+	observer.observe(document.body, {childList: true, subtree: true, attributes: true});		
 }
 
 const HIDING_PLACE_GUID_FOR_ALL_TECHNIQUES = '4b9b696c-8fc8-49ca-9bb9-73afc9bd95f7';
@@ -92,9 +119,11 @@ class SsmlError extends Error {
 	}
 }
 
-function* getAllElemsWithDataSsml(technique_) {
+/* note 1: you might be thinking "it's not really processed yet, so why are we adding the 'processed' attribute now?"  answer: b/c by adding this attribute now, we get the benefit that we won't re-process elements w/ data-ssml="" or SSML errors.  the only reason we wouldn't want to add this attribute now would be case of an error during "processing" (i.e. adding encoding characters).  we don't currently care about that. */
+function* getAllElemsWithDataSsmlNotProcessed(technique_) {
 	let isTechniquePageWide = technique_ === 'page-wide';
-	for(let element of document.querySelectorAll('[data-ssml]')) {
+	for(let element of document.querySelectorAll('[data-ssml]:not([data-ssml-processed]')) {
+		element.setAttribute('data-ssml-processed', ''); /* see note 1 */ 
 		let dataSsmlVal = element.getAttribute('data-ssml')?.trim();
 		if(!dataSsmlVal) continue;
 		try {
@@ -214,7 +243,7 @@ function getBreakTimeMillisFromStr(str_) {
 }
 
 function encodeAllDataSsmlAttribs_inlineTechnique() {
-	for(let [elem, dataSsmlValue] of getAllElemsWithDataSsml('inline')) {
+	for(let [elem, dataSsmlValue] of getAllElemsWithDataSsmlNotProcessed('inline')) {
 		let encodedSsml = encodeStrAsZeroWidthChars(dataSsmlValue);
 		const START_END_MARKER = '\u2062';
 		elem.insertBefore(document.createTextNode(START_END_MARKER+encodedSsml+START_END_MARKER), elem.firstChild);
@@ -229,10 +258,12 @@ function encodeAllDataSsmlAttribs_pageWideTechnique() {
 }
 
 function encodeAllDataSsmlAttribs_pageWide_addCentralHidingPlaceElement(mapOfPlainTextStrToSsmlStr_) {
+	/* we don't bother to update our global variables here, b/c we only read them of watchForDomChanges, and we haven't implemented watchForDomChanges && page-wide. */
 	let div = document.createElement("div");
 	let mapAsJson = jsonStringifyJsMap(mapOfPlainTextStrToSsmlStr_);
 	div.textContent = `Please ignore. ${HIDING_PLACE_GUID_FOR_ALL_TECHNIQUES} ${HIDING_PLACE_GUID_FOR_PAGE_WIDE_TECHNIQUE} ${mapAsJson}`;
 	document.body.appendChild(div);
+	window.NvdaAddOnDataSsml.g_centralHidingPlaceElement = null;
 }
 
 function jsonStringifyJsMap(map_) {
@@ -242,7 +273,7 @@ function jsonStringifyJsMap(map_) {
 
 function getMapOfPlainTextStrToSsmlStr_pageWideTechnique() {
 	let mapOfPlainTextStrToSsmlStr = new Map();
-	for(let [elem, elemSsmlStr] of getAllElemsWithDataSsml('page-wide')) {
+	for(let [elem, elemSsmlStr] of getAllElemsWithDataSsmlNotProcessed('page-wide')) {
 		let elemPlainText = elem.textContent;
 		if(!mapOfPlainTextStrToSsmlStr.has(elemPlainText)) {
 			console.debug("data-ssml: map set:", JSON.stringify({elemPlainText, elemSsmlStr}, null, 0), 'from element:', elem);
@@ -259,19 +290,43 @@ function getMapOfPlainTextStrToSsmlStr_pageWideTechnique() {
 
 function encodeAllDataSsmlAttribs_indexTechnique() {
 	let globalListOfSsmlStrs = encodeAllDataSsmlAttribs_indexTechnique_encodeEachOccurrenceAsAnIndex();
-	encodeAllDataSsmlAttribs_indexTechnique_addCentralHidingPlaceElement(globalListOfSsmlStrs);
+	encodeAllDataSsmlAttribs_indexTechnique_createOrUpdateCentralHidingPlaceElement(globalListOfSsmlStrs);
 }
 
-function encodeAllDataSsmlAttribs_indexTechnique_addCentralHidingPlaceElement(globalListOfSsmlStrs_) {
+function encodeAllDataSsmlAttribs_indexTechnique_createOrUpdateCentralHidingPlaceElement(globalListOfSsmlStrs_) {
+	if(haveWeCreatedTheCentralHidingPlaceElementYet()) {
+		encodeAllDataSsmlAttribs_indexTechnique_updateCentralHidingPlaceElement(globalListOfSsmlStrs_);
+	} else {
+		encodeAllDataSsmlAttribs_indexTechnique_createCentralHidingPlaceElement(globalListOfSsmlStrs_);
+	}
+}
+
+function haveWeCreatedTheCentralHidingPlaceElementYet() {
+	let r1 = !!NvdaAddOnDataSsml.g_centralHidingPlaceElement;
+	let r2 = !!NvdaAddOnDataSsml.g_centralHidingPlaceObj;
+	assert(r1 === r2);
+	return r1;
+}
+
+function encodeAllDataSsmlAttribs_indexTechnique_updateCentralHidingPlaceElement(globalListOfSsmlStrs_) {
+	let newGlobalListOfSsmlStrs = [...NvdaAddOnDataSsml.g_centralHidingPlaceObj, ... globalListOfSsmlStrs_];
+	let globaListAsJson = JSON.stringify(newGlobalListOfSsmlStrs);
+	NvdaAddOnDataSsml.g_centralHidingPlaceElement.textContent = `Please ignore. ${HIDING_PLACE_GUID_FOR_ALL_TECHNIQUES} ${HIDING_PLACE_GUID_FOR_INDEX_TECHNIQUE} ${globaListAsJson}`;
+	NvdaAddOnDataSsml.g_centralHidingPlaceObj = newGlobalListOfSsmlStrs;
+}
+
+function encodeAllDataSsmlAttribs_indexTechnique_createCentralHidingPlaceElement(globalListOfSsmlStrs_) {
 	let div = document.createElement("div");
 	let globaListAsJson = JSON.stringify(globalListOfSsmlStrs_);
 	div.textContent = `Please ignore. ${HIDING_PLACE_GUID_FOR_ALL_TECHNIQUES} ${HIDING_PLACE_GUID_FOR_INDEX_TECHNIQUE} ${globaListAsJson}`;
 	document.body.appendChild(div);
+	NvdaAddOnDataSsml.g_centralHidingPlaceElement = div;
+	NvdaAddOnDataSsml.g_centralHidingPlaceObj = globalListOfSsmlStrs_;
 }
 
 function encodeAllDataSsmlAttribs_indexTechnique_encodeEachOccurrenceAsAnIndex() {
 	let globalListOfSsmlStrs = [];
-	for(let [elem, curSsmlStr] of getAllElemsWithDataSsml('index')) {
+	for(let [elem, curSsmlStr] of getAllElemsWithDataSsmlNotProcessed('index')) {
 		let indexOfCurSsmlStrInGlobalList = globalListOfSsmlStrs.indexOf(curSsmlStr);
 		if(indexOfCurSsmlStrInGlobalList == -1) {
 			globalListOfSsmlStrs.push(curSsmlStr);

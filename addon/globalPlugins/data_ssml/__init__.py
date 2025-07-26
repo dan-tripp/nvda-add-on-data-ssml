@@ -336,7 +336,7 @@ def decodeAllStrs_techniquesIndexAndInline(str_: str, state_: State):
 		success = False
 		try:
 			if state_.technique == 'index':
-				ourAssert(state_.techniqueIndexListOfSsmlStrs)
+				ourAssert(state_.techniqueIndexListOfSsmlStrs != None)
 				idxInListAsEncodedStr = encodedStr
 				if not idxInListAsEncodedStr:
 					logInfo('encoded string is empty.  we will ignore it.')
