@@ -15,9 +15,9 @@ window.NvdaAddOnDataSsml.initByUrlParams = function(urlParams_, defaultTechnique
 window.NvdaAddOnDataSsml.initByTechnique = function(technique_, watchForDomChanges_) {
 	if(technique_ === 'page-wide' && watchForDomChanges_) throw new Error("page-wide && watch: not supported yet");
 	encodeAllDataSsmlAttribs(technique_);
-	console.log(new Date(), "here", JSON.stringify({}, null, 0)); /* tdr */
+	//console.log(new Date(), "here", JSON.stringify({}, null, 0)); /* tdr */
 	if(watchForDomChanges_) {
-		console.log(new Date(), "here 2", JSON.stringify({}, null, 0)); /* tdr */
+		//console.log(new Date(), "here 2", JSON.stringify({}, null, 0)); /* tdr */
 		startObserver(technique_);
 	}
 }
@@ -28,9 +28,10 @@ function startObserver(technique_) {
 		{ // tdr 
 			count += 1; // tdr
 			for(let m of mutations__) {
-				console.log(new Date(), "here 3", m); /* tdr */
+				// console.log(new Date(), "here 3", m); /* tdr */
 			}
 			if(count > 10) {
+				console.log(new Date(), "disconnecting "); /* tdr */
 				observer.disconnect();
 			}
 		}
