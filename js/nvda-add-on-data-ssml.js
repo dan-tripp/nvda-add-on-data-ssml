@@ -38,19 +38,9 @@ function isMutationInteresting(m_) {
 }
 
 function startObserver(technique_) {
-	let count = 0; // tdr 
 	let observer = new MutationObserver((mutations__) => {
 		if(!mutations__.some(isMutationInteresting)) return;
-		if(false) { // tdr 
-			count += 1; // tdr
-			for(let m of mutations__) {
-				console.log(new Date(), "mutation", m); /* tdr */
-			}
-			if(count > 5) {
-				console.log(new Date(), "disconnecting "); /* tdr */
-				observer.disconnect();
-			}
-		}
+		console.debug(`data-ssml: in mutation observer: proceeding.`);
 		encodeAllDataSsmlAttribs(technique_);
 	});
 	observer.observe(document.body, {childList: true, subtree: true, attributes: true, attributeFilter: ['data-ssml']});
