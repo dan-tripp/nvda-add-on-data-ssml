@@ -304,11 +304,11 @@ def convertSpeechStrIntoSpeechCommandList_allMatches_techniquePageWide(str_: str
 	for match in patternForAllPlainTexts.finditer(str_):
 		startIdx, endIdx = match.span()
 		plainText = match.group(0)
-		logInfo(f'matched {repr(plainText)} at start pos {startIdx}')
 		if startIdx > prevEndIdx:
 			textBeforeMatch = str_[prevEndIdx:startIdx]
-			logInfo(f'	text before this match: {repr(textBeforeMatch)}')
+			logInfo(f'text before this match: {repr(textBeforeMatch)}')
 			r.append(textBeforeMatch)
+		logInfo(f'matched {repr(plainText)} at start pos {startIdx}')
 		ssmlStr = m[plainText.lower()]
 		speechCommandList = convertSsmlStrIntoSpeechCommandList(ssmlStr, plainText, plainText, state_, False)
 		r.extend(speechCommandList)
@@ -335,13 +335,14 @@ def convertSpeechStrIntoSpeechCommandList_allMatches_techniquesIndexAndInline(st
 		ssmlInstructionStrEncoded, plainTextToAffect = match.groups()
 		plainTextWholeMatch = match.group(0)
 
-		logInfo(f'ssmlInstructionStrEncoded: {repr(ssmlInstructionStrEncoded)}')
-		logInfo(f'textToAffect (len {len(plainTextToAffect)}): {repr(plainTextToAffect)}')
-
 		if startIdx > prevEndIdx:
 			leadingNonMatch = str_[prevEndIdx:startIdx]
-			logInfo(f'	text before this match: {repr(leadingNonMatch)}')
+			logInfo(f'leadingNonMatch: {repr(leadingNonMatch)}')
 			r.append(leadingNonMatch)
+
+		logInfo(f'plainTextWholeMatch: {repr(plainTextWholeMatch)}')
+		logInfo(f'ssmlInstructionStrEncoded: {repr(ssmlInstructionStrEncoded)}')
+		logInfo(f'textToAffect (len {len(plainTextToAffect)}): {repr(plainTextToAffect)}')
 
 		try:
 			r.extend(convertSpeechStrIntoSpeechCommandList_singleMatch_techniquesIndexAndInline(ssmlInstructionStrEncoded, plainTextToAffect, plainTextWholeMatch, state_, okToThrowRetriableError_))
@@ -353,7 +354,7 @@ def convertSpeechStrIntoSpeechCommandList_allMatches_techniquesIndexAndInline(st
 
 	if prevEndIdx < len(str_):
 		trailingNonMatch = str_[prevEndIdx:]
-		logInfo(f'text after last match: {repr(trailingNonMatch)}')
+		logInfo(f'trailingNonMatch: {repr(trailingNonMatch)}')
 		r.append(trailingNonMatch)
 
 	return r

@@ -205,15 +205,17 @@ window.addEventListener("load", function(event) {
 			expected: `"red".   encoding characters in the wild.  looks like an encoded index of "-1", which is negative (= invalid), so it will cause a harmless exception in our python logs.`},
 		{html: `&#x2062;&#x2060;&#xfffa;&#x2060;&#xfffa;&#x2060;&#xfffa;&#x2060;&#xfffa;&#x2060;&#xfffa;&#x2062;green&#x2062;&#x2062;`, 
 			expected: `"green".  encoding characters in the wild. looks like an encoded index of "99999", which is out of range, so it will cause a harmless exception in our python logs.`},
-		{html: `&#x2062;&#x2062;&#x2062;&#x2062; &#x2062;&#x2062;3&#x2062;&#x2062; &#x2062;&#xfffa;y&#x206F; &#x2062;4&#x2062;&#x2062; &#x2062;&#x2064;&#x2061;&#x2062;5&#x2062;&#x2062; &#x2062;&#x2064;&#x2061;&#x2064;&#xfeff;&#x2064;&#x2063;&#x2062;6&#x2062;&#x2062; &#x2062;&#x2064;&#x2062;&#x2062;&#x2062;7`, 
-			expected: `"3 why 4 5 6 7".  see comment for details.  <!-- encoding characters in the wild.  contains several messes, in this order:
-			1) "encoded string" (= what might seem to be a string that was encoded by our JS, but really is encoding chars in the wild) is empty and plain text is empty.  
-			2) "encoded string" is empty and plain text is not empty.
-			3) "encoded string" contains an invalid encoding character: "z".
-			4) botched macro end marker. 
-			5) "encoded string" is an encoded letter "t" which will never work b/c it's neither ssml json (for technique=inline) nor an integer (for technique=index). 
-			6) similar to previous, but this time the encoded string is "tuv". 
-			7) "encoded string" is just one encoding character.  I don't know what that one character could possibly mean.  probably nothing useful.  
+		{html: `&#x2062;&#x2062;&#x2062;&#x2062; &#x2062;&#x2062;g&#x2062;&#x2062; &#x2062;g&#x2062; h&#x2062;&#x2062; &#x2062;&#x2064;&#x2061;&#x2062;j&#x2062;&#x2062; &#x2062;&#x2064;&#x2061;&#x2064;&#xfeff;&#x2064;&#x2063;&#x2062;k&#x2062;&#x2062; &#x2062;&#x2064;&#x2062;l&#x2062;&#x2062; &#x2062;&#xfffa;h&#x206F; &#x2062;i&#x2062;&#x2062;`, 
+			expected: `"g g h j k l i".  see comment for details.  
+			<!-- encoding characters in the wild.  contains several messes, in this order:
+			- plainTextToAffect="": the "encoded string" (= what might seem to be a string that was encoded by our JS, but really is encoding chars in the wild) is empty and plain text is empty.  
+			- plainTextToAffect="g": the "encoded string" is empty and the plain text is not empty.
+			- plainTextToAffect="h": the "encoded string" contains an invalid encoding character: it's a "g".
+			- plainTextToAffect="j": the "encoded string" is an encoded letter "t" which will never work b/c it's neither ssml json (for technique=inline) nor an integer (for technique=index). 
+			- plainTextToAffect="k": similar to previous, but this time the encoded string is "tuv". 
+			- plainTextToAffect="l": the "encoded string" is just one encoding character.  I don't know what that one character could possibly mean.  probably nothing useful.  
+			- no idea  
+			- plainTextToAffect="i": botched macro end marker. 
 
 			some of the above messes will cause an ugly-but-harmless exception in our logs.  (JS logs,  python logs, or both.)  others will be silently or semi-silently ignored. -->`},
 
