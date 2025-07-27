@@ -275,7 +275,7 @@ function encodeAllDataSsmlAttribs_pageWideTechnique() {
 }
 
 function encodeAllDataSsmlAttribs_pageWide_addHidingPlaceElement(mapOfPlainTextStrToSsmlStr_) {
-	/* we don't bother to update our global variables here, b/c we only read them of watchForDomChanges, and we haven't implemented watchForDomChanges && page-wide. */
+	/* we don't bother to update our hiding place (in-memory) variables here, b/c we only read those if watchForDomChanges, and we haven't implemented watchForDomChanges && page-wide. */
 	let div = document.createElement("div");
 	let mapAsJson = jsonStringifyJsMap(mapOfPlainTextStrToSsmlStr_);
 	div.textContent = `Please ignore. ${HIDING_PLACE_GUID_FOR_ALL_TECHNIQUES} ${HIDING_PLACE_GUID_FOR_PAGE_WIDE_TECHNIQUE} ${mapAsJson}`;

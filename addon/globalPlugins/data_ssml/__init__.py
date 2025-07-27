@@ -519,15 +519,15 @@ def updateA11yTreeRoot(forceUpdateOfState_):
 		else:
 			g_state.techniqueIndexListOfSsmlStrs = getTechniqueIndexListOfSsmlStrsFromHidingPlaceTextNode(hidingPlaceTextNode)
 			if g_state.techniqueIndexListOfSsmlStrs != None:
-				logInfo('Found global object for technique=index.')
+				logInfo('Found hiding place object for technique=index.')
 				g_state.technique = 'index'
 			else:
 				g_state.techniquePageWideDictOfPlainTextToSsmlStr = getTechniquePageWideDictOfPlainTextToSsmlStrFromHidingPlaceTextNode(hidingPlaceTextNode, g_state)
 				if g_state.techniquePageWideDictOfPlainTextToSsmlStr != None:
-					logInfo('Found global object for technique=page-wide.')
+					logInfo('Found hiding place object for technique=page-wide.')
 					g_state.technique = 'page-wide'
 		if g_state.technique == 'inline':
-			logInfo("Found no global object.  Will assume technique=inline.  Either this web page uses technique=inline, or this web page didn't run our JS, or this is not a web page.")
+			logInfo("Found no hiding place object.  Will assume technique=inline.  Either this web page uses technique=inline, or this web page didn't run our JS, or this is not a web page.")
 
 class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 	
