@@ -53,6 +53,11 @@ p { line-height: 1.5; }
 			elem.setAttribute('data-ssml', '{"sub": {"alias": "alpha"}}');
 		});
 
+		document.querySelector('button[data-id="4"]').addEventListener('click', () => {
+			let elem = document.querySelector('span[data-id="4"]');
+			elem.setAttribute('data-ssml', '{"sub": {"alias": "gamma"}}');
+		});
+
 	});
 	</script>
 
@@ -71,7 +76,8 @@ p { line-height: 1.5; }
 	<button data-id="0">0 (run JS init)</button> 
 	<button data-id="1">1 (add data-ssml occ 1)</button> 
 	<button data-id="2">2 (add data-ssml occ 2)</button> 
-	<button data-id="3">3 (add data-ssml occ 2: dupe of occ 1)</button> 
+	<button data-id="3">3 (add data-ssml occ 3: dupe of occ 1)</button> 
+	<button data-id="4">4 (add data-ssml occ 4)</button> 
 </p>
 
 <p>
@@ -81,6 +87,8 @@ p { line-height: 1.5; }
 	↑ expected: "beta" <br>
 	<span data-id="3">three</span><br>
 	↑ expected: "alpha" <br>
+	<span data-id="4">four</span><br>
+	↑ expected: "gamma" <br>
 </p>
 
 <h2>test cases</h2>
@@ -93,7 +101,11 @@ p { line-height: 1.5; }
 	<li>reload this page.  hit 1, 3, 0.  arrow-nav to "one", "three".</li>
 	<li>reload this page.  hit 1, 0, 3.  arrow-nav to "one", "three".</li>
 	<li>reload this page.  hit 1, 2, 3, 0.  arrow-nav to "one", "two", "three".</li>
-	<li>reload this page.  hit 0, 1, 2, 3.  arrow-nav to "one", "two", "three".</li>
+	<li>reload this page.  hit 0, 1, 4, 2, 3.  arrow-nav to "one", "two", "three", "four".</li>
+	<li>reload this page.  hit 1, 4, 2, 3, 0.  arrow-nav to "one", "two", "three", "four".</li>
+	<li>reload this page.  hit 1, 0, 4, 2, 3.  arrow-nav to "one", "two", "three", "four".</li>
+	<li>reload this page.  hit 1, 4, 0, 2, 3.  arrow-nav to "one", "two", "three", "four".</li>
+
 </ol>
 
 
