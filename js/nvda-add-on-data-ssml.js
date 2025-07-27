@@ -2,8 +2,8 @@
 
 window.NvdaAddOnDataSsml = window.NvdaAddOnDataSsml || {};
 
-window.NvdaAddOnDataSsml.g_centralHidingPlaceElement = null;
-window.NvdaAddOnDataSsml.g_centralHidingPlaceObj = null;
+window.NvdaAddOnDataSsml.g_hidingPlaceElement = null;
+window.NvdaAddOnDataSsml.g_hidingPlaceObj = null;
 
 window.NvdaAddOnDataSsml.initByUrlParams = function(urlParams_, defaultTechnique_, defaultWatchForDomChanges_) {
 	let urlParams = new URLSearchParams(urlParams_);
@@ -255,16 +255,16 @@ function encodeAllDataSsmlAttribs_inlineTechnique() {
 
 function encodeAllDataSsmlAttribs_pageWideTechnique() {
 	let mapOfPlainTextStrToSsmlStr = getMapOfPlainTextStrToSsmlStr_pageWideTechnique();
-	encodeAllDataSsmlAttribs_pageWide_addCentralHidingPlaceElement(mapOfPlainTextStrToSsmlStr);
+	encodeAllDataSsmlAttribs_pageWide_addHidingPlaceElement(mapOfPlainTextStrToSsmlStr);
 }
 
-function encodeAllDataSsmlAttribs_pageWide_addCentralHidingPlaceElement(mapOfPlainTextStrToSsmlStr_) {
+function encodeAllDataSsmlAttribs_pageWide_addHidingPlaceElement(mapOfPlainTextStrToSsmlStr_) {
 	/* we don't bother to update our global variables here, b/c we only read them of watchForDomChanges, and we haven't implemented watchForDomChanges && page-wide. */
 	let div = document.createElement("div");
 	let mapAsJson = jsonStringifyJsMap(mapOfPlainTextStrToSsmlStr_);
 	div.textContent = `Please ignore. ${HIDING_PLACE_GUID_FOR_ALL_TECHNIQUES} ${HIDING_PLACE_GUID_FOR_PAGE_WIDE_TECHNIQUE} ${mapAsJson}`;
 	document.body.appendChild(div);
-	window.NvdaAddOnDataSsml.g_centralHidingPlaceElement = null;
+	window.NvdaAddOnDataSsml.g_hidingPlaceElement = null;
 }
 
 function jsonStringifyJsMap(map_) {
@@ -291,38 +291,38 @@ function getMapOfPlainTextStrToSsmlStr_pageWideTechnique() {
 
 function encodeAllDataSsmlAttribs_indexTechnique() {
 	let globalListOfSsmlStrs = encodeAllDataSsmlAttribs_indexTechnique_encodeEachOccurrenceAsAnIndex();
-	encodeAllDataSsmlAttribs_indexTechnique_createOrUpdateCentralHidingPlaceElement(globalListOfSsmlStrs);
+	encodeAllDataSsmlAttribs_indexTechnique_createOrUpdateHidingPlaceElement(globalListOfSsmlStrs);
 }
 
-function encodeAllDataSsmlAttribs_indexTechnique_createOrUpdateCentralHidingPlaceElement(globalListOfSsmlStrs_) {
-	if(haveWeCreatedTheCentralHidingPlaceElementYet()) {
-		encodeAllDataSsmlAttribs_indexTechnique_updateCentralHidingPlaceElement(globalListOfSsmlStrs_);
+function encodeAllDataSsmlAttribs_indexTechnique_createOrUpdateHidingPlaceElement(globalListOfSsmlStrs_) {
+	if(haveWeCreatedTheHidingPlaceElementYet()) {
+		encodeAllDataSsmlAttribs_indexTechnique_updateHidingPlaceElement(globalListOfSsmlStrs_);
 	} else {
-		encodeAllDataSsmlAttribs_indexTechnique_createCentralHidingPlaceElement(globalListOfSsmlStrs_);
+		encodeAllDataSsmlAttribs_indexTechnique_createHidingPlaceElement(globalListOfSsmlStrs_);
 	}
 }
 
-function haveWeCreatedTheCentralHidingPlaceElementYet() {
-	let r1 = !!NvdaAddOnDataSsml.g_centralHidingPlaceElement;
-	let r2 = !!NvdaAddOnDataSsml.g_centralHidingPlaceObj;
+function haveWeCreatedTheHidingPlaceElementYet() {
+	let r1 = !!NvdaAddOnDataSsml.g_hidingPlaceElement;
+	let r2 = !!NvdaAddOnDataSsml.g_hidingPlaceObj;
 	assert(r1 === r2);
 	return r1;
 }
 
-function encodeAllDataSsmlAttribs_indexTechnique_updateCentralHidingPlaceElement(globalListOfSsmlStrs_) {
-	let newGlobalListOfSsmlStrs = [...NvdaAddOnDataSsml.g_centralHidingPlaceObj, ... globalListOfSsmlStrs_];
+function encodeAllDataSsmlAttribs_indexTechnique_updateHidingPlaceElement(globalListOfSsmlStrs_) {
+	let newGlobalListOfSsmlStrs = [...NvdaAddOnDataSsml.g_hidingPlaceObj, ... globalListOfSsmlStrs_];
 	let globaListAsJson = JSON.stringify(newGlobalListOfSsmlStrs);
-	NvdaAddOnDataSsml.g_centralHidingPlaceElement.textContent = `Please ignore. ${HIDING_PLACE_GUID_FOR_ALL_TECHNIQUES} ${HIDING_PLACE_GUID_FOR_INDEX_TECHNIQUE} ${globaListAsJson}`;
-	NvdaAddOnDataSsml.g_centralHidingPlaceObj = newGlobalListOfSsmlStrs;
+	NvdaAddOnDataSsml.g_hidingPlaceElement.textContent = `Please ignore. ${HIDING_PLACE_GUID_FOR_ALL_TECHNIQUES} ${HIDING_PLACE_GUID_FOR_INDEX_TECHNIQUE} ${globaListAsJson}`;
+	NvdaAddOnDataSsml.g_hidingPlaceObj = newGlobalListOfSsmlStrs;
 }
 
-function encodeAllDataSsmlAttribs_indexTechnique_createCentralHidingPlaceElement(globalListOfSsmlStrs_) {
+function encodeAllDataSsmlAttribs_indexTechnique_createHidingPlaceElement(globalListOfSsmlStrs_) {
 	let div = document.createElement("div");
 	let globaListAsJson = JSON.stringify(globalListOfSsmlStrs_);
 	div.textContent = `Please ignore. ${HIDING_PLACE_GUID_FOR_ALL_TECHNIQUES} ${HIDING_PLACE_GUID_FOR_INDEX_TECHNIQUE} ${globaListAsJson}`;
 	document.body.appendChild(div);
-	NvdaAddOnDataSsml.g_centralHidingPlaceElement = div;
-	NvdaAddOnDataSsml.g_centralHidingPlaceObj = globalListOfSsmlStrs_;
+	NvdaAddOnDataSsml.g_hidingPlaceElement = div;
+	NvdaAddOnDataSsml.g_hidingPlaceObj = globalListOfSsmlStrs_;
 }
 
 function encodeAllDataSsmlAttribs_indexTechnique_encodeEachOccurrenceAsAnIndex() {
