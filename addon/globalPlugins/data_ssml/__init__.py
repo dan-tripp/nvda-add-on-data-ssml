@@ -324,13 +324,13 @@ def convertSpeechStrIntoSpeechCommandList_allMatches_techniquePageWide(str_: str
 def convertSpeechStrIntoSpeechCommandList_allMatches_techniquesIndexAndInline(str_: str, state_: State, okToThrowRetriableError_: bool):
 	r = []
 	prevEndIdx = 0
-	matchCount = 0
+	iMatch = -1
 
 	# the techniques index and inline have the same start/end markers. 
 	pattern = re.compile(f'{re.escape(MARKER)}(.*?){re.escape(MARKER)}(.*?){re.escape(MACRO_END_MARKER)}', flags=re.DOTALL)
 
 	for match in pattern.finditer(str_):
-		matchCount += 1
+		iMatch += 1
 		startIdx, endIdx = match.span()
 		ssmlInstructionStrEncoded, plainTextToAffect = match.groups()
 		plainTextWholeMatch = match.group(0)
@@ -340,14 +340,14 @@ def convertSpeechStrIntoSpeechCommandList_allMatches_techniquesIndexAndInline(st
 			logInfo(f'leadingNonMatch: {repr(leadingNonMatch)}')
 			r.append(leadingNonMatch)
 
-		logInfo(f'plainTextWholeMatch: {repr(plainTextWholeMatch)}')
-		logInfo(f'ssmlInstructionStrEncoded: {repr(ssmlInstructionStrEncoded)}')
-		logInfo(f'textToAffect (len {len(plainTextToAffect)}): {repr(plainTextToAffect)}')
+		logInfo(f'match [{iMatch}] start: plainTextWholeMatch = {repr(plainTextWholeMatch)}, ssmlInstructionStrEncoded = {repr(ssmlInstructionStrEncoded)}, textToAffect (len {len(plainTextToAffect)}) = {repr(plainTextToAffect)}')
 
 		try:
-			r.extend(convertSpeechStrIntoSpeechCommandList_singleMatch_techniquesIndexAndInline(ssmlInstructionStrEncoded, plainTextToAffect, plainTextWholeMatch, state_, okToThrowRetriableError_))
+			speechCommandListForMatch = convertSpeechStrIntoSpeechCommandList_singleMatch_techniquesIndexAndInline(ssmlInstructionStrEncoded, plainTextToAffect, plainTextWholeMatch, state_, okToThrowRetriableError_)
+			r.extend(speechCommandListForMatch)
+			logInfo(f'match [{iMatch}] result: Ok.  gave us: {speechCommandListForMatch}')
 		except NonRetriableSsmlError as e:
-			logInfo(f'Error happened while processing SSML.  We will fall back to the plain text.  The SSML instruction string encoded was "{ssmlInstructionStrEncoded}".  The exception, which we will suppress, was:')
+			logInfo(f'match [{iMatch}] result: Error happened while processing SSML.  We will fall back to the plain text.  The SSML instruction string encoded was "{ssmlInstructionStrEncoded}".  The exception, which we will suppress, was:')
 			log.exception(e)
 			r.append(plainTextWholeMatch)
 		prevEndIdx = endIdx
