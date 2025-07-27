@@ -264,13 +264,13 @@ MACRO_END_MARKER = MARKER * 2
 
 
 @profile
-def convertSpeechStrIntoSpeechCommandList_multiMatch(str_: str, state_: State, okToThrowRetriableError_: bool):
-	logInfo(f'convertSpeechStrIntoSpeechCommandList_multiMatch input (len {len(str_)}): {repr(str_)}')
+def convertSpeechStrIntoSpeechCommandList_allMatches(str_: str, state_: State, okToThrowRetriableError_: bool):
+	logInfo(f'convertSpeechStrIntoSpeechCommandList_allMatches input (len {len(str_)}): {repr(str_)}')
  
 	if state_.technique in ('index', 'inline'):
-		r = convertSpeechStrIntoSpeechCommandList_multiMatch_techniquesIndexAndInline(str_, state_, okToThrowRetriableError_)
+		r = convertSpeechStrIntoSpeechCommandList_allMatches_techniquesIndexAndInline(str_, state_, okToThrowRetriableError_)
 	elif state_.technique == 'page-wide':
-		r = convertSpeechStrIntoSpeechCommandList_multiMatch_techniquePageWide(str_, state_)
+		r = convertSpeechStrIntoSpeechCommandList_allMatches_techniquePageWide(str_, state_)
 	else:
 		ourAssert(False)
 
@@ -294,7 +294,7 @@ def convertSpeechStrIntoSpeechCommandList_multiMatch(str_: str, state_: State, o
     
 
 
-def convertSpeechStrIntoSpeechCommandList_multiMatch_techniquePageWide(str_: str, state_: State):
+def convertSpeechStrIntoSpeechCommandList_allMatches_techniquePageWide(str_: str, state_: State):
 	m = state_.techniquePageWideDictOfPlainTextToSsmlStr
 	ourAssert(m != None)
 	plainTexts = sorted(m.keys(), key=lambda e: -len(e)) # so that if we have plainTexts "3'" and "3'~", our pattern will match "3'~".  the way regex '|' works, it will match the leftmost branch.  so we want the longest one to be the leftmost.  this sort does that. 
@@ -321,7 +321,7 @@ def convertSpeechStrIntoSpeechCommandList_multiMatch_techniquePageWide(str_: str
 
 	return r
 
-def convertSpeechStrIntoSpeechCommandList_multiMatch_techniquesIndexAndInline(str_: str, state_: State, okToThrowRetriableError_: bool):
+def convertSpeechStrIntoSpeechCommandList_allMatches_techniquesIndexAndInline(str_: str, state_: State, okToThrowRetriableError_: bool):
 	r = []
 	prevEndIdx = 0
 	matchCount = 0
@@ -386,7 +386,7 @@ def convertSpeechStrIntoSpeechCommandList_singleMatch_techniquesIndexAndInline(s
 		ssmlStrEncoded = ssmlInstructionStrEncoded_
 		ssmlStr = decodeEncodedSsmlInstructionStr(ssmlStrEncoded)
 		logInfo(f'	ssmlStr: "{ssmlStr}"')
-		r = convertSsmlStrIntoSpeechCommandList(ssmlStr, plainTextToAffect_, plainTextWholeMatch_, state_)
+		r = convertSsmlStrIntoSpeechCommandList(ssmlStr, plainTextToAffect_, plainTextWholeMatch_, state_, okToThrowRetriableError_)
 	else:
 		ourAssert(False)
 
@@ -580,7 +580,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		for element in origSeq:
 			if isinstance(element, str) and len(element) > 0:
 				logInfo(f'filter got string len {len(element)}: "{repr(element)}"')
-				modSeq.extend(convertSpeechStrIntoSpeechCommandList_multiMatch(element, g_state, okToThrowRetriableError_))
+				modSeq.extend(convertSpeechStrIntoSpeechCommandList_allMatches(element, g_state, okToThrowRetriableError_))
 			else:
 				modSeq.append(element)
 		return modSeq

@@ -61,6 +61,12 @@ for mod in ["globalPluginHandler", "speech", "ui", "synthDriverHandler", "api", 
 sys.path.append('./addon/globalPlugins')
 import data_ssml 
 
+def decodeInstr(str_):
+	return data_ssml.decodeEncodedSsmlInstructionStr(str_)
+
+def decodeAllMatches(str_, state_):
+	return data_ssml.convertSpeechStrIntoSpeechCommandList_allMatches(str_, state_, False)
+
 class Test1(unittest.TestCase):
 	@classmethod
 	def setUpClass(cls):
@@ -70,7 +76,7 @@ class Test1(unittest.TestCase):
 		ssmlAsJson = '{"sub": {"alias": "100 prime"}}'
 		encodedSsmlAsJson = "\u2064\u206b\u200d\u200d\u2064\u2060\u2064\ufeff\u2063\u200d\u200d\u200d\u2060\u206a\u200d\ufff9\u2064\u206b\u200d\u200d\u2063\u200c\u2063\u206c\u2063\ufffa\u2063\u200c\u2064\u2060\u200d\u200d\u2060\u206a\u200d\ufff9\u200d\u200d\u2060\u200c\u2060\ufff9\u2060\ufff9\u200d\ufff9\u2064\ufff9\u2064\u200d\u2063\ufffa\u2063\u206d\u2063\ufeff\u200d\u200d\u2064\u206d\u2064\u206d"
         
-		decodedEncodedSsmlAsJson = data_ssml.decodeSingleStr(encodedSsmlAsJson)
+		decodedEncodedSsmlAsJson = decodeInstr(encodedSsmlAsJson)
 		self.assertEqual(decodedEncodedSsmlAsJson, ssmlAsJson)
 		
 		start = data_ssml.MARKER; end = data_ssml.MARKER
@@ -80,15 +86,15 @@ class Test1(unittest.TestCase):
 		state.technique = 'inline'
 
 		encoded = start + encodedSsmlAsJson + end + "11023456" + start + end
-		decodedSpeechCommands = data_ssml.decodeAllStrs(encoded, state)
+		decodedSpeechCommands = decodeAllMatches(encoded, state)
 		self.assertEqual(decodedSpeechCommands, ["100 prime"])
 
 		encoded = "preamble" + start + encodedSsmlAsJson + end + "123456" + start + end + "postamble"
-		decodedSpeechCommands = data_ssml.decodeAllStrs(encoded, state)
+		decodedSpeechCommands = decodeAllMatches(encoded, state)
 		self.assertEqual(decodedSpeechCommands, ["preamble"+"100 prime"+"postamble"])
 
 		encoded = "preamble1" + start + encodedSsmlAsJson + end + "123" + start + end + "between" + start + encodedSsmlAsJson + end + "456" + start + end + "postamble2"
-		decodedSpeechCommands = data_ssml.decodeAllStrs(encoded, state)
+		decodedSpeechCommands = decodeAllMatches(encoded, state)
 		self.assertEqual(decodedSpeechCommands, ["preamble1"+"100 prime"+"between"+"100 prime"+"postamble2"])
 
 
@@ -96,7 +102,7 @@ class Test1(unittest.TestCase):
 		ssmlAsJson = '{"say-as": {"interpret-as": "characters"}}'
 		encodedSsmlAsJson = "\u2064\u206b\u200d\u200d\u2064\u2060\u2063\u200c\u2064\ufffa\u200d\u206d\u2063\u200c\u2064\u2060\u200d\u200d\u2060\u206a\u200d\ufff9\u2064\u206b\u200d\u200d\u2063\ufffa\u2063\u206e\u2064\u2061\u2063\ufeff\u2064\u200d\u2064\ufff9\u2064\u200d\u2063\ufeff\u2064\u2061\u200d\u206d\u2063\u200c\u2064\u2060\u200d\u200d\u2060\u206a\u200d\ufff9\u200d\u200d\u2063\u2060\u2063\ufffb\u2063\u200c\u2064\u200d\u2063\u200c\u2063\u2060\u2064\u2061\u2063\ufeff\u2064\u200d\u2064\u2060\u200d\u200d\u2064\u206d\u2064\u206d"
         
-		decodedEncodedSsmlAsJson = data_ssml.decodeSingleStr(encodedSsmlAsJson)
+		decodedEncodedSsmlAsJson = decodeInstr(encodedSsmlAsJson)
 		self.assertEqual(decodedEncodedSsmlAsJson, ssmlAsJson)
 		
 		start = data_ssml.MARKER; end = data_ssml.MARKER
@@ -106,16 +112,16 @@ class Test1(unittest.TestCase):
 		state.technique = 'inline'
 
 		encoded = start + encodedSsmlAsJson + end + 'FAQ' + start + end
-		decodedSpeechCommands = data_ssml.decodeAllStrs(encoded, state)
+		decodedSpeechCommands = decodeAllMatches(encoded, state)
 		self.assertEqual(decodedSpeechCommands, [CharacterModeCommand(True), 'FAQ', CharacterModeCommand(False)])
 
 		encoded = start + encodedSsmlAsJson + end + 'faq' + start + end
 		state.useCharacterModeCommand = False
-		decodedSpeechCommands = data_ssml.decodeAllStrs(encoded, state)
+		decodedSpeechCommands = decodeAllMatches(encoded, state)
 		self.assertEqual(decodedSpeechCommands, [' f  eigh  q '])
 
 		state.isLanguageEnglish = False
-		decodedSpeechCommands = data_ssml.decodeAllStrs(encoded, state)
+		decodedSpeechCommands = decodeAllMatches(encoded, state)
 		self.assertEqual(decodedSpeechCommands, [' f  a  q '])
 	
 
