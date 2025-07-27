@@ -507,6 +507,7 @@ def updateA11yTreeRoot(forceUpdateOfState_):
 
 	oldA11yTreeRoot = g_state.a11yTreeRoot
 	a11yTreeRootChanged = (id(oldA11yTreeRoot) != id(newA11yTreeRoot)) # it's unclear if "id" is necessary here.  I used it because I don't know how their equals operator is implemented. 
+	# FYI if you reload the page, the a11y root will change to a new one. 
 	logInfo(f'a11y tree root is now {str(newA11yTreeRoot)}.  value changed: {"yes" if a11yTreeRootChanged else "no"}.')
 	if a11yTreeRootChanged or forceUpdateOfState_:
 		g_state = State()

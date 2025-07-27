@@ -38,9 +38,14 @@ p { line-height: 1.5; }
 			NvdaAddOnDataSsml.initByUrlParams(window.location.search, defaultTechnique, defaultWatchForDomChanges);
 		});
 
-		document.querySelector('#addDataSsmlButton').addEventListener('click', () => {
-			let elem = document.querySelector('#e1');
+		document.querySelector('#addDataSsmlOcc0Button').addEventListener('click', () => {
+			let elem = document.querySelector('#occ0');
 			elem.setAttribute('data-ssml', '{"sub": {"alias": "d e f"}}');
+		});
+
+		document.querySelector('#addDataSsmlOcc1Button').addEventListener('click', () => {
+			let elem = document.querySelector('#occ1');
+			elem.setAttribute('data-ssml', '{"sub": {"alias": "x y z"}}');
 		});
 
 	});
@@ -59,19 +64,23 @@ p { line-height: 1.5; }
 
 <p>
 	<button id="runJsInitButton">A (run JS init)</button> 
-	<button id="addDataSsmlButton">B (add data-ssml)</button> 
+	<button id="addDataSsmlOcc0Button">B (add data-ssml occ [0])</button> 
+	<button id="addDataSsmlOcc1Button">C (add data-ssml occ [1])</button> 
 </p>
 
 <p>
-	<span id="e1">a b c</span><br>
-	^^ expected: "d e f" 
+	<span id="occ0">a b c</span><br>
+	↑ expected: "d e f" <br>
+	<span id="occ1">t u v</span><br>
+	↑ expected: "x y z" <br>
 </p>
 
 <h2>test cases</h2>
 
 <ol>
-	<li>start nvda.  hit A.  hit B.  arrow-nav to "a b c".</li>
-	<li>start nvda.  hit B.  hit A.  arrow-nav to "a b c".</li>
+	<li>reload this page.  hit A.  hit B.  arrow-nav to "a b c".</li>
+	<li>reload this page.  hit B.  hit A.  arrow-nav to "a b c".</li>
+	<li>reload this page.  hit B.  hit A.  hit C.  arrow-nav to "a b c".  arrow-nav to "t u v".</li>
 </ol>
 
 
