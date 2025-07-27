@@ -32,20 +32,25 @@ p { line-height: 1.5; }
 	<script>
 	window.addEventListener("load", function(event) {
 
-		document.querySelector('#runJsInitButton').addEventListener('click', () => {
+		document.querySelector('button[data-id="0"]').addEventListener('click', () => {
 			let defaultTechnique = 'index';
 			let defaultWatchForDomChanges = true;
 			NvdaAddOnDataSsml.initByUrlParams(window.location.search, defaultTechnique, defaultWatchForDomChanges);
 		});
 
-		document.querySelector('#addDataSsmlOcc0Button').addEventListener('click', () => {
-			let elem = document.querySelector('#occ0');
-			elem.setAttribute('data-ssml', '{"sub": {"alias": "d e f"}}');
+		document.querySelector('button[data-id="1"]').addEventListener('click', () => {
+			let elem = document.querySelector('span[data-id="1"]');
+			elem.setAttribute('data-ssml', '{"sub": {"alias": "alpha"}}');
 		});
 
-		document.querySelector('#addDataSsmlOcc1Button').addEventListener('click', () => {
-			let elem = document.querySelector('#occ1');
-			elem.setAttribute('data-ssml', '{"sub": {"alias": "x y z"}}');
+		document.querySelector('button[data-id="2"]').addEventListener('click', () => {
+			let elem = document.querySelector('span[data-id="2"]');
+			elem.setAttribute('data-ssml', '{"sub": {"alias": "beta"}}');
+		});
+
+		document.querySelector('button[data-id="3"]').addEventListener('click', () => {
+			let elem = document.querySelector('span[data-id="3"]');
+			elem.setAttribute('data-ssml', '{"sub": {"alias": "alpha"}}');
 		});
 
 	});
@@ -63,25 +68,32 @@ p { line-height: 1.5; }
 <h1>test page - watch for DOM changes</h1>
 
 <p>
-	<button id="runJsInitButton">A (run JS init)</button> 
-	<button id="addDataSsmlOcc0Button">B (add data-ssml occ [0])</button> 
-	<button id="addDataSsmlOcc1Button">C (add data-ssml occ [1])</button> 
+	<button data-id="0">0 (run JS init)</button> 
+	<button data-id="1">1 (add data-ssml occ 1)</button> 
+	<button data-id="2">2 (add data-ssml occ 2)</button> 
+	<button data-id="3">3 (add data-ssml occ 2: dupe of occ 1)</button> 
 </p>
 
 <p>
-	<span id="occ0">a b c</span><br>
-	↑ expected: "d e f" <br>
-	<span id="occ1">t u v</span><br>
-	↑ expected: "x y z" <br>
+	<span data-id="1">one</span><br>
+	↑ expected: "alpha" <br>
+	<span data-id="2">two</span><br>
+	↑ expected: "beta" <br>
+	<span data-id="3">three</span><br>
+	↑ expected: "alpha" <br>
 </p>
 
 <h2>test cases</h2>
 
 <ol>
-	<li>reload this page.  hit A, B.  arrow-nav to "a b c".</li>
-	<li>reload this page.  hit B, A.  arrow-nav to "a b c".</li>
-	<li>reload this page.  hit B, A, C.  arrow-nav to "a b c".  arrow-nav to "t u v".</li>
-	<li>reload this page.  hit C, A, B.  arrow-nav to "a b c".  arrow-nav to "t u v".</li>
+	<li>reload this page.  hit 0, 1.  arrow-nav to "one".</li>
+	<li>reload this page.  hit 1, 0.  arrow-nav to "one".</li>
+	<li>reload this page.  hit 1, 0, 2.  arrow-nav to "one", "two".</li>
+	<li>reload this page.  hit 2, 0, 1.  arrow-nav to "one", "two".</li>
+	<li>reload this page.  hit 1, 3, 0.  arrow-nav to "one", "three".</li>
+	<li>reload this page.  hit 1, 0, 3.  arrow-nav to "one", "three".</li>
+	<li>reload this page.  hit 1, 2, 3, 0.  arrow-nav to "one", "two", "three".</li>
+	<li>reload this page.  hit 0, 1, 2, 3.  arrow-nav to "one", "two", "three".</li>
 </ol>
 
 
