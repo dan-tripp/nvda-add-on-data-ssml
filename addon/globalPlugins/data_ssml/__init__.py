@@ -209,7 +209,7 @@ def convertSsmlStrIntoSpeechCommandList(ssmlStr_, textToAffect_: str, origWholeT
 				# it's an int ==> technique=index.  but the fact that we're in this function - which is supposed to take as an arg an ssml str payload (not an index to one) indicates that we (= the python side) think that technique=inline.  the page is right.  our state on the python side is wrong.  this means that on the JS side, the JS init ran after we (= the python side) got our most recent update of our state from the a11y root.  so we force such an update by raising this: 
 				raise RetriableSsmlError('detected late JS init')
 			else:
-				raise NonRetriableSsmlError(f'expected a dict in the json.  got an object of type: {type(ssmlObj)}.')
+				raise NonRetriableSsmlError(f'expected a dict in the json.  got an object of type: {type(ssmlObj)}.') from None
 		if len(ssmlObj) != 1: raise NonRetriableSsmlError()
 		key = next(iter(ssmlObj)); val = ssmlObj[key]
 		if key == 'sub':
@@ -369,14 +369,17 @@ def convertSpeechStrIntoSpeechCommandList_singleMatch_techniquesIndexAndInline(s
 			idxInListAsDecodedStr = decodeEncodedSsmlInstructionStr(idxInListAsEncodedStr)
 			logInfo(f'	idxInListAsDecodedStr: "{idxInListAsDecodedStr}"')
 			ourAssert(idxInListAsDecodedStr)
-			idxInList = int(idxInListAsDecodedStr)
+			try:
+				idxInList = int(idxInListAsDecodedStr)
+			except ValueError as e:
+				raise NonRetriableSsmlError() from e
 			if(idxInList < 0): raise NonRetriableSsmlError("index is negative") # sure, python (with it's -ve list indices) could handle this -ve index.  but our JS will never output a -ve index.  so our JS didn't create this.  so this must be a case of "encoding characters in the wild".  
 			if idxInList >= len(state_.techniqueIndexListOfSsmlStrs):
 				if okToThrowRetriableError_:
 					# could mean that on the JS side, watchForDomChanges == true, and the data-ssml attribute corresponding to this index was added after we (= the python side) did our most recent update of our state from the a11y root.  so we raise this, to force such an update: 
 					raise RetriableSsmlError('idx is too high for us')
 				else:
-					raise NonRetriableSsmlError('idx is too high for us')
+					raise NonRetriableSsmlError('idx is too high for us') from None
 			ssmlStr = state_.techniqueIndexListOfSsmlStrs[idxInList]
 			r = convertSsmlStrIntoSpeechCommandList(ssmlStr, plainTextToAffect_, plainTextWholeMatch_, state_, okToThrowRetriableError_)
 	elif state_.technique == 'inline':
