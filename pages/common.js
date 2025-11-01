@@ -1,11 +1,11 @@
 
 function addTestCasesToTable(testCases_, table_, tableHasWithoutSsmlColumn_) {
 	let tbody = table_.querySelector('tbody');
-	for(let testCase of testCases_) {
+	for(let [iTestCase, testCase] of testCases_.entries()) {
 		let tr = document.createElement('tr');
 		tr.innerHTML = `
 			<td>${testCase.html}</td>
-			<td>${testCase.expected}</td>
+			<td>${iTestCase}. ${testCase.expected}</td>
 		`;
 		let tdHtmlWithSsml = tr.querySelector('td');
 		if(tableHasWithoutSsmlColumn_) {

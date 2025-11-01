@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+		- start nvda 
 <html lang="en">
 <head>
 	<meta charset="UTF-8">
@@ -19,9 +20,11 @@ p { line-height: 1.5; }
     width: 1px;
 }
 
-[data-ssml] {
+[data-ssml]:not(:focus) {
 	outline: 2px dashed rgb(150,150,150);
 }
+
+
 
 table.table {
 	border-collapse: collapse;
@@ -48,7 +51,38 @@ table.table th {
 
 	<script>
 
+function jumpToElementLikeItWasAJumpLinkTarget(element_) {
+    element_.setAttribute("tabindex", "-1");
+    element_.focus(); 
+    element_.removeAttribute("tabindex");
+}
+
+function initSkipToRowButton() {
+	let button = document.querySelector('#skip-to-row-button');
+	let input = document.querySelector('#skip-to-row-input');
+	const LOCALSTORAGE_KEY = 'nvda-data-ssml-test-page-skip-to-row-input';
+	button.addEventListener("click", () => {
+		let n = parseInt(input.value);
+		if(isNaN(n)) return;
+		let trElem = document.querySelector('#table').querySelectorAll('tr')[n];
+		if(!trElem) return;
+		jumpToElementLikeItWasAJumpLinkTarget(trElem);
+		localStorage.setItem(LOCALSTORAGE_KEY, n.toString());
+	});
+	input.addEventListener('keydown', e__ => {
+		if(e__.key === 'Enter') {
+			button.click();
+		}
+	});
+	let valFromLocalStorage = localStorage.getItem(LOCALSTORAGE_KEY);
+	if(valFromLocalStorage !== null) {
+		let n = parseInt(valFromLocalStorage);
+		input.value = n.toString();
+	}
+}
+
 window.addEventListener("load", function(event) {
+	initSkipToRowButton();
 
 	let testCases = [
 		{html: `<span data-ssml='{"sub": {"alias": "3 prime"}}'>3'</span>`, 
@@ -162,15 +196,15 @@ window.addEventListener("load", function(event) {
 			expected: 'if synth==OneCore: led (as in "heavy metal").<br>else: who knows.'},
 		{html: `<span data-ssml='{"phoneme":{"alphabet":"ipa","ph":"liːd"}}'>lead</span>`, 
 			expected: 'if synth==OneCore: leed (as in "follow the leader").<br>else: who knows.'},
-		{html: `<span data-ssml='{"phoneme":{"alphabet":"ipa","ph":"lɛd liːd lɛd liːd lɛd liːd lɛd liːd lɛd liːd lɛd liːd lɛd liːd lɛd liːd lɛd liːd lɛd liːd"}}'>lead lead lead lead lead lead lead lead lead lead lead lead lead lead lead lead lead lead lead lead</span>`, 
+		{html: `<span data-ssml='{"phoneme":{"alphabet":"ipa","ph":"lɛd liːd ˈziro lɛd liːd ˈwan lɛd liːd ˈtu lɛd liːd θriː lɛd liːd /fɔːr/ lɛd liːd ˈfai̯f lɛd liːd ˈsɪks lɛd liːd ˈsɛv.n lɛd liːd ˈei̯t lɛd liːd /naɪn/"}}'>lead lead 0 lead lead 1 lead lead 2 lead lead 3 lead lead 4 lead lead 5 lead lead 6 lead lead 7 lead lead 8 lead lead 9</span>`, 
 			expected: `<pre>if(synth==OneCore) {
   if(technique==index) {
-    "led leed led leed ..."
+    "led leed 0 led leed 1 ..."
   } else if(technique==inline) {
     if(table arrow nav) {
-      "led leed led leed ..."
+      "led leed 0 led leed 1 ..."
     } else if(regular arrow nav) {
-      "leed leed leed leed ..." [1] 
+      "leed leed 0 leed leed 1 ..." [1] 
     } else /* synth==other */ {
       who knows
   }
@@ -256,6 +290,7 @@ window.addEventListener("load", function(event) {
 <h1>test page</h1>
 
 <p>
+	skip to row <input size="2" id="skip-to-row-input"> <button id="skip-to-row-button">go</button><br>
 	<a href="#bottom">skip to bottom</a>
 </p>
 
@@ -273,7 +308,7 @@ window.addEventListener("load", function(event) {
 	</tbody>
 </table>
 
-<div style="height: 50vh" id="bottom" tabindex="0"></div>
+<div style="height: 50vh" id="bottom" tabindex="-1"></div>
 
 
 
