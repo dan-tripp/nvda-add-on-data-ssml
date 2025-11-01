@@ -13,6 +13,8 @@ window.NvdaAddOnDataSsml.initByUrlParams = function(urlParams_, defaultTechnique
 	NvdaAddOnDataSsml.initByTechnique(technique, watchForDomChanges);
 }
 
+/* if you call this multiple times: that is probably harmless.  
+	- more commentary, probably not interesting: this function could be seen as idempotent if you just look at its effect on the DOM.  but it's not idempotent if you look at what's happening in the JS, because if watchForDomChanges_ is true, then on every call to this function, we'll add a new mutation observer, so when a mutation happens, multiple instances of our mutation observer will get called.  this won't matter much because the second and subsequent calls won't change the DOM, because of data-ssml-processed. */
 window.NvdaAddOnDataSsml.initByTechnique = function(technique_, watchForDomChanges_) {
 	if(technique_ === 'page-wide' && watchForDomChanges_) throw new Error("page-wide && watch: not supported yet");
 	encodeAllDataSsmlAttribs(technique_);
