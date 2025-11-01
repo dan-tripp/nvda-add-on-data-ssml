@@ -114,6 +114,15 @@ This add-on can be configured to use one of several "techniques", but regardless
 
 
 
+## Installing 
+
+If you have an .nvda-addon file for this project:
+- This file will be called something like data_ssml-0.1.nvda-addon. 
+- Option 1: "Double-click" on that .nvda-addon file, to install it.  Or, with the keyboard: in Windows Explorer, move your focus to the .nvda-addon file, the press ENTER.
+	- This installation method (via mouse or keyboard) will only work if NVDA is running.  So if it isn't: run it.
+- Option 2: With NVDA running, go to NVDA in the task bar > Tools > Add-on store > Install from external source, and select the .nvda-addon file.
+- Regardless of option: you will need to restart NVDA for the add-on to take effect.  NVDA will probably prompt you to do this.
+
 
 ## Developing 
 
