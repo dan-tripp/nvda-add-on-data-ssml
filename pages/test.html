@@ -163,17 +163,19 @@ window.addEventListener("load", function(event) {
 		{html: `<span data-ssml='{"phoneme":{"alphabet":"ipa","ph":"liːd"}}'>lead</span>`, 
 			expected: 'if synth==OneCore: leed (as in "follow the leader").<br>else: who knows.'},
 		{html: `<span data-ssml='{"phoneme":{"alphabet":"ipa","ph":"lɛd liːd lɛd liːd lɛd liːd lɛd liːd lɛd liːd lɛd liːd lɛd liːd lɛd liːd lɛd liːd lɛd liːd"}}'>lead lead lead lead lead lead lead lead lead lead lead lead lead lead lead lead lead lead lead lead</span>`, 
-			expected: `if(synth==OneCore) {<br>
-			&nbsp;&nbsp;if(technique==index) {<br>
-			&nbsp;&nbsp;&nbsp;&nbsp;"led leed led leed ..."<br>
-			&nbsp;&nbsp;} else if(technique==inline) {<br>
-			&nbsp;&nbsp;&nbsp;&nbsp;if(you got here by table arrow nav) {<br>
-			&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"led leed led leed ..."<br>
-			&nbsp;&nbsp;&nbsp;&nbsp;} else if(you got here by regular arrow nav) {<br>
-			&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"leed leed leed leed ..." (b/c plainText+ssml exceeded the max length)}<br>
-			} else /* synth=other */ {<br>
-			&nbsp;&nbsp;who knows
-			<br>}`},
+			expected: `<pre>if(synth==OneCore) {
+  if(technique==index) {
+    "led leed led leed ..."
+  } else if(technique==inline) {
+    if(table arrow nav) {
+      "led leed led leed ..."
+    } else if(regular arrow nav) {
+      "leed leed leed leed ..." [1] 
+    } else /* synth==other */ {
+      who knows
+  }
+[1] b/c plainText+ssml exceeded max len
+	</pre>`},
 		{html: `<span data-ssml='{"phoneme":{"alphabet":"ipa","ph":"θ"}}'>th</span>`, 
 			expected: `"TH" (a toothy "T H" sound, like the start of the word "thought".  unlike most phonemes, this phoneme works with all synths (i.e. synth=eSpeak|SAPI5|OneCore).  I don't know why.  <a href="https://github.com/nvaccess/nvda/blob/b501e16a2392aaa89892879d77725f02b9f2835d/source/synthDrivers/sapi5.py#L423">source</a>.)`},
 		{html: `
@@ -237,7 +239,7 @@ window.addEventListener("load", function(event) {
 	<script>
 	window.addEventListener("load", function(event) {
 		let defaultTechnique = 'index';
-		let defaultWatchForDomChanges = false;
+		let defaultWatchForDomChanges = true;
 		NvdaAddOnDataSsml.initByUrlParams(window.location.search, defaultTechnique, defaultWatchForDomChanges);
 	});
 	</script>
@@ -271,7 +273,7 @@ window.addEventListener("load", function(event) {
 	</tbody>
 </table>
 
-<div style="height: 50vh" id="bottom"></div>
+<div style="height: 50vh" id="bottom" tabindex="0"></div>
 
 
 
