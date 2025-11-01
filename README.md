@@ -117,9 +117,9 @@ This add-on can be configured to use one of several "techniques", but regardless
 
 ## Developing 
 
-- To build: "Open a command line, change to the folder that has the sconstruct file (usually the root of your add-on development folder) and run the scons command. The created add-on, if there were no errors, is placed in the current directory." (copied from https://github.com/nvdaaddons/AddonTemplate/blob/master/readme.md)
+- To build, for distribution: "Open a command line, change to the folder that has the sconstruct file (usually the root of your add-on development folder) and run the scons command. The created add-on, if there were no errors, is placed in the current directory." (copied from https://github.com/nvdaaddons/AddonTemplate/blob/master/readme.md)
 
-- To keep NVDA's copy of this add-on in sync with this repo, I use NVDA's "scratchPad" directory.  Here are some ways to make that work:
+- For convenience while developing: I use NVDA's "scratchPad" directory, and I keep this repo in sync with the scratchPad directory.  Here are two options for how to do that: 
 	- (A prerequisite is to enable the scratchpad directory.  nvda > preferences > settings > advanced > ... )
 	- option 1: symlink 
 		- i.e. in Windows, run a command prompt as administrator, then run something like this: mklink /D "C:\Users\dt\AppData\Roaming\nvda\scratchpad\globalPlugins\data_ssml" "\\wsl.localhost\Ubuntu\root\nvda-add-on-data-ssml\addon\globalPlugins\data_ssml"  
