@@ -23,6 +23,11 @@ p { line-height: 1.5; }
 	outline: 2px dashed rgb(150,150,150);
 }
 
+.box {
+	outline: 1px solid #999;
+	margin: 5px 0px;
+}
+
 
 	</style>
 
@@ -58,6 +63,11 @@ p { line-height: 1.5; }
 			elem.setAttribute('data-ssml', '{"sub": {"alias": "gamma"}}');
 		});
 
+		document.querySelector('button[data-id="4b"]').addEventListener('click', () => {
+			let elem = document.querySelector('span[data-id="4"]');
+			elem.setAttribute('data-ssml', '{"sub": {"alias": "omega"}}');
+		});
+
 		document.querySelector('button[data-id="5"]').addEventListener('click', () => {
 			let elem = document.querySelector('span[data-id="5"]');
 			elem.setAttribute('data-ssml', 'x');
@@ -83,20 +93,31 @@ p { line-height: 1.5; }
 	<button data-id="2">2 (add data-ssml occ 2)</button> 
 	<button data-id="3">3 (add data-ssml occ 3: dupe of occ 1)</button> 
 	<button data-id="4">4 (add data-ssml occ 4)</button> 
+	<button data-id="4b">4b (add data-ssml option b to occ 4)</button> 
 	<button data-id="5">5 (add data-ssml occ 5: broken)</button> 
 </p>
 
 <p>
-	<span data-id="1">one</span><br>
-	↑ expected: "alpha" <br>
-	<span data-id="2">two</span><br>
-	↑ expected: "beta" <br>
-	<span data-id="3">three</span><br>
-	↑ expected: "alpha" <br>
-	<span data-id="4">four</span><br>
-	↑ expected: "gamma" <br>
-	<span data-id="5">five</span><br>
-	↑ expected: "five" <br>
+	<div class="box">
+		<span data-id="1">one</span><br>
+		↑ expected: "alpha" <br>
+	</div>
+	<div class="box">
+		<span data-id="2">two</span><br>
+		↑ expected: "beta" <br>
+	</div>
+	<div class="box">
+		<span data-id="3">three</span><br>
+		↑ expected: "alpha" <br>
+	</div>
+	<div class="box">
+		<span data-id="4">four</span><br>
+		↑ expected: "gamma" <br>
+	</div>
+	<div class="box">
+		<span data-id="5">five</span><br>
+		↑ expected: "five" <br>
+	</div>
 </p>
 
 <h2>test cases</h2>
@@ -118,6 +139,7 @@ p { line-height: 1.5; }
 	<li>reload this page.  hit 1, 4, 2, 3, 0.  arrow-nav to "one", "two", "three", "four".</li>
 	<li>reload this page.  hit 1, 0, 4, 2, 3.  arrow-nav to "one", "two", "three", "four".</li>
 	<li>reload this page.  hit 1, 4, 0, 2, 3.  arrow-nav to "one", "two", "three", "four".</li>
+	<li>reload this page.  hit 0, 4, 4b.  arrow-nav to "four".  this shows that we don't act on a change of data-ssml value.  only the appearance of one.</li>
 
 </ol>
 
