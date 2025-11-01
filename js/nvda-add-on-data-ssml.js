@@ -43,7 +43,7 @@ function startObserver(technique_) {
 		console.debug(`data-ssml: in mutation observer: proceeding.`);
 		encodeAllDataSsmlAttribs(technique_);
 	});
-	observer.observe(document.body, {childList: true, subtree: true, attributes: true, attributeFilter: ['data-ssml']});
+	observer.observe(document.body, {childList: true, subtree: true, attributes: true, attributeFilter: ['data-ssml'], attributeOldValue: true});
 }
 
 const HIDING_PLACE_GUID_FOR_ALL_TECHNIQUES = '4b9b696c-8fc8-49ca-9bb9-73afc9bd95f7';
@@ -126,7 +126,7 @@ class SsmlError extends Error {
 	}
 }
 
-/* note 1: you might be thinking "it's not really processed yet, so why are we adding the 'processed' attribute now?"  answer: b/c by adding this attribute now, we get the benefit that we won't re-process elements w/ data-ssml="" or SSML errors.  the only reason we wouldn't want to add this attribute now would be case of an error during "processing" (i.e. adding encoding characters).  we don't currently care about that. */
+/* note 1: you might be thinking "it's not really processed yet, so why are we adding the 'processed' attribute now?"  answer: b/c by adding this attribute now, we get the benefit that we won't re-process elements w/ data-ssml="" or SSML errors.  the only reason we wouldn't want to add this attribute now would be in case of an error during "processing" (i.e. adding encoding characters).  we don't currently care about that. */
 function* getAllElemsWithDataSsmlNotProcessed(technique_) {
 	let isTechniquePageWide = technique_ === 'page-wide';
 	for(let element of document.querySelectorAll('[data-ssml]:not([data-ssml-processed]')) {
