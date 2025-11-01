@@ -26,7 +26,7 @@ function isMutationInteresting(m_) {
         let el = m_.target;
         let prevValue = m_.oldValue;
         let newValue = el.getAttribute('data-ssml');
-        return prevValue === null && newValue !== null;
+        return prevValue === null && newValue !== null; // i.e. we don't act support a data-ssml value changing (after it has initially appeared).  once we see it, it's spoken presentation is carved in stone until page reload.  we do support a data-ssml attribute /appearing/ (on an element where there was none before), even long after page load.  
     } else if (m_.type === 'childList') {
     	for (let node of m_.addedNodes) {
             if (node.nodeType === Node.ELEMENT_NODE && node.hasAttribute('data-ssml')) {
