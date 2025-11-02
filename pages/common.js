@@ -3,6 +3,7 @@ function addTestCasesToTable(testCases_, table_, tableHasWithoutSsmlColumn_) {
 	let tbody = table_.querySelector('tbody');
 	for(let [iTestCase, testCase] of testCases_.entries()) {
 		let tr = document.createElement('tr');
+		tr.setAttribute('id', `row-${iTestCase}`);
 		tr.innerHTML = `
 			<td>${testCase.html}</td>
 			<td>${iTestCase}. ${testCase.expected}</td>

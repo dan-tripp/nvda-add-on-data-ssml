@@ -1,9 +1,8 @@
 <!DOCTYPE html>
-		- start nvda 
 <html lang="en">
 <head>
 	<meta charset="UTF-8">
-	<meta name="viewport" content="width=device-width">
+	<meta name="viewport" content="width=device-widthw">
 	<title>test page</title>
 
 	<style>
@@ -51,39 +50,32 @@ table.table th {
 
 	<script>
 
-function jumpToElementLikeItWasAJumpLinkTarget(element_) {
-    element_.setAttribute("tabindex", "-1");
-    element_.focus(); 
-    element_.removeAttribute("tabindex");
-}
-
 function initSkipToRowButton() {
-	let button = document.querySelector('#skip-to-row-button');
+	let link = document.querySelector('#skip-to-row-link');
 	let input = document.querySelector('#skip-to-row-input');
 	const LOCALSTORAGE_KEY = 'nvda-data-ssml-test-page-skip-to-row-input';
-	button.addEventListener("click", () => {
-		let n = parseInt(input.value);
-		if(isNaN(n)) return;
-		let trElem = document.querySelector('#table').querySelectorAll('tr')[n];
+	function updateLinkHref(iTestCaseStr_) {
+		let iTestCase = parseInt(iTestCaseStr_);
+		if(isNaN(iTestCase)) return;
+		iTestCase++;
+		let trElem = document.querySelector('#table').querySelectorAll('tr')[iTestCase];
 		if(!trElem) return;
-		jumpToElementLikeItWasAJumpLinkTarget(trElem);
-		localStorage.setItem(LOCALSTORAGE_KEY, n.toString());
-	});
-	input.addEventListener('keydown', e__ => {
-		if(e__.key === 'Enter') {
-			button.click();
-		}
+		let newHref = `#${trElem.id}`;
+		link.setAttribute('href', newHref);
+	}
+	input.addEventListener('input', e => {
+		let iTestCaseStr = e.target.value;
+		updateLinkHref(iTestCaseStr);
+		localStorage.setItem(LOCALSTORAGE_KEY, iTestCaseStr);
 	});
 	let valFromLocalStorage = localStorage.getItem(LOCALSTORAGE_KEY);
-	if(valFromLocalStorage !== null) {
-		let n = parseInt(valFromLocalStorage);
-		input.value = n.toString();
+	if(valFromLocalStorage) {
+		input.value = valFromLocalStorage;
+		updateLinkHref(valFromLocalStorage);
 	}
 }
 
 window.addEventListener("load", function(event) {
-	initSkipToRowButton();
-
 	let testCases = [
 		{html: `<span data-ssml='{"sub": {"alias": "3 prime"}}'>3'</span>`, 
 			expected: `3 prime`}, 
@@ -265,6 +257,11 @@ window.addEventListener("load", function(event) {
 	let table = document.getElementById('table');
 	addTestCasesToTable(testCases, table, true);
 
+
+	initSkipToRowButton();
+
+
+
 });
 
 	</script>
@@ -290,7 +287,7 @@ window.addEventListener("load", function(event) {
 <h1>test page</h1>
 
 <p>
-	skip to row <input size="2" id="skip-to-row-input"> <button id="skip-to-row-button">go</button><br>
+	skip to row <input size="2" id="skip-to-row-input"> <a href id="skip-to-row-link">go</a><br>
 	<a href="#bottom">skip to bottom</a>
 </p>
 
