@@ -37,11 +37,14 @@ logFilePathWindows="$(wslpath -wa "$logFilePathUnix")"
 powershellCmd="Get-Content '$logFilePathWindows' -Wait"
 if (( $# > 0 )); then
 	grepRegex="$1"
-	powershell.exe -Command "$powershellCmd" | grep --ignore-case --line-buffered "$grepRegex" | stdin-squeeze-into-column.py 50 
+	powershell.exe -Command "$powershellCmd" | grep --ignore-case --binary-files=text --line-buffered "$grepRegex" | stdin-squeeze-into-column.py 50 
+	# the arg --binary-files=text is there to handle non-ascii chars eg. the &#x2010; in <span data-ssml>dolore&#x2010;magna</span> 
+	# before we had that arg, such a line would not be matched by our grep at all - even if our grep pattern was an ascii string and the non-ascii string appeared later in the line. 
+	# this is complicated by the fact that somewhere along the way, such a non-ascii char gets mangled.  I think it's an encoding mismatch between powershell and wsl.  I tried to fix that for 20 minutes, gave up, and added this arg instead. 
 else
 	powershell.exe -Command "$powershellCmd" | stdin-squeeze-into-column.py 50 
 fi
 
-
+# we use powershell Get-Content (instead of wsl tail) b/c tail's "follow" option (which we want) doesn't work on the nvda log file.  not even close.  it's not just that it doesn't work across an nvda restart.  it doesn't work at all.  I tried a few tail args eg. -f, -F, --retry, --max-unchanged-stats=1 - nothing worked. 
 
 
