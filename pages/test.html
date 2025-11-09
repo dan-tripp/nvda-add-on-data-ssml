@@ -276,7 +276,8 @@ window.addEventListener("load", function(event) {
 	testCases.push(...[
 		{html: `<span data-ssml='{"sub": {"alias": "gamma"}}'>alpha beta</span>`, 
 			expected: `"alpha beta".  i.e. SSML doesn't work.  b/c there's a space in the plain text.  an error will be logged.`}, 
-
+		{html: `<span data-ssml='{"sub": {"alias": "warning long word"}}'>Donaudampfschiffahrtselektrizitätenhauptbetriebswerkbauunterbeamtengesellschaft</span>`, 
+			expected: `"warning long word".  (assuming technique!=inline.)  i.e. SSML works and a JS warning will be logged.`}, 
 	]);
 
 	let table = document.getElementById('table');

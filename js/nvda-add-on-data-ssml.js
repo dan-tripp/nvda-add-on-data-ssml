@@ -136,8 +136,9 @@ function* getAllElemsWithDataSsmlNotProcessed(technique_) {
 		let dataSsmlVal = element.getAttribute('data-ssml')?.trim();
 		if(!dataSsmlVal) continue;
 		try {
-			doElementLevelChecks(element, isTechniquePageWide);
-			doSsmlAttribChecks(dataSsmlVal, element.textContent, isTechniquePageWide);
+			doElementLevelErrorChecks(element, isTechniquePageWide);
+			doSsmlAttribErrorChecks(dataSsmlVal, element.textContent, isTechniquePageWide);
+			doElementLevelWarningChecks(element, isTechniquePageWide);
 			yield [element, dataSsmlVal];
 		} catch(err) {
 			if(err instanceof SsmlError) {
@@ -149,10 +150,17 @@ function* getAllElemsWithDataSsmlNotProcessed(technique_) {
 	}
 }
 
-function doElementLevelChecks(element_, isTechniquePageWide_) {
+function doElementLevelWarningChecks(element_, isTechniquePageWide_) {
+	let len = element_.textContent.length;
+	if(len > 70) {
+		console.warn(`data-ssml: the length of this element's text content is ${len} "characters" (really: UTF-16 code units).  This is somewhat long.  If it's too long, then data-ssml won't work.  It's unclear what exactly the max length is.  This add-on doesn't enforce a max length, but NVDA effectively does, and it's unclear exactly what NVDA's max length is.  By experiment, it seems to be roughly 100.  That is: over 100, data-ssml doesn't work - at least not for "arrow nav".  "tab nav" and "table nav" still work, at least some of the time.`, element_);
+	}
+}
+
+function doElementLevelErrorChecks(element_, isTechniquePageWide_) {
 	let doesAncestorHaveDataSsml = element_.parentElement.closest('[data-ssml]');
 	if(doesAncestorHaveDataSsml) {
-		throw new SsmlError("This element which has data-ssml has an ancestor which also has data-ssml.  We will ignore the data-ssml on this element, and probably the data-ssml on those ancestor element(s) too - there might be other warnings logged about them.");
+		throw new SsmlError("This element which has data-ssml has an ancestor which also has data-ssml.  We will ignore the data-ssml on this element, and probably the data-ssml on those ancestor element(s) too - there might be other errors logged about them.");
 	}
 	if(element_.children.length > 0 && [...element_.children].every(c => c.tagName === 'BR')) {
 		throw new SsmlError(`This element contains the <br> (line break) element.  This add-on doesn't support this.  This is because in order for this add-on to work, each unit of "plain text" (i.e. the text that this add-on will override the spoken presentation of) needs to be sent to our speech filter function in one function call.  If the plain text contains a line break, then there is no guarantee of this.  So this add-on refuses to try to handle it.`);
@@ -202,7 +210,7 @@ function insistOnDictLikeObjWithOneVal(x_, key_ = undefined) {
 	}
 }
 
-function doSsmlAttribChecks(ssmlStr_, textContent_, isTechniquePageWide_) {
+function doSsmlAttribErrorChecks(ssmlStr_, textContent_, isTechniquePageWide_) {
 	try {
 		let ssmlObj = JSON.parse(ssmlStr_);
 		insistOnDictLikeObjWithOneVal(ssmlObj);
