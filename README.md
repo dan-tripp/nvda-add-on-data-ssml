@@ -24,7 +24,9 @@ This add-on can be configured to use one of several "techniques", but regardless
 - The characters we use for encoding are obscure zero-width unicode characters.  So they don't show up visually, and they aren't spoken (in the audio output) by either NVDA or any other screen reader I tested with.  Unfortunately they probably show up in braille output.  More on that later.  
 - The python code intercepts the text content before it reaches the speech synth.  It looks for our encoding characters, and if it sees any, it replaces them with appropriate NVDA speech commands which will implement the wishes of the data-ssml.
 - Our encoding characters were chosen for their obscurity.  If the page uses any of them already, some part of our process might break.
-- In general, regardless of technique, the spoken presentation (i.e. audio output by NVDA) will be the same.  There are some exceptions: cases where one technique supports a certain thing, and another technique doesn't.
+- This add-on doesn't support whitespace.  That is: this add-on doesn't support multiple words which are separated by whitespace or a &lt;br&gt; (line break) element.  Of course it's fine to have whitespace and line breaks on your web page.  But it's not supported to have whitespace or line breaks inside of an element which has data-ssml on it.  This means that you can't override the spoken presentation of "St. Paul, Minn" in one shot - instead, you will need to override "St." and "Minn" separately.  This is because NVDA, when the user is navigating with the up/down arrow keys, will obviously break up sentences into "chunks" or "lines".  (This kind of "line" usually doesn't correspond with a visual line.  "Line" here means whatever NVDA's up/down arrow keys move across.)  NVDA will often, more-or-less at random, consider the second word in any pair of words to be part of the next "line".  In order for this add-on to work, each unit of "plain text" (i.e. the text that this add-on will override the spoken presentation of) needs to be sent to our speech filter function in one function call.  That means that the entire plain text needs to be contained in one "line".  If the plain text has multiple words, then there is no guarantee of this.  So this add-on refuses to try to handle it.
+	- For the same reason, this add-on doesn't support overriding the spoken presentation of very long words.  Approx. 100 characters seems to be the limit.
+- For most cases, the choice of technique will not affect the spoken presentation (i.e. audio output by NVDA).  But there are some exceptions to this rule i.e. cases where one technique supports a certain thing, and another technique doesn't.
 - The negative side effects, if the JS part of this add-on is run on a page and the user is not running (the python part of) this add-on, and who is...
 	- ... a user of NVDA: are the same as for a user of NVDA who _is_ running this add-on.
 	- ... a user of JAWS: I don't know, because I haven't tested on JAWS. 
@@ -67,11 +69,11 @@ This add-on can be configured to use one of several "techniques", but regardless
 		<tr>
 			<th scope="row">Max length of plain text i.e. max length of the string $PLAIN_TEXT in &lt;span data-ssml="$SSML"&gt;$PLAIN_TEXT&lt;/span&gt;
 			<td>The worst technique.  For reasons: see the comment for the row "Max length of SSML".
-			<td>The middle technique.  The max length is approx. 96 characters, which is probably high enough that you won't exceed it in the real world.  It's the same limit that's shown the formula in the row "Max length of SSML", but with this techique $SSML is an index (i.e. an integer) so len($SSML) = 1 (roughly), so the formula collapses like this: <br>
+			<td>The middle technique.  The max length is approx. 96 characters, which is probably high enough that you won't exceed it in the real world.  It's the same limit that's shown in the formula in the row "Max length of SSML", but with this techique $SSML is an index (i.e. an integer) so len($SSML) = 1 (roughly), so the formula collapses like this: <br>
 			len($PLAIN_TEXT) 2*len($SSML) + 2 <= 100<br>
 			len($PLAIN_TEXT) 2*1 + 2 <= 100<br>
 			len($PLAIN_TEXT) <= 96<br>
-			<td>The best technique.  No max length. 
+			<td>The best technique.  Max length is approx. 100. 
 		</tr>
 		<tr>
 			<th scope="row">Max number of overrides on a page for a given plain text string
