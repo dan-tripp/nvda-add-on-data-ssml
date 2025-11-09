@@ -73,6 +73,7 @@ function initSkipToRowButton() {
 		input.value = valFromLocalStorage;
 		updateLinkHref(valFromLocalStorage);
 	}
+	link.focus();
 }
 
 window.addEventListener("load", function(event) {
@@ -188,18 +189,22 @@ window.addEventListener("load", function(event) {
 			expected: 'if synth==OneCore: led (as in "heavy metal").<br>else: who knows.'},
 		{html: `<span data-ssml='{"phoneme":{"alphabet":"ipa","ph":"liːd"}}'>lead</span>`, 
 			expected: 'if synth==OneCore: leed (as in "follow the leader").<br>else: who knows.'},
-		{html: `<span data-ssml='{"phoneme":{"alphabet":"ipa","ph":"lɛd liːd ˈziro lɛd liːd ˈwan lɛd liːd ˈtu lɛd liːd θriː lɛd liːd /fɔːr/ lɛd liːd ˈfai̯f lɛd liːd ˈsɪks lɛd liːd ˈsɛv.n lɛd liːd ˈei̯t lɛd liːd /naɪn/"}}'>lead lead 0 lead lead 1 lead lead 2 lead lead 3 lead lead 4 lead lead 5 lead lead 6 lead lead 7 lead lead 8 lead lead 9</span>`, 
+		{html: `<span data-ssml='{"phoneme":{"alphabet":"ipa","ph":"lɛd liːd lɛd liːd lɛd liːd lɛd liːd lɛd liːd lɛd liːd lɛd liːd lɛd liːd lɛd liːd lɛd liːd"}}'>lead lead lead lead lead lead lead lead lead lead lead lead lead lead lead lead lead lead lead lead</span>`, 
 			expected: `<pre>if(synth==OneCore) {
   if(technique==index) {
-    "led leed 0 led leed 1 ..."
+    "led leed led leed ..."
   } else if(technique==inline) {
     if(table arrow nav) {
-      "led leed 0 led leed 1 ..."
-    } else if(regular arrow nav) {
-      "leed leed 0 leed leed 1 ..." [1] 
-    } else /* synth==other */ {
-      who knows
+      "led leed led leed ..."
+    } else { // ==> regular arrow nav
+      "leed leed leed leed ..." [1] 
+    }
+  } else { // ==> technique==page-wide
+    who knows
   }
+} else { // ==> synth==other 
+  who knows
+}
 [1] b/c plainText+ssml exceeded max len
 	</pre>`},
 		{html: `<span data-ssml='{"phoneme":{"alphabet":"ipa","ph":"θ"}}'>th</span>`, 
@@ -250,9 +255,21 @@ window.addEventListener("load", function(event) {
 			expected: `"alpha beta".  this case consists of two pieces: 1) some characters that will result in an exception to be thrown (in the python), followed by 2) some valid SSML which won't throw an exception.  and those two pieces will get processed in the same call to our speech filter.  so this case tests the behaviour: if an exception is raised for a certain match (in this case, the first one) then we'll fall back to the plain text only for that match.  not for all matches in the string that got passed to our speech filter.`},
 		{html: `&#x2062;&#x2060;&#xfffa;&#x2060;&#xfffa;&#x2060;&#xfffa;&#x2060;&#xfffa;&#x2060;&#xfffa;&#x2062;alpha&#x2062;&#x2062; <span data-ssml='{"sub": {"alias": "beta"}}'>no</span>`, 
 			expected: `"alpha beta".  similar to previous, but this time we're causing an excpetion that we know will be a /retriable/ exception.  (b/c it's an index of 99999.)`},
-
-	
 	];
+
+	let hyphenHtmlTemplate = `<span data-ssml='{"sub": {"alias": "yes"}}'>aHYPHENbHYPHENcHYPHENdHYPHENeHYPHENf</span> `.repeat(20);
+	testCases.push(...[
+		{html: hyphenHtmlTemplate.replace(/HYPHEN/g, '-'),  
+			expected: `"yes yes yes yes yes ...".  (assuming technique!=inline.  otherwise: probably doesn't work.)  this test case and the next few show that nvda doesn't break up a hyphenated word (with any kind of hyphen), so our add-on can do SSML on a hyphenated word.`}, 
+		{html: hyphenHtmlTemplate.replace(/HYPHEN/g, '&#x2010;'), 
+			expected: `see above.`}, 
+		{html: hyphenHtmlTemplate.replace(/HYPHEN/g, '&#x2011;'), 
+			expected: `see above.`}, 
+		{html: hyphenHtmlTemplate.replace(/HYPHEN/g, '&#x2013;'), 
+			expected: `see above.`}, 
+		{html: hyphenHtmlTemplate.replace(/HYPHEN/g, '&#x2014;'), 
+			expected: `see above.`}, 
+	]);
 
 	let table = document.getElementById('table');
 	addTestCasesToTable(testCases, table, true);

@@ -56,8 +56,9 @@ window.addEventListener("load", function(event) {
 
     /* to test encoding chars, the process ought to be something like this:
 	- for each char, put it in this test page repeated at least 300 times, then read through the page w/ nvda arrow keys and see what the synth gets.  
-		- make sure synth gets the string at all 
-		- make sure the synth gets that repeated char as a string of approx len 100 
+		- make sure the synth gets the string at all 
+		- make sure the synth gets that repeated char as a string of approx len 100 or greater (300 is ok)  
+			- regarding that number "100": there are some things going on here that I don't understand.  this comment was originally written in march 2025, when we were patching the speech synth - before we started using the extension points API (~ 2025-05-24).  that number 100 might have been true then.  I've seen it be not true now (written nov 2025) - w/ the extension points api, our hook often sees a 300-len string.  but not always.  I temporarily added back in a patch to the speech synth (in addition to our extensions API filter) and then I often saw the speech synth and our filter get 100-len strings.  often, but not always.  sometimes they still saw 300.  this might've depending on the browser zoom level.  even this wasn't consistent.  then I gave up trying to understand this particular sub-point. 
 	- this test page does this below. 
 	- reasons
 		- "abc abc abc" etc. reaches the synth in 101-char strings. 

@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width">
+	<!--<title></title>-->
+
+	<style>
+
+p { line-height: 1.5; }
+
+/* thanks https://www.tpgi.com/the-anatomy-of-visually-hidden/#where-we-came-in */
+.visually-hidden:not(:focus):not(:active) {
+    clip-path: inset(50%);
+    height: 1px;
+    overflow: hidden;
+    position: absolute;
+    white-space: nowrap;
+    width: 1px;
+}
+
+[data-ssml]:not(:focus) {
+	outline: 2px dashed rgb(150,150,150);
+}
+
+	</style>
+
+	<script>
+
+function addElemWithText(parentElem_, elemName_, text_) {
+	let elem = document.createElement(elemName_);
+	elem.textContent = text_;
+	parentElem_.appendChild(elem);
+	return elem;
+}
+
+function addElemWithInnerHTML(parentElem_, elemName_, innerHTML_) {
+	let elem = document.createElement(elemName_);
+	elem.innerHTML = innerHTML_;
+	parentElem_.appendChild(elem);
+	return elem;
+}
+
+window.addEventListener("load", function(event) {
+    let main = document.querySelector("main");
+
+	{
+		addElemWithText(main, 'h2', 'for technique=index, test 1');
+		let text = `Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.`;
+		addElemWithInnerHTML(main, 'p', `
+		Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut&#x2014;labore et dolore magna aliqua.<br>
+		Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore&#x2014;et dolore magna aliqua.<br>		
+		Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et&#x2014;dolore magna aliqua.<br>		
+		Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore&#x2014;magna aliqua.<br>		
+		`); // em dash.  result: nvda will not break up that hyphenated word. 
+		addElemWithInnerHTML(main, 'p', `
+		Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut&#x2013;labore et dolore magna aliqua.<br>
+		Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore&#x2013;et dolore magna aliqua.<br>		
+		Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et&#x2013;dolore magna aliqua.<br>		
+		Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore&#x2013;magna aliqua.<br>		
+		`); // en dash.  result: nvda will not break up that hyphenated word. 
+		addElemWithInnerHTML(main, 'p', `
+		Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut&#x2011;labore et dolore magna aliqua.<br>
+		Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore&#x2011;et dolore magna aliqua.<br>		
+		Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et&#x2011;dolore magna aliqua.<br>		
+		Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore&#x2011;magna aliqua.<br>		
+		`); // hyphen unicode 2011.  result: nvda will not break up that hyphenated word. 
+		addElemWithInnerHTML(main, 'p', `
+		Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut&#x2010;labore et dolore magna aliqua.<br>
+		Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore&#x2010;et dolore magna aliqua.<br>		
+		Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et&#x2010;dolore magna aliqua.<br>		
+		Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore&#x2010;magna aliqua.<br>		
+		`); // hyphen unicode 2010.  result: nvda will not break up that hyphenated word. 
+		addElemWithInnerHTML(main, 'p', `
+		Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut-labore et dolore magna aliqua.<br>
+		Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore-et dolore magna aliqua.<br>		
+		Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et-dolore magna aliqua.<br>		
+		Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore-magna aliqua.<br>		
+		`); // hyphen simple i.e. minus sign.  result: nvda will not break up that hyphenated word. 
+		addElemWithInnerHTML(main, 'p', `
+		Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididuntUtLabore et dolore magna aliqua.<br>
+		Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt utLaboreEt dolore magna aliqua.<br>
+		Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut laboreEtDolore magna aliqua.<br>		
+		Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore etDoloreMagna aliqua.<br>		
+		Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et doloreMagnaAliqua.<br>		
+		`); // result: chunk size is usually 90-100.  sometimes on other tests I've seen much more - ~ 300.  I don't remember how I did that.  
+		addElemWithInnerHTML(main, 'p', `
+		Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt <span data-ssml>ut labore</span> et dolore magna aliqua.<br>
+		Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut <span data-ssml>labore et</span> dolore magna aliqua.<br>		
+		Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore <span data-ssml>et dolore</span> magna aliqua.<br>		
+		Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et <span data-ssml>dolore magna</span> aliqua.<br>		
+		`); // result: nvda doesn't care about the <span>.  nvda will split up the span into two chunks.  that's too bad for us, because the span is important to us.  so this behaviour of nvda limits our add-on's usefulness: we can't handle spaces.  one word only.  hypenated is ok.  regardless of technique. 
+		addElemWithText(main, 'p', text);
+		addElemWithText(main, 'p', text.replace(/[^a-zA-Z0-9]/g, '')); // result: chunk size is generally 100.  
+		addElemWithText(main, 'p', text.replace(/[^a-zA-Z0-9.]/g, '')); // result: chunk size is generally 100.  
+		addElemWithText(main, 'p', text.replace(/[^a-zA-Z0-9]/g, '')).setAttribute('style', 'word-break: break-all;') // and you should resize the browser viewport, to create a line break somewhere interesting.  result: chunk size is still generally 100.  i.e. nvda doesn't seem to notice the line break.  
+		addElemWithText(main, 'p', text.replace(/[^a-zA-Z0-9.]/g, '').replace(/\./g, '. ')); // FYI the first word of this is 102 chars and the second and subsequent words are less than 90 chars. result: the 102-char gets broken up as 100 chars then 2 chars. 
+		addElemWithInnerHTML(main, 'p', `Lorem<br>ipsum<br>
+		
+		
+		
+		
+		
+		
+		dolor<br>sit<br>amet, <br>consectetur <br>adipiscing <br>elit, <br> sed <br> do <br> eiusmod <br> tempor <br> incididunt <br> ut labore et dolore magna aliqua. <br>Ut enim ad minim veniam, <br>quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. <br>Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.`); // result: nvda will have a chunk cross a <br>.  maybe that's obvious.  it limits our functionality: ssml won't work on something with a <br> in it.  result #2: "\n" don't make a difference. 
+	}
+
+	let n = 30;
+
+    {
+		addElemWithText(main, 'h2', 'for technique=inline, test 1');
+		for(let numFillerCharsInSsml=0; numFillerCharsInSsml<n; numFillerCharsInSsml++) {
+			let div = document.createElement("div");
+			let ssml = `{"sub": {"alias": "3 prime", "junk": "${'x'.repeat(numFillerCharsInSsml)}"}}`;
+			div.setAttribute('data-ssml', ssml);
+			div.textContent = `3 ${ssml.length}`;
+			main.appendChild(div);
+		}
+	}
+
+    {
+		addElemWithText(main, 'h2', 'for technique=inline, test 2');
+		for(let numFillerCharsInSsml=0; numFillerCharsInSsml<n; numFillerCharsInSsml++) {
+			let div = document.createElement("div");
+			let ssml = `{"sub": {"alias": "9", "j": "${'x'.repeat(numFillerCharsInSsml)}"}}`;
+			div.setAttribute('data-ssml', ssml);
+			div.textContent = `3 ${ssml.length} 0123456789`;
+			main.appendChild(div);
+		}
+	}
+
+    {
+		addElemWithText(main, 'h2', 'for technique=inline, test 3');
+		for(let numFillerCharsInSsml=0; numFillerCharsInSsml<n; numFillerCharsInSsml++) {
+			let div = document.createElement("div");
+			let ssml = `{"sub":{"alias":"9","j":"${'x'.repeat(numFillerCharsInSsml)}"}}`;
+			div.setAttribute('data-ssml', ssml);
+			div.textContent = `3 ${ssml.length} 0123456789`;
+			main.appendChild(div);
+		}
+	}
+
+    {
+		addElemWithText(main, 'h2', 'for technique=inline, test 4');
+		for(let numFillerCharsInSsml=0; numFillerCharsInSsml<n; numFillerCharsInSsml++) {
+			let div = document.createElement("div");
+			let ssml = `{"sub":{"alias":"9","j":"${'x'.repeat(numFillerCharsInSsml)}"}}`;
+			div.setAttribute('data-ssml', ssml);
+			div.textContent = `3 ${ssml.length} 012345678901234`;
+			main.appendChild(div);
+		}
+	}
+
+	let div = document.createElement("div");
+	div.textContent = 'end';
+	main.appendChild(div);
+});
+
+	
+	</script>
+
+	<script	src="../js/nvda-add-on-data-ssml.js"></script>
+	<script>
+	window.addEventListener("load", function(event) {
+		NvdaAddOnDataSsml.initByUrlParams(window.location.search, 'index', true);
+	});
+	</script>
+	
+
+</head>
+
+
+
+
+<body>
+<main>
+
+
+
+</main>
+
+</body>
+
+</html>
