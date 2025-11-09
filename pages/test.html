@@ -83,27 +83,23 @@ window.addEventListener("load", function(event) {
 		{html: `<a href="#" data-ssml='{"sub": {"alias": "3 prime"}}'>3'</a>`, 
 			expected: `link 3 prime`},
 
-		{html: `<span data-ssml='{"sub": {"alias": "digits"}}'>0123456789 0123456789 0123456789 0123456789 0123456789 0123456789 0123456789 0123456789</span>`, 
+		{html: `<span data-ssml='{"sub": {"alias": "digits"}}'>0123456789-0123456789-0123456789-0123456789-0123456789-0123456789-0123456789-0123456789</span>`, 
 			expected: `(assuming technique != inline && !table-arrow-nav) "digits".  i.e. the SSML works, b/c the length of plainText is under the max length.`},
-		{html: `<span data-ssml='{"sub": {"alias": "digits"}}'>0123456789 0123456789 0123456789 0123456789 0123456789 0123456789 0123456789 0123456789 0123456789</span>`, 
+		{html: `<span data-ssml='{"sub": {"alias": "digits"}}'>0123456789-0123456789-0123456789-0123456789-0123456789-0123456789-0123456789-0123456789-0123456789-0123456789</span>`, 
 			expected: `(assuming technique != inline && !table-arrow-nav) "0 1 2 3 4 5 ..."  i.e. the SSML doesn't work, b/c plainText is over the max length`},
 		{html: `<span data-ssml='{"sub": {"alias": "digits"}}'>012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789</span>`, 
 			expected: `(assuming technique != inline && !table-arrow-nav) "digits".  i.e. the SSML works, b/c the length of plainText is under the max length.`},
-		{html: `<span data-ssml='{"sub": {"alias": "digits"}}'>0123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789</span>`, 
+		{html: `<span data-ssml='{"sub": {"alias": "digits"}}'>01234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789</span>`, 
 			expected: `(assuming technique != inline && !table-arrow-nav) "0 1 2 3 4 5 ..."  i.e. the SSML doesn't work, b/c plainText is over the max length`},
 
-		{html: `<div style="width: 2em;" data-ssml='{"sub": {"alias": "gold gold gold"}}'>silver silver silver</div>`, 
-			expected: `"gold gold gold".  i.e. the SSML works across line breaks that is created by normal wrapping in a container.  this case works but there is probably a length limit to this.`}, 
-		{html: `<div style="white-space: pre-wrap;" data-ssml='{"sub": {"alias": "gold"}}'>sil\nver</div>`, 
-			expected: `<div style="white-space: pre-wrap;">if(table arrow nav) {\n\t"gold"\nelse /* i.e. regular arrow nav */ {\n\tline 1: "sil", line 2: "ver"\n}\ni.e. the SSML sometimes doesn't work, because of the newline.</div>`}, 
+		{html: `<div style="width: 2em;" data-ssml='{"sub": {"alias": "gold gold gold"}}'>SilverSilverSilver</div>`, 
+			expected: `"gold gold gold".  i.e. the SSML works across line breaks that are created by wrapping in a container (as long as there is no whitespace or child elements).`}, 
 		{html: `<pre data-ssml='{"sub": {"alias": "gold"}}'>sil\nver</pre>`, 
-			expected: `<div style="white-space: pre-wrap;">if(table arrow nav) {\n\t"gold"\nelse /* i.e. regular arrow nav */ {\n\tline 1: "sil", line 2: "ver"\n}\ni.e. the SSML sometimes doesn't work, because of the newline.</div>`}, 
+			expected: `"sil" "ver".  i.e. SSML doesn't work, b/c we refuse to act on this, because of the newline.`}, 
 		{html: `<span data-ssml='{"sub": {"alias": "gold"}}'>sil<br>ver</span>`, 
-			expected: `"sil (next line) ver".  i.e. the SSML doesn't work.  b/c there's a child element: a &lt;br&gt;.`}, 
+			expected: `"sil" "ver".  i.e. SSML doesn't work, b/c we refuse to act on this, because of the &lt;br&gt;.`}, 
 		{html: `<div style="white-space: pre-line;" data-ssml='{"sub": {"alias": "gold"}}'>sil\nver</div>`, 
-			expected: `on arrow nav: "sil (next line) ver" i.e. the SSML doesn't work.<br>on table nav: "gold" i.e. the SSML works.`}, 
-		{html: `<a href="#" style="white-space: pre-line;" data-ssml='{"sub": {"alias": "gold"}}'>sil\nver</a>`, 
-			expected: `on arrow nav: "sil (next line) ver" i.e. the SSML doesn't work.<br>on table nav or tab nav: "gold" i.e. the SSML works.`}, 
+			expected: `"sil" "ver".  i.e. SSML doesn't work, b/c we refuse to act on this, because of the newline.`}, 
 		{html: `<div style="width:4em;" data-ssml='{"sub": {"alias": "gold"}}'>sil<wbr>ver</div>`, 
 			expected: `"silver".  this shows that SSML doesn't work on this because of the &lt;wbr&gt; element.  maybe it could one day, but at the time of writing, we skip any element with a child element, and &lt;wbr&gt; is a child element.`}, 
 
@@ -119,7 +115,9 @@ window.addEventListener("load", function(event) {
 			expected: `dreary`},
 
 		{html: `<span data-ssml='{"sub": {"alias": " "}}'>“. . .</span> feathers <span data-ssml='{"sub": {"alias": " "}}'>. . .”</span>`, 
-			expected: `"(silence) feathers (silence)".  sub w/ " ".  I got this from https://ky.mypearsonsupport.com/practice-tests/ > Reading Accommodated Practice Tests > Grade 3 > 4 of 12.  (also many other grades.)  it's unclear to me what this data-ssml is trying to accomplish.  my best guess is: a silence, b/c w/o the data-ssml, NVDA speaks "dot dot dot".  but I think that goal would be better met via aria-hidden than data-ssml.`},
+			expected: `"dot dot feathers dot dot".  i.e. SSML doesn't work, b/c we refuse, b/c of the whitespace.  I got this from https://ky.mypearsonsupport.com/practice-tests/ > Reading Accommodated Practice Tests > Grade 3 > 4 of 12.  (also many other grades.)  this was sub w/ " " - AFAICS this data-ssml is trying to accomplish replacing the "dot dot" w/ silence.  we don't support this b/c of the whitespace in the ". . .".  I think that goal (of silence) would be better met via aria-hidden than data-ssml.`},
+		{html: `alpha <span data-ssml='{"sub": {"alias": " "}}'>feathers</span> beta`, 
+			expected: `"alpha beta".  similar to previous, this is a sub w/ " ", to accomplish silence.  this one works b/c there's no whitespace in the element w/ data-ssml.`},
 
 		/* no text content */
 		{html: `<span data-ssml='{"sub": {"alias": "surprise"}}'></span>`, 
@@ -207,7 +205,8 @@ window.addEventListener("load", function(event) {
     }
   }
 } else { // ==> synth==other 
-  "leed leed leed leed" I assume, b/c this is a phoneme 
+  "leed leed leed leed" I assume, 
+  b/c this is a phoneme 
 }
 [1] b/c plainText+ssml exceeded max len
 	</pre>`},
@@ -258,7 +257,7 @@ window.addEventListener("load", function(event) {
 		{html: `&#x2062;&#x2064;&#x2061;&#x2062;alpha&#x2062;&#x2062; <span data-ssml='{"sub": {"alias": "beta"}}'>no</span>`, 
 			expected: `"alpha beta".  this case consists of two pieces: 1) some characters that will result in an exception to be thrown (in the python), followed by 2) some valid SSML which won't throw an exception.  and those two pieces will get processed in the same call to our speech filter.  so this case tests the behaviour: if an exception is raised for a certain match (in this case, the first one) then we'll fall back to the plain text only for that match.  not for all matches in the string that got passed to our speech filter.`},
 		{html: `&#x2062;&#x2060;&#xfffa;&#x2060;&#xfffa;&#x2060;&#xfffa;&#x2060;&#xfffa;&#x2060;&#xfffa;&#x2062;alpha&#x2062;&#x2062; <span data-ssml='{"sub": {"alias": "beta"}}'>no</span>`, 
-			expected: `"alpha beta".  similar to previous, but this time we're causing an excpetion that we know will be a /retriable/ exception.  (b/c it's an index of 99999.)`},
+			expected: `"alpha beta".  similar to previous, but this time we're causing an exception that we know will be a /retriable/ exception.  (b/c it's an index of 99999.)`},
 	];
 
 	let hyphenHtmlTemplate = `<span data-ssml='{"sub": {"alias": "yes"}}'>aHYPHENbHYPHENcHYPHENdHYPHENeHYPHENf</span> `.repeat(20);
@@ -274,7 +273,11 @@ window.addEventListener("load", function(event) {
 		{html: hyphenHtmlTemplate.replace(/HYPHEN/g, '&#x2014;'), 
 			expected: `see above.`}, 
 	]);
-	testCases.push(...[]);
+	testCases.push(...[
+		{html: `<span data-ssml='{"sub": {"alias": "gamma"}}'>alpha beta</span>`, 
+			expected: `"alpha beta".  i.e. SSML doesn't work.  b/c there's a space in the plain text.  an error will be logged.`}, 
+
+	]);
 
 	let table = document.getElementById('table');
 	addTestCasesToTable(testCases, table, true);
