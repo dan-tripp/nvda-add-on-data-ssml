@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 	<meta charset="UTF-8">
-	<meta name="viewport" content="width=device-widthw">
+	<meta name="viewport" content="width=device-width">
 	<title>test page</title>
 
 	<style>
@@ -195,7 +195,7 @@ window.addEventListener("load", function(event) {
 			expected: 'if synth==OneCore: led (as in "heavy metal").<br>else: who knows.'},
 		{html: `<span data-ssml='{"phoneme":{"alphabet":"ipa","ph":"liːd"}}'>lead</span>`, 
 			expected: 'if synth==OneCore: leed (as in "follow the leader").<br>else: who knows.'},
-		{html: `<span data-ssml='{"phoneme":{"alphabet":"ipa","ph":"lɛd liːd lɛd liːd lɛd liːd lɛd liːd lɛd liːd lɛd liːd lɛd liːd lɛd liːd lɛd liːd lɛd liːd"}}'>lead lead lead lead lead lead lead lead lead lead lead lead lead lead lead lead lead lead lead lead</span>`, 
+		{html: `<span data-ssml='{"phoneme":{"alphabet":"ipa","ph":"`+('lɛd liːd '.repeat(9).trim())+`"}}'>`+('LeadLead'.repeat(9))+`</span>`, // the trim() is there b/c it doesn't work if it isn't there.  I guess the PhonemeCommand doesn't like trailing whitespace. 
 			expected: `<pre>if(synth==OneCore) {
   if(technique==index) {
     "led leed led leed ..."
@@ -205,11 +205,9 @@ window.addEventListener("load", function(event) {
     } else { // ==> regular arrow nav
       "leed leed leed leed ..." [1] 
     }
-  } else { // ==> technique==page-wide
-    who knows
   }
 } else { // ==> synth==other 
-  who knows
+  "leed leed leed leed" I assume, b/c this is a phoneme 
 }
 [1] b/c plainText+ssml exceeded max len
 	</pre>`},
