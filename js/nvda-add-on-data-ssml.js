@@ -141,7 +141,7 @@ function* getAllElemsWithDataSsmlNotProcessed(technique_) {
 			yield [element, dataSsmlVal];
 		} catch(err) {
 			if(err instanceof SsmlError) {
-				console.warn(`data-ssml: We found some HTML that this add-on doesn't support data-ssml on.  So we will ignore the data-ssml attribute on this element.  ${err.message}  The failing element was: `, element);
+				console.error(`data-ssml: We found some HTML that this add-on doesn't support data-ssml on.  So we will ignore the data-ssml attribute on this element.  ${err.message}  The failing element was: `, element);
 			} else {
 				throw err;
 			}
@@ -296,7 +296,7 @@ function getMapOfPlainTextStrToSsmlStr_pageWideTechnique() {
 		} else {
 			let firstSsmlStr = mapOfPlainTextStrToSsmlStr.get(elemPlainText);
 			if(firstSsmlStr !== elemSsmlStr) {
-				console.warn(`data-ssml: found mismatching data-ssml values for plain text "${elemPlainText}".  The first data-ssml was "${firstSsmlStr}".  The current data-ssml is "${elemSsmlStr}".  This program will use the first one and ignore the current one.`);
+				console.error(`data-ssml: found mismatching data-ssml values for plain text "${elemPlainText}".  The first data-ssml was "${firstSsmlStr}".  The current data-ssml is "${elemSsmlStr}".  This program will use the first one and ignore the current one.`);
 			}
 		}
 	}
