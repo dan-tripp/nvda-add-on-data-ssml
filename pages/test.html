@@ -100,6 +100,12 @@ window.addEventListener("load", function(event) {
 			expected: `<div style="white-space: pre-wrap;">if(table arrow nav) {\n\t"gold"\nelse /* i.e. regular arrow nav */ {\n\tline 1: "sil", line 2: "ver"\n}\ni.e. the SSML sometimes doesn't work, because of the newline.</div>`}, 
 		{html: `<span data-ssml='{"sub": {"alias": "gold"}}'>sil<br>ver</span>`, 
 			expected: `"sil (next line) ver".  i.e. the SSML doesn't work.  b/c there's a child element: a &lt;br&gt;.`}, 
+		{html: `<div style="white-space: pre-line;" data-ssml='{"sub": {"alias": "gold"}}'>sil\nver</div>`, 
+			expected: `on arrow nav: "sil (next line) ver" i.e. the SSML doesn't work.<br>on table nav: "gold" i.e. the SSML works.`}, 
+		{html: `<a href="#" style="white-space: pre-line;" data-ssml='{"sub": {"alias": "gold"}}'>sil\nver</a>`, 
+			expected: `on arrow nav: "sil (next line) ver" i.e. the SSML doesn't work.<br>on table nav or tab nav: "gold" i.e. the SSML works.`}, 
+		{html: `<div style="width:4em;" data-ssml='{"sub": {"alias": "gold"}}'>sil<wbr>ver</div>`, 
+			expected: `"silver".  this shows that SSML doesn't work on this because of the &lt;wbr&gt; element.  maybe it could one day, but at the time of writing, we skip any element with a child element, and &lt;wbr&gt; is a child element.`}, 
 
 		{html: `<span data-ssml='{"phoneme":{"x-alphabet":"ipa", "ph":"ˈdrɪəri"}}'>broken</span>`, 
 			expected: `broken`},
@@ -270,6 +276,7 @@ window.addEventListener("load", function(event) {
 		{html: hyphenHtmlTemplate.replace(/HYPHEN/g, '&#x2014;'), 
 			expected: `see above.`}, 
 	]);
+	testCases.push(...[]);
 
 	let table = document.getElementById('table');
 	addTestCasesToTable(testCases, table, true);
