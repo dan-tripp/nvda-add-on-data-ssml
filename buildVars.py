@@ -18,7 +18,7 @@ def _(arg):
 # Add-on information variables
 addon_info = {
 	# add-on Name/identifier, internal for NVDA
-	"addon_name": "data_ssml",
+	"addon_name": "WebDataSSML",
 	# Add-on summary/title, usually the user visible name of the add-on
 	# Translators: Summary/title for this add-on
 	# to be shown on installation and add-on information found in add-on store
@@ -31,7 +31,7 @@ addon_info = {
 	# Author(s)
 	"addon_author": "Dan Tripp <daniel.john.tripp@gmail.com>",
 	# URL for the add-on documentation support
-	"addon_url": None,
+	"addon_url": "https://github.com/dan-tripp/nvda-add-on-data-ssml/blob/main/README.md",
 	# URL for the add-on repository where the source code can be found
 	"addon_sourceURL": "https://github.com/dan-tripp/nvda-add-on-data-ssml",
 	# Documentation file name
