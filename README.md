@@ -140,3 +140,4 @@ If you have an .nvda-addon file for this project:
 		- do all your edits to the code on NVDA's copy, then when it's time to commit I copy NVDA's copy to this repo.
 
 
+
