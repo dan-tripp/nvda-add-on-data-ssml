@@ -27,7 +27,7 @@ addon_info = {
 	# Translators: Long description to be shown for this add-on on add-on information from add-on store
 	"addon_description": _("""Adds supports for data-ssml attributes on a web page, as per https://www.w3.org/TR/spoken-html/"""),
 	# version
-	"addon_version": "0.2",
+	"addon_version": "0.9999",
 	# Author(s)
 	"addon_author": "Dan Tripp <daniel.john.tripp@gmail.com>",
 	# URL for the add-on documentation support
