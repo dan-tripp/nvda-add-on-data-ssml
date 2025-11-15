@@ -284,7 +284,10 @@ window.addEventListener("load", function(event) {
 			expected: `(for synth=eSpeak.)  "four hundred and sixteen..." i.e. SSML doesn't work, b/c we refuse to act on this, because of the whitespace.  so: this phone number, and any phone number with a space in it, won't work.`}, 
 		{html: `<span data-ssml='{"say-as": {"interpret-as": "characters"}}'>416-555-3792</span> `, 
 			expected: `"four one six ... " i.e. SSML works, b/c this phone number has no whitespace.`}, 
-
+		{html: `<img alt="duck" src="duck.jpg" data-ssml='{"sub": {"alias": "a duck in the water, facing left"}}'>`, 
+			expected: `"graphic duck".  i.e. the SSML doesn't work.  this is an img alt attribute.`}, 
+		{html: `<img aria-labelledby="label-duck" src="duck.jpg">`, 
+			expected: `"a duck in the water, facing left".  this shows the right way to put SSML on image alt text: with aria-labelledby.  <br>ignore this part: this is the aria-labelledby target: <span data-ssml='{"sub": {"alias": "a duck in the water, facing left"}}' id="label-duck"></span>  (this also shows that the labelledby target doesn't need to have text content.)`}, 
 	]);
 
 	let table = document.getElementById('table');
