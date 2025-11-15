@@ -118,6 +118,8 @@ window.addEventListener("load", function(event) {
 			expected: `"dot dot feathers dot dot".  i.e. SSML doesn't work, b/c we refuse, b/c of the whitespace.  I got this from https://ky.mypearsonsupport.com/practice-tests/ > Reading Accommodated Practice Tests > Grade 3 > 4 of 12.  (also many other grades.)  this was sub w/ " " - AFAICS this data-ssml is trying to accomplish replacing the "dot dot" w/ silence.  we don't support this b/c of the whitespace in the ". . .".  I think that goal (of silence) would be better met via aria-hidden than data-ssml.`},
 		{html: `alpha <span data-ssml='{"sub": {"alias": " "}}'>feathers</span> beta`, 
 			expected: `"alpha beta".  similar to previous, this is a sub w/ " ", to accomplish silence.  this one works b/c there's no whitespace in the element w/ data-ssml.`},
+		{html: `<span data-ssml='{"sub": {"alias": "beta gamma"}}'>alpha</span>`, 
+			expected: `"beta gamma".  shows that whitespace in the SSML is not a problem.  only whitespace in the plain text is a problem.`},
 
 		/* no text content */
 		{html: `<span data-ssml='{"sub": {"alias": "surprise"}}'></span>`, 
