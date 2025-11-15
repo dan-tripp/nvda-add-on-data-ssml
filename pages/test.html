@@ -278,20 +278,11 @@ window.addEventListener("load", function(event) {
 			expected: `"alpha beta".  i.e. SSML doesn't work.  b/c there's a space in the plain text.  an error will be logged.`}, 
 		{html: `<span data-ssml='{"sub": {"alias": "warning long word"}}'>Donaudampfschiffahrtselektrizitätenhauptbetriebswerkbauunterbeamtengesellschaft</span>`, 
 			expected: `"warning long word".  (assuming technique!=inline.)  i.e. SSML works and a JS warning will be logged.`}, 
-		{html: `<span data-ssml='{"say-as": {"interpret-as": "characters"}}'>416 555 3792</span> `.repeat(20), 
-			expected: ``}, 
-		{html: `<span data-ssml='{"say-as": {"interpret-as": "characters"}}'>416&nbsp;555&nbsp;3792</span> `.repeat(20), 
-			expected: ``}, 
-		{html: `<span data-ssml='{"say-as": {"interpret-as": "characters"}}'>416&#x2002;555&#x2002;3792</span> `.repeat(20), 
-			expected: ``}, 
-		{html: `<span data-ssml='{"say-as": {"interpret-as": "characters"}}'>416&#x2003;555&#x2003;3792</span> `.repeat(20), 
-			expected: ``}, 
-		{html: `<span data-ssml='{"say-as": {"interpret-as": "characters"}}'>416&#x2060;555&#x2060;3792</span> `.repeat(20), 
-			expected: ``}, 
-		{html: `<span data-ssml='{"say-as": {"interpret-as": "characters"}}'>416&#x2009;555&#x2009;3792</span> `.repeat(20), 
-			expected: ``}, 
-		{html: `<span data-ssml='{"say-as": {"interpret-as": "characters"}}'>416&#x2060;&#x2009;555&#x2060;&#x2009;3792</span> `.repeat(20), 
-			expected: ``}, 
+		{html: `<span data-ssml='{"say-as": {"interpret-as": "characters"}}'>(416) 555-3792</span> `, 
+			expected: `(for synth=eSpeak.)  "four hundred and sixteen..." i.e. SSML doesn't work, b/c we refuse to act on this, because of the whitespace.  so: this phone number, and any phone number with a space in it, won't work.`}, 
+		{html: `<span data-ssml='{"say-as": {"interpret-as": "characters"}}'>416-555-3792</span> `, 
+			expected: `"four one six ... " i.e. SSML works, b/c this phone number has no whitespace.`}, 
+
 	]);
 
 	let table = document.getElementById('table');

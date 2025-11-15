@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width">
+	<title>test page</title>
+
+	<style>
+
+p { line-height: 1.5; }
+
+/* thanks https://www.tpgi.com/the-anatomy-of-visually-hidden/#where-we-came-in */
+.visually-hidden:not(:focus):not(:active) {
+    clip-path: inset(50%);
+    height: 1px;
+    overflow: hidden;
+    position: absolute;
+    white-space: nowrap;
+    width: 1px;
+}
+
+[data-ssml]:not(:focus) {
+	outline: 2px dashed rgb(150,150,150);
+}
+
+
+
+table.table {
+	border-collapse: collapse;
+	width: 100%;
+	margin-top: 1em;
+	word-break: break-word; 
+}
+
+table.table th,
+table.table td {
+	border: 1px solid #ccc;
+	padding: 8px 12px;
+	text-align: left;
+	vertical-align: top;
+}
+
+table.table th {
+	background-color: #f4f4f4;
+}
+
+	</style>
+
+	<script	src="./common.js"></script>
+
+	<script>
+
+function initSkipToRowButton() {
+	let link = document.querySelector('#skip-to-row-link');
+	let input = document.querySelector('#skip-to-row-input');
+	const LOCALSTORAGE_KEY = 'nvda-data-ssml-test-page-skip-to-row-input';
+	function updateLinkHref(iTestCaseStr_) {
+		let iTestCase = parseInt(iTestCaseStr_);
+		if(isNaN(iTestCase)) return;
+		iTestCase++;
+		let trElem = document.querySelector('#table').querySelectorAll('tr')[iTestCase];
+		if(!trElem) return;
+		let newHref = `#${trElem.id}`;
+		link.setAttribute('href', newHref);
+	}
+	input.addEventListener('input', e => {
+		let iTestCaseStr = e.target.value;
+		updateLinkHref(iTestCaseStr);
+		localStorage.setItem(LOCALSTORAGE_KEY, iTestCaseStr);
+	});
+	let valFromLocalStorage = localStorage.getItem(LOCALSTORAGE_KEY);
+	if(valFromLocalStorage) {
+		input.value = valFromLocalStorage;
+		updateLinkHref(valFromLocalStorage);
+	}
+	link.focus();
+}
+
+window.addEventListener("load", function(event) {
+	let testCases = [];
+	let phoneNumberTemplate = '416 555 3792';
+	for(let spaceChar of [' ', '&nbsp;', '&#x2007;', '&#x2002;', '&#x2003;', '&#x206q0;', '&#x2009;', '&#x2060;&#x2009;', '&#x2009;&#x2060;']) {
+		testCases.push({html: `<span data-ssml='{"say-as": {"interpret-as": "characters"}}'>${phoneNumberTemplate.replace(/ /g, spaceChar)}</span> `.repeat(20), 
+				expected: ``});
+	}
+
+	let table = document.getElementById('table');
+	addTestCasesToTable(testCases, table, true);
+
+
+	initSkipToRowButton();
+
+
+
+});
+
+	</script>
+
+	<script	src="../js/nvda-add-on-data-ssml.js"></script>
+	<script>
+	window.addEventListener("load", function(event) {
+		let defaultTechnique = 'index';
+		let defaultWatchForDomChanges = true;
+		NvdaAddOnDataSsml.initByUrlParams(window.location.search, defaultTechnique, defaultWatchForDomChanges);
+	});
+	</script>
+
+</head>
+
+
+
+
+<body>
+<main>
+
+
+<h1>test page</h1>
+
+<p>
+	skip to row <input size="2" id="skip-to-row-input"> <a href id="skip-to-row-link">go</a><br>
+	<a href="#bottom">skip to bottom</a>
+</p>
+
+<table class="table" id="table">
+	<thead>
+		<tr>
+			<th>without ssml</th>
+			<th>with ssml</th>
+			<th>expected</th>
+		</tr>
+	</thead>
+	<tbody>
+
+		
+	</tbody>
+</table>
+
+<div style="height: 50vh" id="bottom" tabindex="-1"></div>
+
+
+
+</main>
+
+
+</body>
+
+</html>
+
