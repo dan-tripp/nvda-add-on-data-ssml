@@ -344,7 +344,7 @@ function encodeAllDataSsmlAttribs_indexTechnique_createHidingPlaceElement() {
 	NvdaAddOnDataSsml.g_hidingPlaceElement = div;
 }
 
-/* in this function we will add to the in-memory hiding place list.  so the in-memory list will out of sync (and newer) than the in-DOM list.  shortly after this function, we will write the in-memory list to the DOM. */
+/* in this function we will add to the in-memory hiding place list.  so the in-memory list will be out of sync (and newer) than the in-DOM list.  shortly after this function, we will write the in-memory list to the DOM. */
 function encodeAllDataSsmlAttribs_indexTechnique_encodeEachOccurrenceAsAnIndex() {
 	let hidingPlaceList = NvdaAddOnDataSsml.g_hidingPlaceList;
 	for(let [elem, curSsmlStr] of getAllElemsWithDataSsmlNotProcessed('index')) {

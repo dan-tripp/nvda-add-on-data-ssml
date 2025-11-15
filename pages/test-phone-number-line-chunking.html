@@ -79,7 +79,8 @@ function initSkipToRowButton() {
 window.addEventListener("load", function(event) {
 	let testCases = [];
 	let phoneNumberTemplate = '416 555 3792';
-	for(let spaceChar of [' ', '&nbsp;', '&#x2007;', '&#x2002;', '&#x2003;', '&#x206q0;', '&#x2009;', '&#x2060;&#x2009;', '&#x2009;&#x2060;']) {
+	// 2060 was a shot in the dark.  it isn't considered whitespace by our regex (i.e. our regex elsewhere which checks for whitespace and refuses to act on it.)  maybe it isn't whitespace - I don't know.  it doesn't matter, b/c it doesn't help us, because visually it doesn't show up as a space. 
+	for(let spaceChar of [' ', '&nbsp;', '&#x2007;', '&#x2002;', '&#x2003;', '&#x2060;', '&#x2009;', '&#x2060;&#x2009;', '&#x2009;&#x2060;']) {
 		testCases.push({html: `<span data-ssml='{"say-as": {"interpret-as": "characters"}}'>${phoneNumberTemplate.replace(/ /g, spaceChar)}</span> `.repeat(20), 
 				expected: ``});
 	}
