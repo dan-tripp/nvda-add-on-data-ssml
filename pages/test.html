@@ -307,6 +307,8 @@ window.addEventListener("load", function(event) {
 			expected: `misc aria (tdr)`}, 
 		{html: `<span aria-dropeffect='{"sub": {"alias": "success 4"}}' >abc</span>`, 
 			expected: `misc aria (tdr)`}, 
+		{html: `<span aria-dropeffect='1' >abc</span><span aria-dropeffect='2'>def</span>`, 
+			expected: `misc aria (tdr)`}, 
 	]);
 
 	let table = document.getElementById('table');

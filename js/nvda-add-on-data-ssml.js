@@ -348,6 +348,7 @@ function encodeAllDataSsmlAttribs_indexTechnique_createHidingPlaceElement() {
 function encodeAllDataSsmlAttribs_indexTechnique_encodeEachOccurrenceAsAnIndex() {
 	let hidingPlaceList = NvdaAddOnDataSsml.g_hidingPlaceList;
 	for(let [elem, curSsmlStr] of getAllElemsWithDataSsmlNotProcessed('index')) {
+		elem.setAttribute('aria-dropeffect', curSsmlStr); // tdr 
 		let idxInHidingPlaceListOfCurSsmlStr = hidingPlaceList.indexOf(curSsmlStr);
 		if(idxInHidingPlaceListOfCurSsmlStr == -1) {
 			hidingPlaceList.push(curSsmlStr);

@@ -536,7 +536,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 	def __init__(self):
 		super().__init__()
 		setGlobalVarsBasedOnNvdaConfig()
-		#patchSpeakTextInfoFunc() # tdr 
+		patchSpeakTextInfoFunc() # tdr 
 		#monkeyPatchBrailleHandler()
 		# Thank you Dalen at https://nvda-addons.groups.io/g/nvda-addons/message/25811 for this idea of using filter_speechSequence instead of monkey-patching the synth. 
 		self._ourSpeechSequenceFilter = speech.extensions.filter_speechSequence.register(self.ourSpeechSequenceFilter)
@@ -629,12 +629,48 @@ def logIA2Attributes(nvdaObject_):
 	else:
 		logInfo(f'''ia2: none''')
 
+def getNvdaObjects2(info_):
+	r = []
+	for offset in range(info_._startOffset, info_._endOffset):
+		obj = info_._getNVDAObjectFromOffset(offset)
+		if len(r) == 0 or id(r[-1]) != id(obj):
+			r.append(obj)
+	return r
+
+def getNvdaObjects3(info_):
+	r = []
+	offset = info_._startOffset
+	while offset < info_._endOffset:
+		curObject = info_._getNVDAObjectFromOffset(offset)
+		r.append(curObject)
+		curObjectEndOffset = info_._getOffsetsFromNVDAObject(curObject)[1]
+		offset = curObjectEndOffset
+	return r
+
 def patchedSpeakTextInfo(info, *args, **kwargs): # tdr 
 	#logInfo("patchedSpeakTextInfo stack "+("".join(traceback.format_stack()))) # tdr 
 	#logInfo(f'speakTextInfo {str(nvdaObjectAtStart)}')
-	#logInfo(f'speakTextInfo NVDAObjectAtStart {str(dir(obj))}') # tdr 
+	#logInfo(f'type {type(info)}')
+	#o = info.NVDAObjectAtStart
+	#logInfo(f'offsets {info._startOffset} {info._endOffset}')
+
+	if 0:
+		def find_defining_class(obj, method_name):
+			for cls in obj.__class__.mro():
+				if method_name in cls.__dict__:
+					return cls
+			return None
+		c = find_defining_class(info, "_getNVDAObjectFromOffset")
+		logInfo(f'define {c}')
 
 	if 1:
+		logInfo('ia2 start')
+		for obj in getNvdaObjects3(info):
+			logIA2Attributes(obj)
+		logInfo('ia2 end')
+	#logInfo(f'speakTextInfo NVDAObjectAtStart {str(dir(obj))}') # tdr 
+
+	if 0:
 		seq = speech.getSpeechForTextInfo(info)
 		for iNvdaObject, item in enumerate(seq):
 			o = getattr(item, "obj", None)
@@ -698,103 +734,4 @@ def monkeyPatchBrailleHandler():
 		return originalUpdateFunc()
 
 	braille.handler.update = types.MethodType(ourUpdateFunc, braille.handler)
-
-
-
-
-
-
-
-def get_all_buffer_nodes(bufTextInfo):
-	nodes = []
-	buf = bufTextInfo.obj.treeInterceptor
-	storyLength = bufTextInfo._getStoryLength()
-	seen = set()
-
-	for offset in range(storyLength):
-		try:
-			obj = bufTextInfo._getNVDAObjectFromOffset(offset)
-			if obj and id(obj) not in seen:
-				seen.add(id(obj))
-				nodes.append(obj)
-		except Exception as e:
-			logInfo(f"Offset {offset}: {e}")
-
-	return nodes
-
-
-
-
-
-_original_speakTextInfo = speech.speakTextInfo 
-
-_original_speak = speech.speak
-
-def filtering_speak(seq, *args, **kwargs):
-	logInfo('here 1')
-	modified = []
-	for item in seq:
-		logInfo(f'filter speak saw "{item}"')
-		if isinstance(item, str):
-			modified.append(item.replace("line", "goose goose goose"))
-		else:
-			modified.append(item)
-	return _original_speak(modified, *args, **kwargs)
-
-def wrapped_speakTextInfo(info, *args, **kwargs):
-	try:
-		obj = info.NVDAObjectAtStart
-		if 0:
-			role = roleLabels.get(obj.role, f"unknown ({obj.role})")
-			name = obj.name or ""
-			logInfo(f"[speakTextInfo] role={role}, name={name}")
-			a11yTreeRoot = obj.treeInterceptor.rootNVDAObject
-			logInfo(f"[speakTextInfo] a11yTreeRoot={a11yTreeRoot.name}")
-
-		if 1:
-			logInfo('start objects')
-			ti = obj.makeTextInfo(textInfos.POSITION_FIRST)
-			allNodes = get_all_buffer_nodes(ti)
-			for node in allNodes:
-				role = roleLabels.get(node.role, f"unknown ({node.role})")
-				logInfo(f"object: role={role}, name={node.name}")
-			logInfo('end objects')
-
-	except Exception as e:
-		logInfo(f"[speakTextInfo] error logging: {e}")
-
-
-	if 0:
-		speech.speak(["goose"])
-		return
-
-	if 0:
-		origReturnVal = _original_speakTextInfo(info, *args, **kwargs)
-		return
-	
-	if 0:
-		try:
-			speech.speak = filtering_speak
-			logInfo('about to call _original_speakTextInfo')
-			return _original_speakTextInfo(info, *args, **kwargs)
-		finally:
-			logInfo('just called _original_speakTextInfo')
-			speech.speak = _original_speak
-
-
-	if 0:
-		sequence = speech.getSpeechForObject(obj)
-
-		modifiedSequence = []
-		for item in sequence:
-			if isinstance(item, str):
-				logInfo(f'seen in sequence: "{item}"')
-				modifiedSequence.append(item.replace("line", "goose line goose"))
-			else:
-				modifiedSequence.append(item)	
-
-		speech.speak(modifiedSequence, *args, **kwargs)
-	return _original_speakTextInfo(info, *args, **kwargs)
-
-speech.speakTextInfo = wrapped_speakTextInfo
 
