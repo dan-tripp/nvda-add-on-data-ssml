@@ -567,7 +567,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 
 	# if this function raises an exception, then that exception will appear in the nvda logs and nvda will speak normally i.e. speak as though this filter didn't exist.  so we don't bend over backwards to catch all exceptions we might create. 
 	def ourSpeechSequenceFilter(self, origSeq: speech.SpeechSequence) -> speech.SpeechSequence:
-		#logInfo("ourSpeechSequenceFilter stack "+("".join(traceback.format_stack()))) # tdr 
+		logInfo("ourSpeechSequenceFilter stack "+("".join(traceback.format_stack()))) # tdr 
 		updateA11yTreeRoot(False)
 		g_state.initNvdaStateFieldsFromRealNvdaState()
 		logInfo(f'--> original speech sequence: {origSeq}')
@@ -625,9 +625,9 @@ g_original_speakTextInfo = speech.speakTextInfo # tdr
 def logIA2Attributes(nvdaObject_):
 	if hasattr(nvdaObject_, "IA2Attributes"):
 		s = str(nvdaObject_.IA2Attributes)
-		logInfo(f'''ia2: {s}''')
+		logInfo(f'''ia2 (role={getRole(nvdaObject_)}, name={nvdaObject_.name})): {s}''')
 	else:
-		logInfo(f'''ia2: none''')
+		logInfo(f'''ia2 (role={getRole(nvdaObject_)}, name={nvdaObject_.name}): none''')
 
 def getNvdaObjects2(info_):
 	r = []
@@ -637,18 +637,29 @@ def getNvdaObjects2(info_):
 			r.append(obj)
 	return r
 
+def getNvdaObjectAllDescendants(nvdaObject_):
+	r = []
+	curChild = nvdaObject_.firstChild
+	while curChild:
+		r.append(curChild)
+		r += getNvdaObjectAllDescendants(curChild)
+		curChild = curChild.next
+	return r
+
 def getNvdaObjects3(info_):
 	r = []
 	offset = info_._startOffset
 	while offset < info_._endOffset:
 		curObject = info_._getNVDAObjectFromOffset(offset)
 		r.append(curObject)
+		r += getNvdaObjectAllDescendants(curObject)
 		curObjectEndOffset = info_._getOffsetsFromNVDAObject(curObject)[1]
 		offset = curObjectEndOffset
 	return r
 
 def patchedSpeakTextInfo(info, *args, **kwargs): # tdr 
-	#logInfo("patchedSpeakTextInfo stack "+("".join(traceback.format_stack()))) # tdr 
+	logInfo("patchedSpeakTextInfo stack "+("".join(traceback.format_stack()))) # tdr 
+	#logInfo(f'patchedSpeakTextInfo {str(args)} {str(kwargs)}')
 	#logInfo(f'speakTextInfo {str(nvdaObjectAtStart)}')
 	#logInfo(f'type {type(info)}')
 	#o = info.NVDAObjectAtStart
