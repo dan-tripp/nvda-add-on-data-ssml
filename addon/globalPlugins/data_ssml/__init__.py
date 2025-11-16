@@ -7,6 +7,13 @@ NVDA_CONFIG_KEY = 'data-ssml'
 HIDING_PLACE_GUID_FOR_ALL_TECHNIQUES = '4b9b696c-8fc8-49ca-9bb9-73afc9bd95f7'
 HIDING_PLACE_GUID_FOR_INDEX_TECHNIQUE = 'b4f55cd4-8d9e-40e1-b344-353fe387120f'
 HIDING_PLACE_GUID_FOR_PAGE_WIDE_TECHNIQUE = 'c7a998a5-4b7e-4683-8659-f2da4aa96eee'
+HIDING_PLACE_GUID_FOR_ARIA_TECHNIQUE = '84376c45-1157-49e1-9702-7016d3de4b67'
+
+# I tried aria-ssml and it worked for an <a> element and nothing else - not even a <button>.  
+# I tried aria-dropeffect, and it worked, but had the unacceptable negative side effect that if the object was focusable and you focused it, nvda would announce something about dropeffect.  IIRC it was "draggable" or similar - I forget.
+ARIA_TECHNIQUE_ATTRIBUTE = 'aria-grabbed'
+
+
 
 def logInfo(str_):
 	log.info(f'data-ssml: {datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")} {str_}')
@@ -55,11 +62,15 @@ chars not used AKA unused:
 '''
 ourAssert(len(set(ENCODING_CHARS)) == len(ENCODING_CHARS), "encodingChars contains duplicates")
 
+ARIA_TECHNIQUE_START_MARKER = ENCODING_CHARS[1]
+ARIA_TECHNIQUE_END_MARKER = ENCODING_CHARS[2]
+
 import datetime, re, base64, json, time, types, dataclasses, sys, traceback
 import globalPluginHandler, api, scriptHandler, ui
 from logHandler import log
 import speech, speech.commands, speech.extensions, braille
 import synthDriverHandler, config
+from documentBase import textInfos
 from controlTypes import roleLabels
 
 # speech/SSML processing borrowed from NVDA's mathPres/mathPlayer.py
@@ -75,6 +86,7 @@ from speech.commands import (
 	IndexCommand,
 )
 
+# gets values from nvda.ini 
 def setGlobalVarsBasedOnNvdaConfig():
 	global PROFILE, LOG_BRAILLE, NEXT_SYNTH_SHORTCUT
 	if NVDA_CONFIG_KEY not in config.conf:
@@ -185,7 +197,7 @@ def decodeEncodedSsmlInstructionStr(str_):
 class NonRetriableSsmlError(Exception):
     pass
 
-# our retrying involves forcing a refresh of our state from the a11y root, then we try to do our whole "convert speech string into a speech command list" again.  we do this retry max once per speech filter call.
+# our retrying involves forcing a refresh of our state from the a11y root, then we try to do our filtering again.  we do this retry max once per speech filter call.
 class RetriableSsmlError(Exception):
     pass
 
@@ -199,14 +211,14 @@ def getBreakTimeMillisFromStr(str_):
 	return r
 
 @profile
-# This function sometimes uses the strategy of not checking that the input SSML is valid - rather, assuming that the JS already checked that it's valid, and if it wasn't, then it wouldn't have made it into this function.  This is inconsistent.  Only parts of this function do it that way.  It would be ideal if the JS did all of the checking, because page authors are (I think) more likely to check the devtools console for error messages compared to the NVDA logs.  Also, the devtools console can be checked earlier, without starting NVDA. 
-def convertSsmlStrIntoSpeechCommandList(ssmlStr_, textToAffect_: str, origWholeText_: str, state_: State, okToThrowRetriableError_: bool):
+# This function sometimes does not check that the SSML is valid. Rather, it sometimes assumes that the JS already checked that it's valid, and if it wasn't, then it wouldn't have made it into this function.  This is inconsistent.  Only parts of this function do it that way.  It would be ideal if the JS did all of the checking, because page authors are (I think) more likely to check the devtools console for error messages compared to the NVDA logs.  Also, the devtools console can be checked earlier, without starting NVDA. 
+def getSpeechCommandsFromSsmlStr(ssmlStr_, textToAffect_: str, origWholeText_: str, state_: State, okToThrowRetriableError_: bool):
 	ourAssert(isinstance(ssmlStr_, str))
 	try:
 		ssmlObj = json.loads(ssmlStr_)
 		if(not isinstance(ssmlObj, dict)):
 			if type(ssmlObj) == int and okToThrowRetriableError_:
-				# it's an int ==> technique=index.  but the fact that we're in this function - which is supposed to take as an arg an ssml str payload (not an index to one) indicates that we (= the python side) think that technique=inline.  the page is right.  our state on the python side is wrong.  this means that on the JS side, the JS init ran after we (= the python side) got our most recent update of our state from the a11y root.  so we force such an update by raising this: 
+				# it's an int ==> technique=index.  but the fact that we're in this function - which is supposed to take as an arg an ssml str payload (not an index to one) indicates that we (= the python side) think that technique=inline.  the page is right.  our state on the python side is wrong.  this means that on the JS side, the JS init ran after we (= the python side) got our most recent update of our state from the a11y root.  so we force another such update by raising this retriable error.  this situation is reproducible with any test on test-watch-for-dom-changes.html which has "run JS init" then a "add data-ssml". 
 				raise RetriableSsmlError('detected late JS init')
 			else:
 				raise NonRetriableSsmlError(f'expected a dict in the json.  got an object of type: {type(ssmlObj)}.') from None
@@ -264,13 +276,13 @@ MACRO_END_MARKER = MARKER * 2
 
 
 @profile
-def convertSpeechStrIntoSpeechCommandList_allMatches(str_: str, state_: State, okToThrowRetriableError_: bool):
-	logInfo(f'convertSpeechStrIntoSpeechCommandList_allMatches input (len {len(str_)}): {repr(str_)}')
+def filterSpeechStr_allMatches(str_: str, state_: State, okToThrowRetriableError_: bool):
+	logInfo(f'filterSpeechStr_allMatches input (len {len(str_)}): {repr(str_)}')
  
 	if state_.technique in ('index', 'inline'):
-		r = convertSpeechStrIntoSpeechCommandList_allMatches_techniquesIndexAndInline(str_, state_, okToThrowRetriableError_)
+		r = filterSpeechStr_allMatches_techniquesIndexAndInline(str_, state_, okToThrowRetriableError_)
 	elif state_.technique == 'page-wide':
-		r = convertSpeechStrIntoSpeechCommandList_allMatches_techniquePageWide(str_, state_)
+		r = filterSpeechStr_allMatches_techniquePageWide(str_, state_)
 	else:
 		ourAssert(False)
 
@@ -291,10 +303,82 @@ def convertSpeechStrIntoSpeechCommandList_allMatches(str_: str, state_: State, o
 	r = newR
 
 	return r
-    
+
+def getNvdaObjectsFromTextInfoIfUsable_techniqueAria(textInfo_, origSeq_: speech.SpeechSequence) -> bool:
+	if textInfo_ is None:
+		return None
+	numMarkedPlainTextSegments = 0
+	for element in origSeq_:
+		if isinstance(element, str) and len(element) > 0:
+			numNewStartMarkers = element.count(ARIA_TECHNIQUE_START_MARKER)
+			numNewEndMarkers = element.count(ARIA_TECHNIQUE_END_MARKER)
+			if numNewStartMarkers != numNewEndMarkers:
+				return None
+			else:
+				numMarkedPlainTextSegments += numNewStartMarkers
+
+	if numMarkedPlainTextSegments == 0: return None
+	nvdaObjects = getNvdaObjectsFromTextInfo(textInfo_)
+	if numMarkedPlainTextSegments == len(nvdaObjects):
+		return nvdaObjects
+	else:
+		return None
+
+   
+def filterSpeechSeq_techniqueAria(origSeq_: speech.SpeechSequence, state_: State, okToThrowRetriableError_: bool) -> speech.SpeechSequence:
+	nvdaObjects = getNvdaObjectsFromTextInfoIfUsable_techniqueAria(g_textInfo, origSeq_)
+	if nvdaObjects is None:
+		return origSeq_
+
+	nvdaObjectsOffsetIdx = 0
+	r = []
+	for element in origSeq_:
+		if isinstance(element, str) and len(element) > 0:
+			r.extend(filterSpeechStr_techniqueAria(element, nvdaObjects, nvdaObjectsOffsetIdx, state_, okToThrowRetriableError_))
+			nvdaObjectsOffsetIdx += element.count(ARIA_TECHNIQUE_START_MARKER)
+		else:
+			r.append(element)
+	return r
 
 
-def convertSpeechStrIntoSpeechCommandList_allMatches_techniquePageWide(str_: str, state_: State):
+def filterSpeechStr_techniqueAria(str_: str, nvdaObjects_, nvdaObjectsOffsetIdx_, state_: State, okToThrowRetriableError_: bool) -> speech.SpeechSequence:
+	r = []
+	prevEndIdx = 0
+	iMatch = -1
+	pattern = re.compile(f'{re.escape(ARIA_TECHNIQUE_START_MARKER)}(.*?){re.escape(ARIA_TECHNIQUE_END_MARKER)}', flags=re.DOTALL)
+	for iMatch, match in enumerate(pattern.finditer(str_)):
+		startIdx, endIdx = match.span()
+		plainTextToAffect = match.group(1)
+		plainTextWholeMatch = match.group(0)
+
+		if startIdx > prevEndIdx:
+			leadingNonMatch = str_[prevEndIdx:startIdx]
+			logInfo(f'leadingNonMatch: {repr(leadingNonMatch)}')
+			r.append(leadingNonMatch)
+
+		logInfo(f'match [{iMatch}] start: plainTextToAffect (len {len(plainTextToAffect)}) = {repr(plainTextToAffect)}')
+
+		try:
+			nvdaObject = nvdaObjects_[nvdaObjectsOffsetIdx_ + iMatch]
+			ssmlStr = nvdaObject.IA2Attributes[ARIA_TECHNIQUE_ATTRIBUTE_NO_ARIA_PREFIX]
+			speechCommandListForMatch = getSpeechCommandsFromSsmlStr(ssmlStr, plainTextToAffect, plainTextWholeMatch, state_, okToThrowRetriableError_)
+			r.extend(speechCommandListForMatch)
+			logInfo(f'match [{iMatch}] result: Ok.  gave us: {speechCommandListForMatch}')
+		except NonRetriableSsmlError as e:
+			logInfo(f'match [{iMatch}] result: Error happened while processing SSML.  We will fall back to the plain text.  The SSML instruction string was "{ssmlStr}".  The exception, which we will suppress, was:')
+			log.exception(e)
+			r.append(plainTextWholeMatch)
+		prevEndIdx = endIdx
+
+	if prevEndIdx < len(str_):
+		trailingNonMatch = str_[prevEndIdx:]
+		logInfo(f'trailingNonMatch: {repr(trailingNonMatch)}')
+		r.append(trailingNonMatch)
+
+	return r
+
+
+def filterSpeechStr_allMatches_techniquePageWide(str_: str, state_: State):
 	m = state_.techniquePageWideDictOfPlainTextToSsmlStr
 	ourAssert(m != None)
 	plainTexts = sorted(m.keys(), key=lambda e: -len(e)) # so that if we have plainTexts "3'" and "3'~", our pattern will match "3'~".  the way regex '|' works, it will match the leftmost branch.  so we want the longest one to be the leftmost.  this sort does that. 
@@ -310,7 +394,7 @@ def convertSpeechStrIntoSpeechCommandList_allMatches_techniquePageWide(str_: str
 			r.append(textBeforeMatch)
 		logInfo(f'matched {repr(plainText)} at start pos {startIdx}')
 		ssmlStr = m[plainText.lower()]
-		speechCommandList = convertSsmlStrIntoSpeechCommandList(ssmlStr, plainText, plainText, state_, False)
+		speechCommandList = getSpeechCommandsFromSsmlStr(ssmlStr, plainText, plainText, state_, False)
 		r.extend(speechCommandList)
 		prevEndIdx = endIdx
 
@@ -321,7 +405,7 @@ def convertSpeechStrIntoSpeechCommandList_allMatches_techniquePageWide(str_: str
 
 	return r
 
-def convertSpeechStrIntoSpeechCommandList_allMatches_techniquesIndexAndInline(str_: str, state_: State, okToThrowRetriableError_: bool):
+def filterSpeechStr_allMatches_techniquesIndexAndInline(str_: str, state_: State, okToThrowRetriableError_: bool):
 	r = []
 	prevEndIdx = 0
 	iMatch = -1
@@ -343,7 +427,7 @@ def convertSpeechStrIntoSpeechCommandList_allMatches_techniquesIndexAndInline(st
 		logInfo(f'match [{iMatch}] start: plainTextWholeMatch = {repr(plainTextWholeMatch)}, ssmlInstructionStrEncoded = {repr(ssmlInstructionStrEncoded)}, textToAffect (len {len(plainTextToAffect)}) = {repr(plainTextToAffect)}')
 
 		try:
-			speechCommandListForMatch = convertSpeechStrIntoSpeechCommandList_singleMatch_techniquesIndexAndInline(ssmlInstructionStrEncoded, plainTextToAffect, plainTextWholeMatch, state_, okToThrowRetriableError_)
+			speechCommandListForMatch = filterSpeechStr_singleMatch_techniquesIndexAndInline(ssmlInstructionStrEncoded, plainTextToAffect, plainTextWholeMatch, state_, okToThrowRetriableError_)
 			r.extend(speechCommandListForMatch)
 			logInfo(f'match [{iMatch}] result: Ok.  gave us: {speechCommandListForMatch}')
 		except NonRetriableSsmlError as e:
@@ -359,7 +443,7 @@ def convertSpeechStrIntoSpeechCommandList_allMatches_techniquesIndexAndInline(st
 
 	return r
 
-def convertSpeechStrIntoSpeechCommandList_singleMatch_techniquesIndexAndInline(ssmlInstructionStrEncoded_: str, plainTextToAffect_: str, plainTextWholeMatch_: str, state_: State, okToThrowRetriableError_: bool):
+def filterSpeechStr_singleMatch_techniquesIndexAndInline(ssmlInstructionStrEncoded_: str, plainTextToAffect_: str, plainTextWholeMatch_: str, state_: State, okToThrowRetriableError_: bool):
 	r = [plainTextWholeMatch_]
 	if state_.technique == 'index':
 		ourAssert(state_.techniqueIndexListOfSsmlStrs != None)
@@ -377,29 +461,40 @@ def convertSpeechStrIntoSpeechCommandList_singleMatch_techniquesIndexAndInline(s
 			if(idxInList < 0): raise NonRetriableSsmlError("index is negative") # sure, python (with it's -ve list indices) could handle this -ve index.  but our JS will never output a -ve index.  so our JS didn't create this.  so this must be a case of "encoding characters in the wild".  
 			if idxInList >= len(state_.techniqueIndexListOfSsmlStrs):
 				if okToThrowRetriableError_:
-					# could mean that on the JS side, watchForDomChanges == true, and the data-ssml attribute corresponding to this index was added after we (= the python side) did our most recent update of our state from the a11y root.  so we raise this, to force such an update: 
+					# could mean that on the JS side, watchForDomChanges == true, and the data-ssml attribute corresponding to this index was added after we (= the python side) did our most recent update of our state from the a11y root.  so we raise this retriable error, to force such an update.  this situation is reproducible eg. on test-watch-for-dom-changes.html with any test which has "run JS init", then alt+tab, then an "add data-ssml". 
 					raise RetriableSsmlError('idx is too high for us')
 				else:
 					raise NonRetriableSsmlError('idx is too high for us') from None
 			ssmlStr = state_.techniqueIndexListOfSsmlStrs[idxInList]
-			r = convertSsmlStrIntoSpeechCommandList(ssmlStr, plainTextToAffect_, plainTextWholeMatch_, state_, okToThrowRetriableError_)
+			r = getSpeechCommandsFromSsmlStr(ssmlStr, plainTextToAffect_, plainTextWholeMatch_, state_, okToThrowRetriableError_)
 	elif state_.technique == 'inline':
 		ssmlStrEncoded = ssmlInstructionStrEncoded_
 		ssmlStr = decodeEncodedSsmlInstructionStr(ssmlStrEncoded)
 		logInfo(f'	ssmlStr: "{ssmlStr}"')
-		r = convertSsmlStrIntoSpeechCommandList(ssmlStr, plainTextToAffect_, plainTextWholeMatch_, state_, okToThrowRetriableError_)
+		r = getSpeechCommandsFromSsmlStr(ssmlStr, plainTextToAffect_, plainTextWholeMatch_, state_, okToThrowRetriableError_)
 	else:
 		ourAssert(False)
 
 	return r
-	
+
+def getTechniqueFromHidingPlaceGuid(hidingPlaceTextNode_):
+	ourAssert(hidingPlaceTextNode_)
+	hidingPlaceTextNodeValue = hidingPlaceTextNode_.name
+	if HIDING_PLACE_GUID_FOR_INDEX_TECHNIQUE in hidingPlaceTextNodeValue:
+		return 'index'
+	elif HIDING_PLACE_GUID_FOR_PAGE_WIDE_TECHNIQUE in hidingPlaceTextNodeValue:
+		return 'page-wide'
+	elif HIDING_PLACE_GUID_FOR_ARIA_TECHNIQUE in hidingPlaceTextNodeValue:
+		return 'aria'
+	else:
+		return 'inline' # not really inline.  we use this more as a "fallback to no-op".  b/c this scenario indicates brokenness. 
 
 def getTechniqueIndexListOfSsmlStrsFromHidingPlaceTextNode(hidingPlaceTextNode_):
 	ourAssert(hidingPlaceTextNode_)
 	hidingPlaceTextNodeValue = hidingPlaceTextNode_.name
 	pattern = rf'{HIDING_PLACE_GUID_FOR_ALL_TECHNIQUES} {HIDING_PLACE_GUID_FOR_INDEX_TECHNIQUE}\s*(\[.*\])'
 	match = re.search(pattern, hidingPlaceTextNodeValue)
-	if not match: return None
+	if not match: raise Exception()
 	listStr = match.group(1)
 	listObj = json.loads(listStr)
 	return listObj
@@ -409,7 +504,7 @@ def getTechniquePageWideDictOfPlainTextToSsmlStrFromHidingPlaceTextNode(hidingPl
 	hidingPlaceTextNodeValue = hidingPlaceTextNode_.name
 	pattern = HIDING_PLACE_GUID_FOR_ALL_TECHNIQUES+' '+HIDING_PLACE_GUID_FOR_PAGE_WIDE_TECHNIQUE+r'\s*(\{.*\})'
 	match = re.search(pattern, hidingPlaceTextNodeValue)
-	if not match: return None
+	if not match: raise Exception()
 	mapStr = match.group(1)
 	plainTextToSsmlStr = json.loads(mapStr)
 	r = {}
@@ -474,24 +569,41 @@ def findHidingPlaceTextNodeInA11yTree(a11yTreeRoot_):
 	logInfo(f'found hiding place element: {r != None}.')
 	return r
 
-def a11yTreeToStr(root_, maxDepth=None):
+def nvdaObjectTreeToStr(root_, textInfo=None, maxDepth=None):
 	lines = []
-	def recurse(node, indent=0):
-		if (node is None) or (maxDepth != None and indent > maxDepth):
+	def recurse(obj__, indent__):
+		if (obj__ is None) or (maxDepth != None and indent__ > maxDepth):
 			return
-		indentStr = "  " * indent
+		indentStr = "  " * indent__
 		try:
-			roleStr = roleLabels[node.role]
+			roleStr = roleLabels[obj__.role]
 		except (KeyError, IndexError, TypeError):
-			roleStr = f"unknown ({node.role})"
-		name = node.name or ""
-		lines.append(f"{indentStr}{roleStr}: {name}")
-		child = node.firstChild
+			roleStr = f"unknown ({obj__.role})"
+		name = obj__.name or ""
+
+		LOG_IA2 = True
+		if LOG_IA2:
+			if hasattr(obj__, "IA2Attributes"):
+				ia2Str = f' ia2={str(obj__.IA2Attributes)}'
+			else:
+				ia2Str = f' ia2=absent'
+		else:
+			ia2Str = ''
+
+		if textInfo is not None:
+			try:
+				offsets = textInfo._getOffsetsFromNVDAObject(obj__)
+				lines.append(f"{indentStr}{roleStr} [{offsets[0]},{offsets[1]}]{ia2Str}: \"{name}\"")
+			except LookupError as e:
+				lines.append(f"{indentStr}{roleStr} [?,?]{ia2Str}: \"{name}\"")
+		else:
+			lines.append(f"{indentStr}{roleStr}{ia2Str}: \"{name}\"")
+		child = obj__.firstChild
 		while child:
-			recurse(child, indent + 1)
+			recurse(child, indent__ + 1)
 			child = child.next
 
-	recurse(root_)
+	recurse(root_, 0)
 	return "\n".join(lines)
 
 g_state = State() # never None 
@@ -517,23 +629,22 @@ def updateA11yTreeRoot(forceUpdateOfState_):
 		if not hidingPlaceTextNode:
 			g_state.technique = 'inline'
 		else:
-			g_state.techniqueIndexListOfSsmlStrs = getTechniqueIndexListOfSsmlStrsFromHidingPlaceTextNode(hidingPlaceTextNode)
-			if g_state.techniqueIndexListOfSsmlStrs != None:
-				logInfo('Found hiding place object for technique=index.')
-				g_state.technique = 'index'
-			else:
+			g_state.technique = getTechniqueFromHidingPlaceGuid(hidingPlaceTextNode)
+			if g_state.technique == 'index':
+				g_state.techniqueIndexListOfSsmlStrs = getTechniqueIndexListOfSsmlStrsFromHidingPlaceTextNode(hidingPlaceTextNode)
+			elif g_state.technique == 'page-wide':
 				g_state.techniquePageWideDictOfPlainTextToSsmlStr = getTechniquePageWideDictOfPlainTextToSsmlStrFromHidingPlaceTextNode(hidingPlaceTextNode, g_state)
-				if g_state.techniquePageWideDictOfPlainTextToSsmlStr != None:
-					logInfo('Found hiding place object for technique=page-wide.')
-					g_state.technique = 'page-wide'
+			elif g_state.technique == 'aria':
+				pass # the aria technique doesn't hide anything in the hiding place.  it just uses the hiding place as a place to put it's uuid.
 		if g_state.technique == 'inline':
-			logInfo("Found no hiding place object.  Will assume technique=inline.  Either this web page uses technique=inline, or this web page didn't run our JS, or this is not a web page.")
+			logInfo("Found no hiding place object.  Will assume technique=inline.  Either this web page uses technique=inline, or this web page didn't run our JS, or this web page is somehow antagonistic to our add-on, or this is not a web page.")
 
 class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 	
 	def __init__(self):
 		super().__init__()
 		setGlobalVarsBasedOnNvdaConfig()
+		patchSpeakTextInfoFunc()
 		#monkeyPatchBrailleHandler()
 		# Thank you Dalen at https://nvda-addons.groups.io/g/nvda-addons/message/25811 for this idea of using filter_speechSequence instead of monkey-patching the synth. 
 		self._ourSpeechSequenceFilter = speech.extensions.filter_speechSequence.register(self.ourSpeechSequenceFilter)
@@ -564,6 +675,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 
 	# if this function raises an exception, then that exception will appear in the nvda logs and nvda will speak normally i.e. speak as though this filter didn't exist.  so we don't bend over backwards to catch all exceptions we might create. 
 	def ourSpeechSequenceFilter(self, origSeq: speech.SpeechSequence) -> speech.SpeechSequence:
+		logInfo(f'args to filter: {origSeq}')
 		updateA11yTreeRoot(False)
 		g_state.initNvdaStateFieldsFromRealNvdaState()
 		logInfo(f'--> original speech sequence: {origSeq}')
@@ -578,14 +690,114 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		return modSeq
 	
 	def ourSpeechSequenceFilterImpl(self, origSeq: speech.SpeechSequence, okToThrowRetriableError_: bool) -> speech.SpeechSequence:
-		modSeq = []
-		for element in origSeq:
-			if isinstance(element, str) and len(element) > 0:
-				logInfo(f'filter got string len {len(element)}: "{repr(element)}"')
-				modSeq.extend(convertSpeechStrIntoSpeechCommandList_allMatches(element, g_state, okToThrowRetriableError_))
-			else:
-				modSeq.append(element)
-		return modSeq
+		if g_state.technique == 'aria':
+			return filterSpeechSeq_techniqueAria(origSeq, g_state, okToThrowRetriableError_)
+		else:
+			modSeq = []
+			for element in origSeq:
+				if isinstance(element, str) and len(element) > 0:
+					logInfo(f'filter got string len {len(element)}: "{repr(element)}"')
+					modSeq.extend(filterSpeechStr_allMatches(element, g_state, okToThrowRetriableError_))
+				else:
+					modSeq.append(element)
+			return modSeq
+
+def logIA2Attributes(nvdaObject_):
+	if hasattr(nvdaObject_, "IA2Attributes"):
+		s = str(nvdaObject_.IA2Attributes)
+		logInfo(f'''ia2 (role={getRole(nvdaObject_)}, name={nvdaObject_.name}): {s}''')
+	else:
+		logInfo(f'''ia2 (role={getRole(nvdaObject_)}, name={nvdaObject_.name}): none''')
+
+def getNvdaObjects2(info_):
+	r = []
+	for offset in range(info_._startOffset, info_._endOffset):
+		obj = info_._getNVDAObjectFromOffset(offset)
+		if len(r) == 0 or id(r[-1]) != id(obj):
+			r.append(obj)
+	return r
+
+def getNvdaObjectAllDescendants(nvdaObject_):
+	r = []
+	curChild = nvdaObject_.firstChild
+	while curChild:
+		r.append(curChild)
+		r += getNvdaObjectAllDescendants(curChild)
+		curChild = curChild.next
+	return r
+
+g_textInfo = None
+
+ARIA_TECHNIQUE_ATTRIBUTE_NO_ARIA_PREFIX = ARIA_TECHNIQUE_ATTRIBUTE[len('aria-'):]
+
+def doesNvdaObjectHaveOurAriaAttribute(nvdaObject_):
+	return hasattr(nvdaObject_, "IA2Attributes") and ARIA_TECHNIQUE_ATTRIBUTE_NO_ARIA_PREFIX in nvdaObject_.IA2Attributes
+
+def deDupeByOffsets(listOfNvdaObjects_, textInfo_):
+	r = []
+	if len(listOfNvdaObjects_) > 0:
+		r.append(listOfNvdaObjects_[0])
+		for i in range(1, len(listOfNvdaObjects_)):
+			curObject = listOfNvdaObjects_[i]
+			prevObject = listOfNvdaObjects_[i-1]
+			curObjectOffsets = textInfo_._getOffsetsFromNVDAObject(curObject)
+			prevObjectOffsets = textInfo_._getOffsetsFromNVDAObject(prevObject)
+			if curObjectOffsets != prevObjectOffsets:
+				r.append(curObject)
+	return r
+
+def getNvdaObjectsFromTextInfo(textInfo_):
+
+	logInfo(f'start getNvdaObjectsFromTextInfo.  textinfo offsets: {textInfo_._startOffset,textInfo_._endOffset}')
+
+	ancestorObj = textInfo_._getNVDAObjectFromOffset(textInfo_._startOffset)
+	while ancestorObj is not None:
+		ancestorObjOffsets = textInfo_._getOffsetsFromNVDAObject(ancestorObj)
+		if ancestorObjOffsets[0] <= textInfo_._startOffset and ancestorObjOffsets[1] >= textInfo_._endOffset:
+			logInfo('offsets are big enough.  break.')
+			break
+		logInfo(f'obj tree:\n{nvdaObjectTreeToStr(ancestorObj, textInfo=textInfo_)}')
+		ancestorObj = ancestorObj.parent
+		logInfo('up one parent level')
+	if ancestorObj is None:
+		return []
+	r = [ancestorObj] + getNvdaObjectAllDescendants(ancestorObj)
+	logInfo(f'num objects to start (by wide offsets): {len(r)}')
+	r = [e for e in r if doesNvdaObjectHaveOurAriaAttribute(e)]
+	logInfo(f'num objects after filtering to those w/ aria attribute: {len(r)}')
+	r2 = []
+	for obj in r:
+		try:
+			objOffsets = textInfo_._getOffsetsFromNVDAObject(obj)
+			add = objOffsets[0] >= textInfo_._startOffset and objOffsets[1] <= textInfo_._endOffset
+			if add:
+				r2.append(obj)
+			logInfo(f'obj w/ offsets {objOffsets} added: {add}')
+		except LookupError:
+			logInfo(f'obj has no offsets')
+			pass
+	r = r2
+	logInfo(f'num objects after particular filtering by offsets: {len(r)}')
+	logInfo(f'end getNvdaObjectsFromTextInfo.  {len(r)}.')
+	return r
+	
+g_original_speakTextInfo = None
+
+def patchedSpeakTextInfo(textInfo_, *args, **kwargs): 
+	global g_textInfo
+	g_textInfo = textInfo_
+	try:
+		r = g_original_speakTextInfo(textInfo_, *args, **kwargs)
+		return r
+	finally:
+		g_textInfo = None
+
+def patchSpeakTextInfoFunc():
+	global g_original_speakTextInfo
+	g_original_speakTextInfo = speech.speakTextInfo 
+	speech.speakTextInfo = patchedSpeakTextInfo
+
+
 
 def monkeyPatchBrailleHandler():
 	originalUpdateFunc = braille.handler.update
@@ -602,7 +814,4 @@ def monkeyPatchBrailleHandler():
 		return originalUpdateFunc()
 
 	braille.handler.update = types.MethodType(ourUpdateFunc, braille.handler)
-
-
-
 

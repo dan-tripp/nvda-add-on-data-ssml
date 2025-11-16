@@ -55,7 +55,7 @@ This add-on can be configured to use one of several "techniques", but regardless
 			<td>The best technique.  The JS adds no junk characters here.
 		</tr>
 		<tr>
-			<th scope="row">Up/down arrow is different due to junk characters 
+			<th scope="row">Up/down arrow nav is different due to junk characters 
 			<td>The worst technique.  Noticeable.
 			<td>The almost-best technique.  I didn't notice it, but there might be cases that I'm missing.
 			<td>The best technique.  The JS adds no junk characters here.
@@ -83,13 +83,13 @@ This add-on can be configured to use one of several "techniques", but regardless
 		</tr>
 		<tr>
 			<th scope="row">NVDA braille viewer sees junk characters 
-			<td>The worse technique.  Braille viewer sees a lot of junk characters.
-			<td>The middle technique.  Braille viewer sees much fewer characters.  Still: the negative user impact of this is still significant, I expect.
+			<td>The worst technique.  Braille viewer sees a lot of junk characters.
+			<td>The middle technique.  Braille viewer sees much fewer characters.  Still the negative user impact of this is significant, I expect.
 			<td>The best technique.  Braille viewer sees no junk characters, because the JS didn't add any. 
 		</tr>
 		<tr>
 			<th scope="row">Clipboard junk.  i.e. our encoding characters, even though they're invisible to the eye and silent in the screen reader audio, show up in the clipboard if you select and copy that part of the page.
-			<td>The worse technique.  The JS adds approx 2 characters of clipboard junk per data-ssml character.
+			<td>The worst technique.  The JS adds approx 2 characters of clipboard junk per data-ssml character.
 			<td>The middle technique.  The JS adds a roughly-constant 6 characters of clipboard junk, regardless of the length of data-ssml.  4 characters at the start of the element + 2 characters at the end.
 			<td>The best technique.  The JS adds no clipboard junk.
 		</tr>

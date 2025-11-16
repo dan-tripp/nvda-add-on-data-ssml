@@ -257,15 +257,18 @@ window.addEventListener("load", function(event) {
 
 			some of the above messes will cause an ugly-but-harmless exception in our logs.  (JS logs,  python logs, or both.)  others will be silently or semi-silently ignored. -->`},
 		{html: `&#x2062;&#x2064;&#x2061;&#x2062;alpha&#x2062;&#x2062; <span data-ssml='{"sub": {"alias": "beta"}}'>no</span>`, 
-			expected: `"alpha beta".  this case consists of two pieces: 1) some characters that will result in an exception to be thrown (in the python), followed by 2) some valid SSML which won't throw an exception.  and those two pieces will get processed in the same call to our speech filter.  so this case tests the behaviour: if an exception is raised for a certain match (in this case, the first one) then we'll fall back to the plain text only for that match.  not for all matches in the string that got passed to our speech filter.`},
+			expected: `"alpha beta".  this case consists of two pieces: 1) some simulated "encoding characters in the wild" which will result in an exception to be thrown (in the python), followed by 2) some valid SSML which won't throw an exception.  and those two pieces will get processed in the same call to our speech filter.  so this case tests the behaviour: if an exception is raised for a certain match (in this case, the first one) then we'll fall back to the plain text only for that match.  not for all matches in the string that got passed to our speech filter.`},
 		{html: `&#x2062;&#x2060;&#xfffa;&#x2060;&#xfffa;&#x2060;&#xfffa;&#x2060;&#xfffa;&#x2060;&#xfffa;&#x2062;alpha&#x2062;&#x2062; <span data-ssml='{"sub": {"alias": "beta"}}'>no</span>`, 
 			expected: `"alpha beta".  similar to previous, but this time we're causing an exception that we know will be a /retriable/ exception.  (b/c it's an index of 99999.)`},
 	];
 
-	let hyphenHtmlTemplate = `<span data-ssml='{"sub": {"alias": "yes"}}'>aHYPHENbHYPHENcHYPHENdHYPHENeHYPHENf</span> `.repeat(20);
+	let hyphenHtmlTemplate = '';
+	for(let i=0; i<20; i++) {
+		hyphenHtmlTemplate += `<span data-ssml='{"sub": {"alias": "${i}"}}'>aHYPHENbHYPHENcHYPHENdHYPHENeHYPHENf</span> `;
+	}
 	testCases.push(...[
-		{html: hyphenHtmlTemplate.replace(/HYPHEN/g, '-'),  
-			expected: `"yes yes yes yes yes ...".  (assuming technique!=inline.  otherwise: probably doesn't work.)  this test case and the next few show that nvda doesn't break up a hyphenated word (with any kind of hyphen), so our add-on can do SSML on a hyphenated word.`}, 
+		{html: hyphenHtmlTemplate.replace(/HYPHEN/g, '-'), 
+			expected: `"0 1 2 3 4 5 ...".  (assuming technique!=inline.  otherwise: probably doesn't work.)  this test case and the next few show that nvda doesn't break up a hyphenated word (with any kind of hyphen), so our add-on can do SSML on a hyphenated word.`}, 
 		{html: hyphenHtmlTemplate.replace(/HYPHEN/g, '&#x2010;'), 
 			expected: `see above.`}, 
 		{html: hyphenHtmlTemplate.replace(/HYPHEN/g, '&#x2011;'), 
@@ -288,6 +291,11 @@ window.addEventListener("load", function(event) {
 			expected: `"graphic duck".  i.e. the SSML doesn't work.  this is an img alt attribute.`}, 
 		{html: `<img aria-labelledby="label-duck" src="duck.jpg">`, 
 			expected: `"a duck in the water, facing left".  this shows the right way to put SSML on image alt text: with aria-labelledby.  <br>ignore this part: this is the aria-labelledby target: <span data-ssml='{"sub": {"alias": "a duck in the water, facing left"}}' id="label-duck"></span>  (this also shows that the labelledby target doesn't need to have text content.)`}, 
+
+		{html: `<span data-ssml='{"sub":{"alias":"1"}}'>Lorem</span> Ipsum <span>is</span> simply dummy text of the <span data-ssml='{"sub":{"alias":"2"}}'>printing</span> and typesetting industry.<br>
+		<span data-ssml='{"sub":{"alias":"3"}}'>Lorem</span> Ipsum <span aria-dropeffect="no">has</span> <span aria-dropeffect="no">been</span> <span data-ssml='{"sub":{"alias":"4"}}'>the</span> industry's <span data-ssml='{"sub":{"alias":"5"}}'>standard</span> dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book.<br>
+		It has survived not only five centuries, but also the leap into electronic typesetting, remaining essentially unchanged. It was popularised in the 1960s with the release of Letraset sheets containing Lorem Ipsum passages, and more recently with desktop publishing software like Aldus PageMaker including versions of Lorem Ipsum.`, 
+			expected: `testing data-ssml in a paragraph, and pointless spans.`}, // testing on firefox 2025-11-30: a plain span won't show up as its own string in our nvda filter.  a span w/ aria-dropeffect will. 
 	]);
 
 	let table = document.getElementById('table');

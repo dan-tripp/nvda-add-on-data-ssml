@@ -14,7 +14,7 @@ window.NvdaAddOnDataSsml.initByUrlParams = function(urlParams_, defaultTechnique
 }
 
 /* if you call this multiple times: that is probably harmless.  
-	- more commentary, probably not interesting: this function could be seen as idempotent if you just look at its effect on the DOM.  but it's not idempotent if you look at what's happening in the JS, because if watchForDomChanges_ is true, then on every call to this function, we'll add a new mutation observer, so when a mutation happens, multiple instances of our mutation observer will get called.  this won't matter much because the second and subsequent calls won't change the DOM, because of data-ssml-processed. */
+	- more commentary, probably not interesting: this function is almost idempotent.  it could be seen as idempotent if you just look at its effect on the DOM.  but it's not idempotent if you look at what's happening in the JS, because if watchForDomChanges_ is true, then on every call to this function, we'll add a new mutation observer, so when a mutation happens, multiple instances of our mutation observer will get called.  this won't matter much because the second and subsequent calls won't change the DOM, because of data-ssml-processed. */
 window.NvdaAddOnDataSsml.initByTechnique = function(technique_, watchForDomChanges_) {
 	if(technique_ === 'page-wide' && watchForDomChanges_) throw new Error("page-wide && watch: not supported yet");
 	encodeAllDataSsmlAttribs(technique_);
@@ -48,11 +48,34 @@ function startObserver(technique_) {
 	observer.observe(document.body, {childList: true, subtree: true, attributes: true, attributeFilter: ['data-ssml'], attributeOldValue: true});
 }
 
+const ENCODING_CHARS = [
+	'\uFFF9', // visible on android chrome (my samsung galaxy s10e, tested 2025-11-30).  looks like a box. 
+	'\u200C', 
+	'\u200D',
+	'\u2060',
+	'\u2061',
+	'\uFEFF',
+	'\u2063',
+	'\u2064',
+	'\uFFFB',
+	'\uFFFA',
+	'\u206A',
+	'\u206B',
+	'\u206C',
+	'\u206D',
+	'\u206E',
+	'\u206F', 
+];
+
 const HIDING_PLACE_GUID_FOR_ALL_TECHNIQUES = '4b9b696c-8fc8-49ca-9bb9-73afc9bd95f7';
 const HIDING_PLACE_GUID_FOR_INDEX_TECHNIQUE = 'b4f55cd4-8d9e-40e1-b344-353fe387120f';
 const HIDING_PLACE_GUID_FOR_PAGE_WIDE_TECHNIQUE = 'c7a998a5-4b7e-4683-8659-f2da4aa96eee';
+const HIDING_PLACE_GUID_FOR_ARIA_TECHNIQUE = '84376c45-1157-49e1-9702-7016d3de4b67';
 const INPUT_TYPES_SUPPORTED = new Set(['checkbox', 'radio', 'button', 'reset', 'submit', ]);
 const SUPPORTED_SSML_INSTRUCTIONS = new Set(["say-as", "phoneme", "sub", "break"]);
+const ARIA_TECHNIQUE_ATTRIBUTE = 'aria-grabbed';
+const ARIA_TECHNIQUE_START_MARKER = ENCODING_CHARS[1];
+const ARIA_TECHNIQUE_END_MARKER = ENCODING_CHARS[2];
 
 function isPowerOfTwo(n_) {
 	return (n_ & (n_ - 1)) !== 0;
@@ -66,25 +89,6 @@ function encodeStrAsZeroWidthChars(str_) {
     for (let byte of utf8Bytes) {
         bigInt = (bigInt << BigInt(8)) + BigInt(byte);
     }
-
-    const ENCODING_CHARS = [
-		'\uFFF9', 
-		'\u200C', 
-		'\u200D',
-		'\u2060',
-		'\u2061',
-		'\uFEFF',
-		'\u2063',
-		'\u2064',
-		'\uFFFB',
-		'\uFFFA',
-		'\u206A',
-		'\u206B',
-		'\u206C',
-		'\u206D',
-		'\u206E',
-		'\u206F', 
-	];
 
     let n = ENCODING_CHARS.length;
 
@@ -130,15 +134,14 @@ class SsmlError extends Error {
 
 /* note 1: you might be thinking "it's not really processed yet, so why are we adding the 'processed' attribute now?"  answer: b/c by adding this attribute now, we get the benefit that we won't re-process elements w/ data-ssml="" or SSML errors.  the only reason we wouldn't want to add this attribute now would be in case of an error during "processing" (i.e. adding encoding characters).  we don't currently care about that. */
 function* getAllElemsWithDataSsmlNotProcessed(technique_) {
-	let isTechniquePageWide = technique_ === 'page-wide';
 	for(let element of document.querySelectorAll('[data-ssml]:not([data-ssml-processed]')) {
 		element.setAttribute('data-ssml-processed', ''); /* see note 1 */ 
 		let dataSsmlVal = element.getAttribute('data-ssml')?.trim();
 		if(!dataSsmlVal) continue;
 		try {
-			doElementLevelErrorChecks(element, isTechniquePageWide);
-			doSsmlAttribErrorChecks(dataSsmlVal, element.textContent, isTechniquePageWide);
-			doElementLevelWarningChecks(element, isTechniquePageWide);
+			doElementLevelErrorChecks(element, technique_);
+			doSsmlAttribErrorChecks(dataSsmlVal, element.textContent, technique_);
+			doElementLevelWarningChecks(element, technique_);
 			yield [element, dataSsmlVal];
 		} catch(err) {
 			if(err instanceof SsmlError) {
@@ -150,14 +153,14 @@ function* getAllElemsWithDataSsmlNotProcessed(technique_) {
 	}
 }
 
-function doElementLevelWarningChecks(element_, isTechniquePageWide_) {
+function doElementLevelWarningChecks(element_, technique_) {
 	let len = element_.textContent.length;
 	if(len > 70) {
 		console.warn(`data-ssml: the length of this element's text content is ${len} "characters" (really: UTF-16 code units).  This is somewhat long.  If it's too long, then data-ssml won't work.  It's unclear what exactly the max length is.  This add-on doesn't enforce a max length, but NVDA effectively does, and it's unclear exactly what NVDA's max length is.  By experiment, it seems to be roughly 100.  That is: over 100, data-ssml doesn't work - at least not for "arrow nav".  "tab nav" and "table nav" still work, at least some of the time.`, element_);
 	}
 }
 
-function doElementLevelErrorChecks(element_, isTechniquePageWide_) {
+function doElementLevelErrorChecks(element_, technique_) {
 	let doesAncestorHaveDataSsml = element_.parentElement.closest('[data-ssml]');
 	if(doesAncestorHaveDataSsml) {
 		throw new SsmlError("This element which has data-ssml has an ancestor which also has data-ssml.  We will ignore the data-ssml on this element, and probably the data-ssml on those ancestor element(s) too - there might be other errors logged about them.");
@@ -174,24 +177,28 @@ function doElementLevelErrorChecks(element_, isTechniquePageWide_) {
 		/* It's too bad that we can't support phone numbers with spaces.  I once hoped that we could, by replacing the text content's spaces with nbsp or similar.  That didn't work.  See test-phone-number-line-chunking.html. */
 		throw new SsmlError(`This element's text content has multiple words (separated by whitespace).  This add-on doesn't support this.  ${looksLikeAPhoneNumber ? 'If this is a phone number: the only kind of phone number that this add-on supports is one with no spaces - for example "416-555-3792".  ' : ''}This add-on doesn't support multiple words because NVDA, when the user is navigating with the up/down arrow keys, will obviously break up sentences into "chunks" or "lines".  (This kind of "line" usually doesn't correspond with a visual line.  "Line" here means whatever NVDA's up/down arrow keys move across.)  NVDA will often, more-or-less at random, consider the second word in any pair of words to be part of the next "line".  In order for this add-on to work, each unit of "plain text" (i.e. the text that this add-on will override the spoken presentation of) needs to be sent to our speech filter function in one function call.  That means that the entire plain text needs to be contained in one "line".  If the plain text has multiple words, then there is no guarantee of this.  So this add-on refuses to try to handle it.`);
 	}
-	if(isTechniquePageWide_ && element_.tagName !== 'SPAN') {
+	if((technique_ === 'page-wide') && (element_.tagName !== 'SPAN')) {
 		throw new SsmlError(`Found data-ssml on an element that is not a <span>, and technique=page-wide.  This plugin doesn't support this, because it's a sign of author confusion.  With this technique, the tagName of the element doesn't matter: only its textContent and the data-ssml value matter.  Technically we could easily support data-ssml on a non-<span>, but this might mislead the author into thinking that their data-ssml will take effect only on that element, or only on elements with the same tag name.  With this technique, neither of those things are true, or likely to ever be true.  Instead, with this technique, the author should add a separate section to their page - which should probably be unperceivable to the user, so should probably with CSS "display: none" on it - where they put all of their data-ssml.  Since this section should be unperceivable, it should have no semantics or operability, so it might as well be all <span>s.  If, on the other hand, they put data-ssml throughout the parts of the page that will be percieved by the end user, then under technique=page-wide, that is a sign of author confusion.  Under the other techniques, it is normal and desirable.`);
 	}
 	if(element_.tagName === 'TEXTAREA') {
-		assert(!isTechniquePageWide_);
+		assert(technique_ !== 'page-wide'); // b/c if it was, and this element is not a span, this function will have thrown already.
 		throw new SsmlError(`Found data-ssml on a <textarea> element.  If you want to use SSML on the /label/ of this <textarea>, then put data-ssml on the label element instead (or - if your label wraps another element - put data-ssml on a text-only child element of the label).  If you want to use SSML on the /contents/ of this <textarea>, then your only option is to use technique=page-wide.`);
 	}
 	if(element_.tagName === 'INPUT') {
-		assert(!isTechniquePageWide_);
+		assert(technique_ !== 'page-wide'); // b/c if it was, and this element is not a span, this function will have thrown already.
 		let type = element_.getAttribute('type');
 		if(!INPUT_TYPES_SUPPORTED.has(type)) {
 			throw new SsmlError(`Found data-ssml on an <input type="${type}">.  Our list of supported types is: ${[...INPUT_TYPES_SUPPORTED]}.  If you want to use SSML on the /label/ of this <input>, then put data-ssml on the label element instead (or - if your label wraps another element - put data-ssml on a text-only child element of the label).  If you want to use SSML on the /contents/ of this <input>: we don't support that, because it's unclear what it would mean.  data-ssml makes the most sense if you imagine it being put on a DOM text node that never changes.  Equivalently: on a DOM element which contains nothing but text that never changes.  And that DOM element can be a widget, or inside of a widget, or not.  But the following ideas don't make sense: 1) data-ssml on a value that can be edited by the user, and 2) data-ssml on an element that has content which is more complicated than just text.  The input types that we don't support fall into those categories.  (To elaborate on #1: this means the /value/ of a widget, not the name of it.  And a value that is /edited/ - not selected - by the user.)`);
 		}
 	}
 	let isTextContentWhitespaceOnlyOrEmpty = /^\s*$/.test(element_.textContent);
-	if(isTechniquePageWide_ && isTextContentWhitespaceOnlyOrEmpty) {
+	if(technique_ === 'page-wide' && isTextContentWhitespaceOnlyOrEmpty) {
 		throw new SsmlError(`Found data-ssml on an element that either has no text content or has whitespace-only text content.  This plugin doesn't support that - under technique=page-wide, which this page is - because this plugin relies on some meaningful text content - the longer the better.  This plugin effectively searches the rest of the page for matching text content, so if it searched for whitespace, it would override the spoken presentation of all of that whitespace.  Suggestion: use technique=index.`);
 	}
+	if((technique_ === 'aria') && element_.hasAttribute(ARIA_TECHNIQUE_ATTRIBUTE)) {
+		throw new SsmlError(`Found data-ssml on an element which already has an ${ARIA_TECHNIQUE_ATTRIBUTE} attribute.  This add-on is using technique=${technique_}.  This add-on, under this technique, uses the ${ARIA_TECHNIQUE_ATTRIBUTE} for it's own purposes.`);
+	}
+
 }
 
 function insistOnDictLikeObjWithOneVal(x_, key_ = undefined) {
@@ -212,7 +219,7 @@ function insistOnDictLikeObjWithOneVal(x_, key_ = undefined) {
 	}
 }
 
-function doSsmlAttribErrorChecks(ssmlStr_, textContent_, isTechniquePageWide_) {
+function doSsmlAttribErrorChecks(ssmlStr_, textContent_, technique_) {
 	try {
 		let ssmlObj = JSON.parse(ssmlStr_);
 		insistOnDictLikeObjWithOneVal(ssmlObj);
@@ -226,7 +233,7 @@ function doSsmlAttribErrorChecks(ssmlStr_, textContent_, isTechniquePageWide_) {
 			let ph = instructionVal['ph'];
 			if(!ph) throw new SsmlError(`Expected to see a non-empty value for "ph".`);
 		} else if(instruction === 'break') {
-			if(isTechniquePageWide_) {
+			if(technique_ === 'page-wide') {
 				throw new SsmlError(`Found a data-ssml "break" command, and technique=page-wide.  This plugin doesn't support that, because "break" is typically used on an element which has no text content, and page-wide relies on that text content: it effectively searches the rest of the page for matching text content.`);
 			} else {
 				let isTextContentWhitespaceOnlyOrEmpty = /^\s*$/.test(textContent_);
@@ -313,6 +320,24 @@ function getMapOfPlainTextStrToSsmlStr_pageWideTechnique() {
 	return mapOfPlainTextStrToSsmlStr;
 }
 
+function encodeAllDataSsmlAttribs_ariaTechnique() {
+	encodeAllDataSsmlAttribs_ariaTechnique_addMarkers();
+	encodeAllDataSsmlAttribs_ariaTechnique_createOrUpdateHidingPlaceElement();
+}
+
+function encodeAllDataSsmlAttribs_ariaTechnique_createOrUpdateHidingPlaceElement() {
+	if(!haveWeCreatedTheHidingPlaceDomElementYet()) {
+		encodeAllDataSsmlAttribs_ariaTechnique_createHidingPlaceElement();
+	}
+}
+
+function encodeAllDataSsmlAttribs_ariaTechnique_createHidingPlaceElement() {
+	let div = document.createElement("div");
+	div.textContent = `Please ignore. ${HIDING_PLACE_GUID_FOR_ALL_TECHNIQUES} ${HIDING_PLACE_GUID_FOR_ARIA_TECHNIQUE}`;
+	document.body.appendChild(div);
+	NvdaAddOnDataSsml.g_hidingPlaceElement = div;
+}
+
 function encodeAllDataSsmlAttribs_indexTechnique() {
 	encodeAllDataSsmlAttribs_indexTechnique_encodeEachOccurrenceAsAnIndex();
 	encodeAllDataSsmlAttribs_indexTechnique_createOrUpdateHidingPlaceElement();
@@ -344,6 +369,14 @@ function encodeAllDataSsmlAttribs_indexTechnique_createHidingPlaceElement() {
 	NvdaAddOnDataSsml.g_hidingPlaceElement = div;
 }
 
+function encodeAllDataSsmlAttribs_ariaTechnique_addMarkers() {
+	for(let [elem, curSsmlStr] of getAllElemsWithDataSsmlNotProcessed('aria')) {
+		elem.setAttribute(ARIA_TECHNIQUE_ATTRIBUTE, curSsmlStr);
+		elem.insertBefore(document.createTextNode(ARIA_TECHNIQUE_START_MARKER), elem.firstChild);
+		elem.appendChild(document.createTextNode(ARIA_TECHNIQUE_END_MARKER));
+	}
+}
+
 /* in this function we will add to the in-memory hiding place list.  so the in-memory list will be out of sync (and newer) than the in-DOM list.  shortly after this function, we will write the in-memory list to the DOM. */
 function encodeAllDataSsmlAttribs_indexTechnique_encodeEachOccurrenceAsAnIndex() {
 	let hidingPlaceList = NvdaAddOnDataSsml.g_hidingPlaceList;
@@ -371,6 +404,8 @@ function encodeAllDataSsmlAttribs(technique_) {
 		encodeAllDataSsmlAttribs_inlineTechnique();
 	} else if(technique_ === 'page-wide') {
 		encodeAllDataSsmlAttribs_pageWideTechnique();
+	} else if(technique_ === 'aria') {
+		encodeAllDataSsmlAttribs_ariaTechnique();
 	} else {
 		throw new Error();
 	}
