@@ -60,6 +60,7 @@ import globalPluginHandler, api, scriptHandler, ui
 from logHandler import log
 import speech, speech.commands, speech.extensions, braille
 import synthDriverHandler, config
+from documentBase import textInfos
 from controlTypes import roleLabels
 
 # speech/SSML processing borrowed from NVDA's mathPres/mathPlayer.py
@@ -75,6 +76,7 @@ from speech.commands import (
 	IndexCommand,
 )
 
+# gets values from nvda.ini 
 def setGlobalVarsBasedOnNvdaConfig():
 	global PROFILE, LOG_BRAILLE, NEXT_SYNTH_SHORTCUT
 	if NVDA_CONFIG_KEY not in config.conf:
@@ -534,6 +536,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 	def __init__(self):
 		super().__init__()
 		setGlobalVarsBasedOnNvdaConfig()
+		#patchSpeakTextInfoFunc() # tdr 
 		#monkeyPatchBrailleHandler()
 		# Thank you Dalen at https://nvda-addons.groups.io/g/nvda-addons/message/25811 for this idea of using filter_speechSequence instead of monkey-patching the synth. 
 		self._ourSpeechSequenceFilter = speech.extensions.filter_speechSequence.register(self.ourSpeechSequenceFilter)
@@ -564,6 +567,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 
 	# if this function raises an exception, then that exception will appear in the nvda logs and nvda will speak normally i.e. speak as though this filter didn't exist.  so we don't bend over backwards to catch all exceptions we might create. 
 	def ourSpeechSequenceFilter(self, origSeq: speech.SpeechSequence) -> speech.SpeechSequence:
+		#logInfo("ourSpeechSequenceFilter stack "+("".join(traceback.format_stack()))) # tdr 
 		updateA11yTreeRoot(False)
 		g_state.initNvdaStateFieldsFromRealNvdaState()
 		logInfo(f'--> original speech sequence: {origSeq}')
@@ -587,6 +591,98 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 				modSeq.append(element)
 		return modSeq
 
+	def xevent_gainFocus(self, obj, nextHandler): # tdr 
+		nextHandler() # tdr 
+		stopwatch = StopWatch() # tdr 
+		if hasattr(obj, "IA2Attributes") and obj.IA2Attributes:
+			stopwatch.click('focus hasattr +ve')
+			s = str(obj.IA2Attributes)
+			stopwatch.click('focus tostring')
+			logInfo(f'''focus: {s}''')	
+			stopwatch.click('focus log')
+		else:
+			stopwatch.click('focus hasattr -ve')
+			logInfo(f'''focus: no IA2''')	
+		nextHandler() # tdr 
+		try:
+				root = obj.treeInterceptor.rootNVDAObject
+		except Exception as e:
+				root = None
+		if root == None: logInfo('no root')
+		if root != None:
+				try:
+						#speech.speakMessage("Root name: " + root.name)
+						logInfo(a11yTreeToStr(root))
+				except Exception as e:
+						log.exception(e)
+						pass
+
+		nextHandler()
+
+
+g_original_speakTextInfo = speech.speakTextInfo # tdr 
+
+def logIA2Attributes(nvdaObject_):
+	if hasattr(nvdaObject_, "IA2Attributes"):
+		s = str(nvdaObject_.IA2Attributes)
+		logInfo(f'''ia2: {s}''')
+	else:
+		logInfo(f'''ia2: none''')
+
+def patchedSpeakTextInfo(info, *args, **kwargs): # tdr 
+	#logInfo("patchedSpeakTextInfo stack "+("".join(traceback.format_stack()))) # tdr 
+	#logInfo(f'speakTextInfo {str(nvdaObjectAtStart)}')
+	#logInfo(f'speakTextInfo NVDAObjectAtStart {str(dir(obj))}') # tdr 
+
+	if 1:
+		seq = speech.getSpeechForTextInfo(info)
+		for iNvdaObject, item in enumerate(seq):
+			o = getattr(item, "obj", None)
+			if o:
+				logInfo(f'nvdaObject [{iNvdaObject}]:')
+				logIA2Attributes(o)
+				
+
+	r = g_original_speakTextInfo(info, *args, **kwargs)
+	#logInfo("patchedSpeakTextInfo end") # tdr 
+	return r
+
+def patchSpeakTextInfoFunc():
+    speech.speakTextInfo = patchedSpeakTextInfo
+
+
+def iterNvdaObjects(textInfo):
+    logInfo('here 1')
+    while True:
+        o = getattr(textInfo, "obj", None)
+        if o and getattr(o, "IAccessibleObject", None):
+            logInfo('here 2')
+            yield o
+        try:
+            if not textInfo.move(textInfos.UNIT_READINGCHUNK, 1):
+                break
+        except:
+            break
+
+
+
+def getNvdaObjects_old(bufTextInfo_):
+	r = []
+	storyLength = bufTextInfo_._getStoryLength()
+	seen = set()
+
+	for offset in range(storyLength):
+		try:
+			nvdaObject = bufTextInfo_._getNVDAObjectFromOffset(offset)
+			if nvdaObject and id(nvdaObject) not in seen:
+				seen.add(id(nvdaObject))
+				r.append(nvdaObject)
+		except Exception as e:
+			logInfo(f"Offset {offset}: {e}")
+
+	return r
+
+
 def monkeyPatchBrailleHandler():
 	originalUpdateFunc = braille.handler.update
 
@@ -605,4 +701,100 @@ def monkeyPatchBrailleHandler():
 
 
 
+
+
+
+
+def get_all_buffer_nodes(bufTextInfo):
+	nodes = []
+	buf = bufTextInfo.obj.treeInterceptor
+	storyLength = bufTextInfo._getStoryLength()
+	seen = set()
+
+	for offset in range(storyLength):
+		try:
+			obj = bufTextInfo._getNVDAObjectFromOffset(offset)
+			if obj and id(obj) not in seen:
+				seen.add(id(obj))
+				nodes.append(obj)
+		except Exception as e:
+			logInfo(f"Offset {offset}: {e}")
+
+	return nodes
+
+
+
+
+
+_original_speakTextInfo = speech.speakTextInfo 
+
+_original_speak = speech.speak
+
+def filtering_speak(seq, *args, **kwargs):
+	logInfo('here 1')
+	modified = []
+	for item in seq:
+		logInfo(f'filter speak saw "{item}"')
+		if isinstance(item, str):
+			modified.append(item.replace("line", "goose goose goose"))
+		else:
+			modified.append(item)
+	return _original_speak(modified, *args, **kwargs)
+
+def wrapped_speakTextInfo(info, *args, **kwargs):
+	try:
+		obj = info.NVDAObjectAtStart
+		if 0:
+			role = roleLabels.get(obj.role, f"unknown ({obj.role})")
+			name = obj.name or ""
+			logInfo(f"[speakTextInfo] role={role}, name={name}")
+			a11yTreeRoot = obj.treeInterceptor.rootNVDAObject
+			logInfo(f"[speakTextInfo] a11yTreeRoot={a11yTreeRoot.name}")
+
+		if 1:
+			logInfo('start objects')
+			ti = obj.makeTextInfo(textInfos.POSITION_FIRST)
+			allNodes = get_all_buffer_nodes(ti)
+			for node in allNodes:
+				role = roleLabels.get(node.role, f"unknown ({node.role})")
+				logInfo(f"object: role={role}, name={node.name}")
+			logInfo('end objects')
+
+	except Exception as e:
+		logInfo(f"[speakTextInfo] error logging: {e}")
+
+
+	if 0:
+		speech.speak(["goose"])
+		return
+
+	if 0:
+		origReturnVal = _original_speakTextInfo(info, *args, **kwargs)
+		return
+	
+	if 0:
+		try:
+			speech.speak = filtering_speak
+			logInfo('about to call _original_speakTextInfo')
+			return _original_speakTextInfo(info, *args, **kwargs)
+		finally:
+			logInfo('just called _original_speakTextInfo')
+			speech.speak = _original_speak
+
+
+	if 0:
+		sequence = speech.getSpeechForObject(obj)
+
+		modifiedSequence = []
+		for item in sequence:
+			if isinstance(item, str):
+				logInfo(f'seen in sequence: "{item}"')
+				modifiedSequence.append(item.replace("line", "goose line goose"))
+			else:
+				modifiedSequence.append(item)	
+
+		speech.speak(modifiedSequence, *args, **kwargs)
+	return _original_speakTextInfo(info, *args, **kwargs)
+
+speech.speakTextInfo = wrapped_speakTextInfo
 

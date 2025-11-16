@@ -288,6 +288,25 @@ window.addEventListener("load", function(event) {
 			expected: `"graphic duck".  i.e. the SSML doesn't work.  this is an img alt attribute.`}, 
 		{html: `<img aria-labelledby="label-duck" src="duck.jpg">`, 
 			expected: `"a duck in the water, facing left".  this shows the right way to put SSML on image alt text: with aria-labelledby.  <br>ignore this part: this is the aria-labelledby target: <span data-ssml='{"sub": {"alias": "a duck in the water, facing left"}}' id="label-duck"></span>  (this also shows that the labelledby target doesn't need to have text content.)`}, 
+
+		{html: `<a href="#" aria-label="xyz" data-ssml='{"sub": {"alias": "success"}}' aria-description="def" aria-roledescription="ghi" aria-ssml="aha">abc</a>`, 
+			expected: `misc aria (tdr)`}, 
+		{html: `<span x-aria-label="xyz" data-ssml='{"sub": {"alias": "success"}}' aria-description="def" aria-roledescription="ghi" aria-ssml="aha">abc</span>`, 
+			expected: `misc aria (tdr)`}, 
+		{html: `<span data-ssml='{"sub": {"alias": "success 1"}}'>abc</span>`, 
+			expected: `misc aria (tdr)`}, 
+		{html: `<span aria-ssml='{"sub": {"alias": "success 2"}}'>abc</span>`, 
+			expected: `misc aria (tdr)`}, 
+		{html: `<span aria-ssml='{"sub": {"alias": "success 3"}}' aria-hidden="false">abc</span>`, 
+			expected: `misc aria (tdr)`}, 
+		{html: `<span data-ssml='{"sub": {"alias": "success 3"}}' aria-hidden="false">abc</span>`, 
+			expected: `misc aria (tdr)`}, 
+		{html: `<span aria-details='{"sub": {"alias": "success 4"}}'>abc</span>`, 
+			expected: `misc aria (tdr)`}, 
+		{html: `<span aria-dropeffect='{"sub": {"alias": "success 4"}}' aria-hidden="false">abc</span>`, 
+			expected: `misc aria (tdr)`}, 
+		{html: `<span aria-dropeffect='{"sub": {"alias": "success 4"}}' >abc</span>`, 
+			expected: `misc aria (tdr)`}, 
 	]);
 
 	let table = document.getElementById('table');
