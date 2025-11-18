@@ -476,7 +476,7 @@ def findHidingPlaceTextNodeInA11yTree(a11yTreeRoot_):
 	logInfo(f'found hiding place element: {r != None}.')
 	return r
 
-def a11yTreeToStr(root_, maxDepth=None):
+def nvdaObjectTreeToStr(root_, maxDepth=None):
 	lines = []
 	def recurse(node, indent=0):
 		if (node is None) or (maxDepth != None and indent > maxDepth):
@@ -567,7 +567,8 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 
 	# if this function raises an exception, then that exception will appear in the nvda logs and nvda will speak normally i.e. speak as though this filter didn't exist.  so we don't bend over backwards to catch all exceptions we might create. 
 	def ourSpeechSequenceFilter(self, origSeq: speech.SpeechSequence) -> speech.SpeechSequence:
-		logInfo("ourSpeechSequenceFilter stack "+("".join(traceback.format_stack()))) # tdr 
+		#logInfo("ourSpeechSequenceFilter stack "+("".join(traceback.format_stack()))) # tdr 
+		logInfo(f'args to filter: {origSeq}')
 		updateA11yTreeRoot(False)
 		g_state.initNvdaStateFieldsFromRealNvdaState()
 		logInfo(f'--> original speech sequence: {origSeq}')
@@ -582,6 +583,20 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		return modSeq
 	
 	def ourSpeechSequenceFilterImpl(self, origSeq: speech.SpeechSequence, okToThrowRetriableError_: bool) -> speech.SpeechSequence:
+		if 1: # tdr 
+			global g_speakTextInfoWeAreInsideFunc
+			if g_speakTextInfoWeAreInsideFunc:
+				startMarkerPattern = re.compile(f'{re.escape(MARKER)}(.+?){re.escape(MARKER)}', flags=re.DOTALL)
+				endMarkerPattern = re.compile(re.escape(MACRO_END_MARKER), flags=re.DOTALL)
+				numStartMarkers = 0
+				numEndMarkers = 0
+				for element in origSeq:
+					if isinstance(element, str) and len(element) > 0:
+						numStartMarkers += len(re.findall(startMarkerPattern, element))
+						numEndMarkers += len(re.findall(endMarkerPattern, element))
+				logInfo(f'str="{element}", num markers start/end: {numStartMarkers} / {numEndMarkers}')
+
+
 		modSeq = []
 		for element in origSeq:
 			if isinstance(element, str) and len(element) > 0:
@@ -612,7 +627,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		if root != None:
 				try:
 						#speech.speakMessage("Root name: " + root.name)
-						logInfo(a11yTreeToStr(root))
+						logInfo(nvdaObjectTreeToStr(root))
 				except Exception as e:
 						log.exception(e)
 						pass
@@ -625,7 +640,7 @@ g_original_speakTextInfo = speech.speakTextInfo # tdr
 def logIA2Attributes(nvdaObject_):
 	if hasattr(nvdaObject_, "IA2Attributes"):
 		s = str(nvdaObject_.IA2Attributes)
-		logInfo(f'''ia2 (role={getRole(nvdaObject_)}, name={nvdaObject_.name})): {s}''')
+		logInfo(f'''ia2 (role={getRole(nvdaObject_)}, name={nvdaObject_.name}): {s}''')
 	else:
 		logInfo(f'''ia2 (role={getRole(nvdaObject_)}, name={nvdaObject_.name}): none''')
 
@@ -646,43 +661,147 @@ def getNvdaObjectAllDescendants(nvdaObject_):
 		curChild = curChild.next
 	return r
 
-def getNvdaObjects3(info_):
+def getNvdaObjects3(textInfo_):
 	r = []
-	offset = info_._startOffset
-	while offset < info_._endOffset:
-		curObject = info_._getNVDAObjectFromOffset(offset)
+	offset = textInfo_._startOffset
+	while offset < textInfo_._endOffset:
+		curObject = textInfo_._getNVDAObjectFromOffset(offset)
 		r.append(curObject)
 		r += getNvdaObjectAllDescendants(curObject)
-		curObjectEndOffset = info_._getOffsetsFromNVDAObject(curObject)[1]
+		curObjectEndOffset = textInfo_._getOffsetsFromNVDAObject(curObject)[1]
 		offset = curObjectEndOffset
 	return r
 
-def patchedSpeakTextInfo(info, *args, **kwargs): # tdr 
-	logInfo("patchedSpeakTextInfo stack "+("".join(traceback.format_stack()))) # tdr 
+g_speakTextInfoWeAreInsideFunc = False
+g_speakTextInfoNvdaObjects = None
+
+ARIA_ATTRIBUTE_FOR_SMUGGLING = 'aria-dropeffect'
+
+ARIA_ATTRIBUTE_FOR_SMUGGLING_NO_ARIA_PREFIX = ARIA_ATTRIBUTE_FOR_SMUGGLING[len('aria-'):]
+
+def doesNvdaObjectHaveAriaAttributeForSmuggling(nvdaObject_):
+	return hasattr(nvdaObject_, "IA2Attributes") and ARIA_ATTRIBUTE_FOR_SMUGGLING_NO_ARIA_PREFIX in nvdaObject_.IA2Attributes
+
+def deDupeByOffsets(listOfNvdaObjects_, textInfo_):
+	r = []
+	if len(listOfNvdaObjects_) > 0:
+		r.append(listOfNvdaObjects_[0])
+		for i in range(1, len(listOfNvdaObjects_)):
+			curObject = listOfNvdaObjects_[i]
+			prevObject = listOfNvdaObjects_[i-1]
+			curObjectOffsets = textInfo_._getOffsetsFromNVDAObject(curObject)
+			prevObjectOffsets = textInfo_._getOffsetsFromNVDAObject(prevObject)
+			if curObjectOffsets != prevObjectOffsets:
+				r.append(curObject)
+	return r
+
+def getNvdaObjectsFromTextInfo(textInfo_):
+	r = []
+	offset = textInfo_._startOffset
+	while offset < textInfo_._endOffset:
+		curObject = textInfo_._getNVDAObjectFromOffset(offset)
+		if 0: # tdr 
+			logInfo(f'''dir {id(curObject.IA2Attributes) if hasattr(curObject, "IA2Attributes") else 'no ia2'}''')
+			logInfo(f'''dir {id(curObject.IAccessibleObject) if hasattr(curObject, "IAccessibleObject") else 'no ia'}''')
+			logInfo(f'''dir {id(curObject.IA2UniqueID) if hasattr(curObject, "IA2UniqueID") else 'no ia2id'}''')
+		curObjectsOffsets = textInfo_._getOffsetsFromNVDAObject(curObject)
+		#logInfo(f'offsets: obj offsets (role={getRole(curObject)}, name={curObject.name}) {curObjectsOffsets}')
+		if curObjectsOffsets[0] >= textInfo_._startOffset and curObjectsOffsets[1] <= textInfo_._endOffset:
+			if 1: # tdr 
+				logInfo(f'during append, iCurObject={len(r)}.  offsets={textInfo_._getOffsetsFromNVDAObject(curObject)}')
+				logInfo(f'during append, obj id={id(curObject)}, (role={getRole(curObject)}, name={curObject.name})')
+				logInfo(f'during append, obj tree:\n{nvdaObjectTreeToStr(curObject)}')
+			r.append(curObject)
+			r += getNvdaObjectAllDescendants(curObject)
+		curObjectEndOffset = textInfo_._getOffsetsFromNVDAObject(curObject)[1]
+		offset = curObjectEndOffset
+	r = [e for e in r if doesNvdaObjectHaveAriaAttributeForSmuggling(e)]
+	if 0: # tdr
+		for iCurObject, curObject in enumerate(r):
+			logInfo(f'after filter, iCurObject={iCurObject}.  offsets={textInfo_._getOffsetsFromNVDAObject(curObject)}')
+			#logInfo(f'after filter, iCurObject={iCurObject}.  offsets=?')
+			logInfo(f'after filter, obj id={id(curObject)}, (role={getRole(curObject)}, name={curObject.name})')
+			logInfo(f'after filter, obj tree:\n{nvdaObjectTreeToStr(curObject)}')
+	if 0: # tdr 
+		def deDupeByField(listOfNvdaObjects__, fieldName__):
+			r = []
+			if len(listOfNvdaObjects__) > 0:
+				r.append(listOfNvdaObjects__[0])
+				for i in range(1, len(listOfNvdaObjects__)):
+					curObject = listOfNvdaObjects__[i]
+					prevObject = listOfNvdaObjects__[i-1]
+					if hasattr(curObject, fieldName__) and hasattr(prevObject, fieldName__):
+						curObjectFieldVal = getattr(curObject, fieldName__, None)
+						prevObjectFieldVal = getattr(prevObject, fieldName__, None)
+						if id(curObjectFieldVal) != id(prevObjectFieldVal):
+							r.append(curObject)
+					else:
+						r.append(curObject)
+			return r
+		# BUST for fieldName in ['IA2Attributes', 'IA2States', 'IA2UniqueID', 'IA2WindowHandle', 'IAccessibleActionObject', 'IAccessibleChildID', 'IAccessibleIdentity', 'IAccessibleObject', 'IAccessibleRole', 'IAccessibleStates', 'IAccessibleTableUsesTableCellIndexAttrib', 'IAccessibleTextObject']:
+		for fieldName in ['IA2Attributes', 'IA2States', 'IA2UniqueID', 'IA2WindowHandle', 'IAccessibleActionObject', 'IAccessibleChildID', 'IAccessibleIdentity', 'IAccessibleObject', 'IAccessibleRole', 'IAccessibleStates', 'IAccessibleTableUsesTableCellIndexAttrib', 'IAccessibleTextObject']:
+			deDuped = deDupeByField(r, fieldName)
+			if len(deDuped) != len(r):
+				logInfo(f'''de-dupe success w/ {fieldName}.  len {len(r)} -> {len(deDuped)}''')
+
+	if 0: # tdr 
+		deDuped = deDupeByOffsets(r)
+		if len(deDuped) != len(r):
+			logInfo(f'''de-dupe success w/ offsets.  len {len(r)} -> {len(deDuped)}''')
+
+	r = deDupeByOffsets(r, textInfo_)
+
+	return r
+
+def patchedSpeakTextInfo(textInfo_, *args, **kwargs): # tdr 
+	global g_speakTextInfoWeAreInsideFunc, g_speakTextInfoNvdaObjects
+	g_speakTextInfoWeAreInsideFunc = True
+	g_speakTextInfoNvdaObjects = None
+	#logInfo("patchedSpeakTextInfo stack "+("".join(traceback.format_stack()))) # tdr 
 	#logInfo(f'patchedSpeakTextInfo {str(args)} {str(kwargs)}')
 	#logInfo(f'speakTextInfo {str(nvdaObjectAtStart)}')
 	#logInfo(f'type {type(info)}')
 	#o = info.NVDAObjectAtStart
 	#logInfo(f'offsets {info._startOffset} {info._endOffset}')
 
-	if 0:
-		def find_defining_class(obj, method_name):
-			for cls in obj.__class__.mro():
-				if method_name in cls.__dict__:
-					return cls
-			return None
-		c = find_defining_class(info, "_getNVDAObjectFromOffset")
-		logInfo(f'define {c}')
+	g_speakTextInfoNvdaObjects = getNvdaObjectsFromTextInfo(textInfo_)
+	if 1: # tdr 
+		logInfo(f'g_speakTextInfoNvdaObjects: {len(g_speakTextInfoNvdaObjects)}')
+		if 0:
+			for iCurObject, curObject in enumerate(g_speakTextInfoNvdaObjects):
+				logInfo(f'iCurObject={iCurObject}.  offsets={textInfo_._getOffsetsFromNVDAObject(curObject)}')
+				logInfo(f'speakTextInfo obj id={id(curObject)}, (role={getRole(curObject)}, name={curObject.name})')
+				logInfo(f'speakTextInfo tree:\n{nvdaObjectTreeToStr(curObject)}')
+				logIA2Attributes(curObject)
 
-	if 1:
+	if 0:
+		#r = []
+		logInfo(f'start offsets.  textInfo = {textInfo_._startOffset} {textInfo_._endOffset}')
+		offset = textInfo_._startOffset
+		while offset < textInfo_._endOffset:
+			curObject = textInfo_._getNVDAObjectFromOffset(offset)
+			curObjectsOffsets = textInfo_._getOffsetsFromNVDAObject(curObject)
+			logInfo(f'offsets: obj offsets (role={getRole(curObject)}, name={curObject.name}) {curObjectsOffsets}')
+			if curObjectsOffsets[0] < textInfo_._startOffset:
+				logInfo('offsets: obj is cut off at the start')
+			if curObjectsOffsets[1] > textInfo_._endOffset:
+				logInfo('offsets: obj is cut off at the end')
+			#r.append(curObject)
+			#r += getNvdaObjectAllDescendants(curObject)
+			curObjectEndOffset = textInfo_._getOffsetsFromNVDAObject(curObject)[1]
+			offset = curObjectEndOffset
+		logInfo('end offsets')
+
+
+	if 0:
 		logInfo('ia2 start')
-		for obj in getNvdaObjects3(info):
+		for obj in getNvdaObjects3(textInfo_):
 			logIA2Attributes(obj)
 		logInfo('ia2 end')
 	#logInfo(f'speakTextInfo NVDAObjectAtStart {str(dir(obj))}') # tdr 
 
 	if 0:
-		seq = speech.getSpeechForTextInfo(info)
+		seq = speech.getSpeechForTextInfo(textInfo_)
 		for iNvdaObject, item in enumerate(seq):
 			o = getattr(item, "obj", None)
 			if o:
@@ -690,26 +809,15 @@ def patchedSpeakTextInfo(info, *args, **kwargs): # tdr
 				logIA2Attributes(o)
 				
 
-	r = g_original_speakTextInfo(info, *args, **kwargs)
-	#logInfo("patchedSpeakTextInfo end") # tdr 
-	return r
+	try:
+		r = g_original_speakTextInfo(textInfo_, *args, **kwargs)
+		#logInfo("patchedSpeakTextInfo end") # tdr 
+		return r
+	finally:
+		g_speakTextInfoWeAreInsideFunc = False
 
 def patchSpeakTextInfoFunc():
     speech.speakTextInfo = patchedSpeakTextInfo
-
-
-def iterNvdaObjects(textInfo):
-    logInfo('here 1')
-    while True:
-        o = getattr(textInfo, "obj", None)
-        if o and getattr(o, "IAccessibleObject", None):
-            logInfo('here 2')
-            yield o
-        try:
-            if not textInfo.move(textInfos.UNIT_READINGCHUNK, 1):
-                break
-        except:
-            break
 
 
 
