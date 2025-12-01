@@ -746,6 +746,7 @@ def deDupeByOffsets(listOfNvdaObjects_, textInfo_):
 				r.append(curObject)
 	return r
 
+@profile
 def getNvdaObjectsFromTextInfo(textInfo_):
 
 	logInfo(f'start getNvdaObjectsFromTextInfo.  textinfo offsets: {textInfo_._startOffset,textInfo_._endOffset}')
@@ -756,7 +757,9 @@ def getNvdaObjectsFromTextInfo(textInfo_):
 		if ancestorObjOffsets[0] <= textInfo_._startOffset and ancestorObjOffsets[1] >= textInfo_._endOffset:
 			logInfo('offsets are big enough.  break.')
 			break
-		logInfo(f'obj tree:\n{nvdaObjectTreeToStr(ancestorObj, textInfo=textInfo_)}')
+		MAKE_EXPENSIVE_TREETOSTR_CALL = False
+		if MAKE_EXPENSIVE_TREETOSTR_CALL:
+			logInfo(f'obj tree:\n{nvdaObjectTreeToStr(ancestorObj, textInfo=textInfo_)}')
 		ancestorObj = ancestorObj.parent
 		logInfo('up one parent level')
 	if ancestorObj is None:
