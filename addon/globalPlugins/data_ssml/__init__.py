@@ -717,6 +717,7 @@ def getNvdaObjects2(info_):
 			r.append(obj)
 	return r
 
+@profile
 def getNvdaObjectAllDescendants(nvdaObject_):
 	r = []
 	curChild = nvdaObject_.firstChild
@@ -747,10 +748,7 @@ def deDupeByOffsets(listOfNvdaObjects_, textInfo_):
 	return r
 
 @profile
-def getNvdaObjectsFromTextInfo(textInfo_):
-
-	logInfo(f'start getNvdaObjectsFromTextInfo.  textinfo offsets: {textInfo_._startOffset,textInfo_._endOffset}')
-
+def getFirstAncestorObjWithOffsetsThatCoverTextInfoOffsets(textInfo_):
 	ancestorObj = textInfo_._getNVDAObjectFromOffset(textInfo_._startOffset)
 	while ancestorObj is not None:
 		ancestorObjOffsets = textInfo_._getOffsetsFromNVDAObject(ancestorObj)
@@ -762,6 +760,14 @@ def getNvdaObjectsFromTextInfo(textInfo_):
 			logInfo(f'obj tree:\n{nvdaObjectTreeToStr(ancestorObj, textInfo=textInfo_)}')
 		ancestorObj = ancestorObj.parent
 		logInfo('up one parent level')
+	return ancestorObj
+
+@profile
+def getNvdaObjectsFromTextInfo(textInfo_):
+
+	logInfo(f'start getNvdaObjectsFromTextInfo.  textinfo offsets: {textInfo_._startOffset,textInfo_._endOffset}')
+
+	ancestorObj = getFirstAncestorObjWithOffsetsThatCoverTextInfoOffsets(textInfo_)
 	if ancestorObj is None:
 		return []
 	r = [ancestorObj] + getNvdaObjectAllDescendants(ancestorObj)
@@ -770,19 +776,25 @@ def getNvdaObjectsFromTextInfo(textInfo_):
 	logInfo(f'num objects after filtering to those w/ aria attribute: {len(r)}')
 	r2 = []
 	for obj in r:
-		try:
-			objOffsets = textInfo_._getOffsetsFromNVDAObject(obj)
+		objOffsets = getOffsets(obj, textInfo_)
+		if objOffsets is None:
+			logInfo(f'obj has no offsets')
+		else:
 			add = objOffsets[0] >= textInfo_._startOffset and objOffsets[1] <= textInfo_._endOffset
 			if add:
 				r2.append(obj)
 			logInfo(f'obj w/ offsets {objOffsets} added: {add}')
-		except LookupError:
-			logInfo(f'obj has no offsets')
-			pass
 	r = r2
 	logInfo(f'num objects after particular filtering by offsets: {len(r)}')
 	logInfo(f'end getNvdaObjectsFromTextInfo.  {len(r)}.')
 	return r
+
+@profile
+def getOffsets(nvdaObject_, textInfo_):
+	try:
+		return textInfo_._getOffsetsFromNVDAObject(nvdaObject_)
+	except LookupError:
+		return None
 	
 g_original_speakTextInfo = None
 

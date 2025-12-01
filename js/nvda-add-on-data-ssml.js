@@ -28,7 +28,7 @@ function isMutationInteresting(m_) {
         let el = m_.target;
         let prevValue = m_.oldValue;
         let newValue = el.getAttribute('data-ssml');
-        return prevValue === null && newValue !== null; // i.e. we don't act support a data-ssml value changing (after it has initially appeared).  once we see it, it's spoken presentation is carved in stone until page reload.  we do support a data-ssml attribute /appearing/ (on an element where there was none before), even long after page load.  
+        return prevValue === null && newValue !== null; // i.e. we don't support a data-ssml value changing after it has initially appeared.  once we see it, it's spoken presentation is carved in stone until page reload.  we do support a data-ssml attribute /appearing/ (on an element where there was none before), even long after page load.  
     } else if (m_.type === 'childList') {
     	for (let node of m_.addedNodes) {
             if (node.nodeType === Node.ELEMENT_NODE && node.hasAttribute('data-ssml')) {
@@ -132,7 +132,7 @@ class SsmlError extends Error {
 	}
 }
 
-/* note 1: you might be thinking "it's not really processed yet, so why are we adding the 'processed' attribute now?"  answer: b/c by adding this attribute now, we get the benefit that we won't re-process elements w/ data-ssml="" or SSML errors.  the only reason we wouldn't want to add this attribute now would be in case of an error during "processing" (i.e. adding encoding characters).  we don't currently care about that. */
+/* note 1: you might be thinking "it's not really processed yet, so why are we adding the 'processed' attribute now?"  answer: b/c by adding this attribute now, we get the benefit that we won't re-process an element which has an SSML error created by the web page author (i.e. failed our checks below).  the only reason we wouldn't want to add this attribute now would be in case of a bug in our code, after our checks, which inconsistently throws an exception.  we don't currently care about that scenario. */
 function* getAllElemsWithDataSsmlNotProcessed(technique_) {
 	for(let element of document.querySelectorAll('[data-ssml]:not([data-ssml-processed]')) {
 		element.setAttribute('data-ssml-processed', ''); /* see note 1 */ 
@@ -145,7 +145,7 @@ function* getAllElemsWithDataSsmlNotProcessed(technique_) {
 			yield [element, dataSsmlVal];
 		} catch(err) {
 			if(err instanceof SsmlError) {
-				console.error(`data-ssml: We found some HTML that this add-on doesn't support data-ssml on.  So we will ignore the data-ssml attribute on this element.  ${err.message}  The failing element was: `, element);
+				console.error(`data-ssml: We found some HTML that this add-on doesn't support data-ssml on.  So we will ignore the data-ssml attribute on this element.  ${err.message}  The element was: `, element);
 			} else {
 				throw err;
 			}
@@ -169,7 +169,7 @@ function doElementLevelErrorChecks(element_, technique_) {
 		throw new SsmlError(`This element contains the <br> (line break) element.  This add-on doesn't support this.  This is because in order for this add-on to work, each unit of "plain text" (i.e. the text that this add-on will override the spoken presentation of) needs to be sent to our speech filter function in one function call.  If the plain text contains a line break, then there is no guarantee of this.  So this add-on refuses to try to handle it.`);
 	}
 	if(element_.children.length > 0) {
-		throw new SsmlError("This element which has a data-ssml attribute has child elements.  So we will ignore the data-ssml attribute on this element.  To fix this, you need to rearrange your HTML along these lines: put a <span> around the text that you want to override the spoken presentation of, and make it the tightest span possible (i.e. make it cover the text that you want to cover and nothing else), then put the data-ssml attribute on that <span>.  And maybe put that <span> in an aria-labelledby target.");
+		throw new SsmlError("This element, which has a data-ssml attribute, has child elements.  So we will ignore the data-ssml attribute on this element.  To fix this, you need to rearrange your HTML along these lines: put a <span> around the text that you want to override the spoken presentation of, and make it the tightest span possible (i.e. make it cover the text that you want to cover and nothing else), then put the data-ssml attribute on that <span>.  And maybe put that <span> in an aria-labelledby target.");
 		/* we don't support it b/c it's difficult-to-impossible to deal with on the python end.  (assuming technique=index|inline.)  our macro_start / macro_end markers can end up appearing in the speech filter's input sequence in different (string) elements of the speech command list that is passed to our speech filter.  and there might be eg. a LangChangeCommand or any number of non-strings between the two.  I've seen it.  I don't know how to deal with that.  it's reproduced by eg. this: <label data-ssml='...>yes<textarea></textarea></label>.  so instead do this: <label><span data-ssml='...>yes</span><textarea></textarea></label>*/
 	}
 	if(/[^\s]\s+[^\s]/.test(element_.textContent)) {
@@ -181,11 +181,11 @@ function doElementLevelErrorChecks(element_, technique_) {
 		throw new SsmlError(`Found data-ssml on an element that is not a <span>, and technique=page-wide.  This plugin doesn't support this, because it's a sign of author confusion.  With this technique, the tagName of the element doesn't matter: only its textContent and the data-ssml value matter.  Technically we could easily support data-ssml on a non-<span>, but this might mislead the author into thinking that their data-ssml will take effect only on that element, or only on elements with the same tag name.  With this technique, neither of those things are true, or likely to ever be true.  Instead, with this technique, the author should add a separate section to their page - which should probably be unperceivable to the user, so should probably with CSS "display: none" on it - where they put all of their data-ssml.  Since this section should be unperceivable, it should have no semantics or operability, so it might as well be all <span>s.  If, on the other hand, they put data-ssml throughout the parts of the page that will be percieved by the end user, then under technique=page-wide, that is a sign of author confusion.  Under the other techniques, it is normal and desirable.`);
 	}
 	if(element_.tagName === 'TEXTAREA') {
-		assert(technique_ !== 'page-wide'); // b/c if it was, and this element is not a span, this function will have thrown already.
+		assert(technique_ !== 'page-wide'); // b/c if it was, and this element is not a span, then this function will have thrown already.
 		throw new SsmlError(`Found data-ssml on a <textarea> element.  If you want to use SSML on the /label/ of this <textarea>, then put data-ssml on the label element instead (or - if your label wraps another element - put data-ssml on a text-only child element of the label).  If you want to use SSML on the /contents/ of this <textarea>, then your only option is to use technique=page-wide.`);
 	}
 	if(element_.tagName === 'INPUT') {
-		assert(technique_ !== 'page-wide'); // b/c if it was, and this element is not a span, this function will have thrown already.
+		assert(technique_ !== 'page-wide'); // b/c if it was, and this element is not a span, then this function will have thrown already.
 		let type = element_.getAttribute('type');
 		if(!INPUT_TYPES_SUPPORTED.has(type)) {
 			throw new SsmlError(`Found data-ssml on an <input type="${type}">.  Our list of supported types is: ${[...INPUT_TYPES_SUPPORTED]}.  If you want to use SSML on the /label/ of this <input>, then put data-ssml on the label element instead (or - if your label wraps another element - put data-ssml on a text-only child element of the label).  If you want to use SSML on the /contents/ of this <input>: we don't support that, because it's unclear what it would mean.  data-ssml makes the most sense if you imagine it being put on a DOM text node that never changes.  Equivalently: on a DOM element which contains nothing but text that never changes.  And that DOM element can be a widget, or inside of a widget, or not.  But the following ideas don't make sense: 1) data-ssml on a value that can be edited by the user, and 2) data-ssml on an element that has content which is more complicated than just text.  The input types that we don't support fall into those categories.  (To elaborate on #1: this means the /value/ of a widget, not the name of it.  And a value that is /edited/ - not selected - by the user.)`);
@@ -193,10 +193,10 @@ function doElementLevelErrorChecks(element_, technique_) {
 	}
 	let isTextContentWhitespaceOnlyOrEmpty = /^\s*$/.test(element_.textContent);
 	if(technique_ === 'page-wide' && isTextContentWhitespaceOnlyOrEmpty) {
-		throw new SsmlError(`Found data-ssml on an element that either has no text content or has whitespace-only text content.  This plugin doesn't support that - under technique=page-wide, which this page is - because this plugin relies on some meaningful text content - the longer the better.  This plugin effectively searches the rest of the page for matching text content, so if it searched for whitespace, it would override the spoken presentation of all of that whitespace.  Suggestion: use technique=index.`);
+		throw new SsmlError(`Found data-ssml on an element that either has no text content or has whitespace-only text content.  This plugin doesn't support that (under technique=page-wide, which this page is) because this plugin relies on some meaningful text content - the longer the better.  This plugin effectively searches the rest of the page for matching text content, so if it searched for whitespace, it would override the spoken presentation of all of that whitespace.  Suggestion: use technique=index.`);
 	}
 	if((technique_ === 'aria') && element_.hasAttribute(ARIA_TECHNIQUE_ATTRIBUTE)) {
-		throw new SsmlError(`Found data-ssml on an element which already has an ${ARIA_TECHNIQUE_ATTRIBUTE} attribute.  This add-on is using technique=${technique_}.  This add-on, under this technique, uses the ${ARIA_TECHNIQUE_ATTRIBUTE} for it's own purposes.`);
+		throw new SsmlError(`Found data-ssml on an element which already has an ${ARIA_TECHNIQUE_ATTRIBUTE} attribute.  This page is using technique=${technique_}.  This add-on, under this technique, uses the ${ARIA_TECHNIQUE_ATTRIBUTE} for it's own purposes.`);
 	}
 
 }
@@ -377,7 +377,7 @@ function encodeAllDataSsmlAttribs_ariaTechnique_addMarkers() {
 	}
 }
 
-/* in this function we will add to the in-memory hiding place list.  so the in-memory list will be out of sync (and newer) than the in-DOM list.  shortly after this function, we will write the in-memory list to the DOM. */
+/* in this function we will add to the in-memory hiding place list.  so the in-memory list will be out of sync with, and newer than, the in-DOM list.  shortly after this function, we will write the in-memory list to the DOM. */
 function encodeAllDataSsmlAttribs_indexTechnique_encodeEachOccurrenceAsAnIndex() {
 	let hidingPlaceList = NvdaAddOnDataSsml.g_hidingPlaceList;
 	for(let [elem, curSsmlStr] of getAllElemsWithDataSsmlNotProcessed('index')) {
