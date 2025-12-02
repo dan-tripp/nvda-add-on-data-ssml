@@ -49,7 +49,7 @@ function startObserver(technique_) {
 }
 
 const ENCODING_CHARS = [
-	'\uFFF9', // visible on android chrome (my samsung galaxy s10e, tested 2025-11-30).  looks like a box. 
+	'\uFFF9',
 	'\u200C', 
 	'\u200D',
 	'\u2060',
@@ -74,8 +74,8 @@ const HIDING_PLACE_GUID_FOR_ARIA_TECHNIQUE = '84376c45-1157-49e1-9702-7016d3de4b
 const INPUT_TYPES_SUPPORTED = new Set(['checkbox', 'radio', 'button', 'reset', 'submit', ]);
 const SUPPORTED_SSML_INSTRUCTIONS = new Set(["say-as", "phoneme", "sub", "break"]);
 const ARIA_TECHNIQUE_ATTRIBUTE = 'aria-grabbed';
-const ARIA_TECHNIQUE_START_MARKER = ENCODING_CHARS[1];
-const ARIA_TECHNIQUE_END_MARKER = ENCODING_CHARS[2];
+const ARIA_TECHNIQUE_START_MARKER = '\u2060';
+const ARIA_TECHNIQUE_END_MARKER = '\uFEFF';
 
 function isPowerOfTwo(n_) {
 	return (n_ & (n_ - 1)) !== 0;

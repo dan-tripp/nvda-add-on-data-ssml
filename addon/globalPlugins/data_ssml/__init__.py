@@ -25,7 +25,7 @@ def ourAssert(bool_, str_=''):
 ''' If you change the chars here, you need to also change them in the JS encode function.  
 And vice versa.  Write comments about these chars here, not there. '''
 ENCODING_CHARS = [
-	'\uFFF9', 
+	'\uFFF9', # visible on android chrome (my samsung galaxy s10e, tested 2025-11-30).  looks like a box. 
 	'\u200C', 
 	'\u200D',
 	'\u2060',
@@ -62,8 +62,8 @@ chars not used AKA unused:
 '''
 ourAssert(len(set(ENCODING_CHARS)) == len(ENCODING_CHARS), "encodingChars contains duplicates")
 
-ARIA_TECHNIQUE_START_MARKER = ENCODING_CHARS[1]
-ARIA_TECHNIQUE_END_MARKER = ENCODING_CHARS[2]
+ARIA_TECHNIQUE_START_MARKER = '\u2060'
+ARIA_TECHNIQUE_END_MARKER = '\uFEFF'
 
 import datetime, re, base64, json, time, types, dataclasses, sys, traceback
 import globalPluginHandler, api, scriptHandler, ui
