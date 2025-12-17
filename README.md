@@ -52,26 +52,26 @@ This add-on can be configured to use one of several "techniques", but regardless
 			<td>Lets you do a "page-wide override" of how a certain string is spoken.  Doesn't let you do any kind of spoken presentation control beyond this.  So you can have "3'" spoken as "3 prime" or "3 feet", but not both - not on the same web page.  Like technique=index, the JS adds one "hiding place" to the web page.  Unlike the other two techniques, in this technique the JS doesn't add any encoded characters to the text content.  The string lookup uses a case-insensitive whole-word regex, roughly.
 			<td>The JS copies the data-ssml to aria-grabbed.  This is a misuse of aria-grabbed, but it's enough to get the SSML passed through the API layers and into our add-on's speech filter, where we can use it.  Firefox only.  To the text content of each element with data-ssml, the JS adds an invisible "start marker" and "end marker".  
 		</tr>
-		<tr>
+		<tr valign="top">
 			<th scope="row">Left/right arrow nav sees junk characters
 			<td>The worst technique.  The JS adds many silent junk characters.  Number of junk characters is approximately equal to the length of the data-ssml attribute value x 2.  That's at the start of the element that has the data-ssml attribute.  And at the end of the element: the JS adds 2 more. 
 			<td>The third-best technique.  The JS adds approx. 2 junk characters at the start of the element.  And again 2 at the end.  At the start: those 2 characters take 4 right-arrow-key-presses to get through.  I don't know why.  
 			<td>The best technique.  The JS adds no junk characters here.
 			<td>The second-best technique.  The JS adds approx. one junk character at the start of the element, and one at the end.  Each of those takes one right-arrow-key-press to get through.  
 		</tr>
-		<tr>
+		<tr valign="top">
 			<th scope="row">Up/down arrow nav is different due to junk characters 
 			<td>The worst technique.  Noticeable.
 			<td>The almost-best technique.  I didn't notice it, but there might be cases that I'm missing.
 			<td>The best technique.  The JS adds no junk characters here.
 		</tr>
-		<tr>
+		<tr valign="top">
 			<th scope="row">Max length of SSML i.e. max length of the string $SSML in &lt;span data-ssml="$SSML"&gt; <br> $PLAIN_TEXT <br> &lt;/span&gt;
 			<td>The worst technique.  Add-on will only work if len($PLAIN_TEXT) 2*len($SSML) + 2 <= 100 , roughly.  That's for arrow nav and tab, I think.  Table nav (ctrl+alt+arrow_key) gets away with more, for some reason.  At any rate: this max length is easy to exceed with this technique.  e.g SSML = "'{"say-as": {"interpret-as": "characters"}}'" is close to it. 
 			<td>Tied for the best technique.  No max length.
 			<td>Tied for the best technique.  No max length.
 		</tr>
-		<tr>
+		<tr valign="top">
 			<th scope="row">Max length of plain text i.e. max length of the string $PLAIN_TEXT in &lt;span data-ssml="$SSML"&gt; <br> $PLAIN_TEXT <br> &lt;/span&gt;
 			<td>The worst technique.  For reasons: see the comment for the row "Max length of SSML".
 			<td>The middle technique.  The max length is approx. 96 characters, which is probably high enough that you won't exceed it in the real world.  It's the same limit that's shown in the formula in the row "Max length of SSML", but with this techique $SSML is an index (i.e. an integer) so len($SSML) = 1 (roughly), so the formula collapses like this: <br>
@@ -80,37 +80,37 @@ This add-on can be configured to use one of several "techniques", but regardless
 			len($PLAIN_TEXT) <= 96<br>
 			<td>The best technique.  Max length is approx. 100. 
 		</tr>
-		<tr>
+		<tr valign="top">
 			<th scope="row">Max number of overrides on a page for a given plain text string
 			<td>Tied for the best technique.  No max.
 			<td>Tied for the best technique.  No max.
 			<td>The worst technique.  Max=1.  This is a serious limitation.
 		</tr>
-		<tr>
+		<tr valign="top">
 			<th scope="row">NVDA braille viewer sees junk characters 
 			<td>The worst technique.  Braille viewer sees a lot of junk characters.
 			<td>The middle technique.  Braille viewer sees much fewer characters.  Still the negative user impact of this is significant, I expect.
 			<td>The best technique.  Braille viewer sees no junk characters, because the JS didn't add any. 
 		</tr>
-		<tr>
+		<tr valign="top">
 			<th scope="row">Clipboard junk.  i.e. our encoding characters, even though they're invisible to the eye and silent in the screen reader audio, show up in the clipboard if you select and copy that part of the page.
 			<td>The worst technique.  The JS adds approx 2 characters of clipboard junk per data-ssml character.
 			<td>The middle technique.  The JS adds a roughly-constant 6 characters of clipboard junk, regardless of the length of data-ssml.  4 characters at the start of the element + 2 characters at the end.
 			<td>The best technique.  The JS adds no clipboard junk.
 		</tr>
-		<tr>
+		<tr valign="top">
 			<th scope="row">The JS adds somewhat-human-readable junk in DOM root, near the footer of the page
 			<td>The best technique.  No junk here.
 			<td>Tied for the worst technique.  Substantial junk here.
 			<td>Tied for the worst technique.  Same amount of junk, roughly. 
 		</tr>
-		<tr>
+		<tr valign="top">
 			<th scope="row">Supports SSML on the <i>contents</i> (not label) of a &lt;textarea&gt;
 			<td>Not supported.
 			<td>Not supported.
 			<td>Supported.  Whether supporting this is a good thing or not is another question.
 		</tr>
-		<tr>
+		<tr valign="top">
 			<th scope="row">SSML "break" instruction
 			<td>"time" attribute: supported.  eg. data-ssml='{"break":{"time":"500ms"}'  Other spuported "time" values include "500ms", "1s", "0.5s".<br>"strength" attribute (weak, strong, etc.): not supported.  
 			<td>Same as technique=inline (the table cell to the left of this one.)
