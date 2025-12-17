@@ -41,18 +41,21 @@ This add-on can be configured to use one of several "techniques", but regardless
 			<th>technique=inline
 			<th>technique=index
 			<th>technique=page-wide
+			<th>technique=aria
 		</tr>
-		<tr>
+		<tr valign="top">
 			<th scope="row">Description of technique
 			<td>The JS adds an encoded version of the entire data-ssml attribute value into the text content of the element that has the data-ssml attribute.  So this technique adds a lot of our encoding characters all over the page.
 			<td>The JS adds a list of all of the data-ssml attribute values on the page into a central "hiding place" in the DOM root, near the footer.  To the text content of each element that has the data-ssml attribute, the JS only adds an encoded integer index, which represents an array index in the central "hiding place".  So this adds a lot less of our encoding characters all over the page than the "inline" technique does.
 			<td>Lets you do a "page-wide override" of how a certain string is spoken.  Doesn't let you do any kind of spoken presentation control beyond this.  So you can have "3'" spoken as "3 prime" or "3 feet", but not both - not on the same web page.  Like technique=index, the JS adds one "hiding place" to the web page.  Unlike the other two techniques, in this technique the JS doesn't add any encoded characters to the text content.  The string lookup uses a case-insensitive whole-word regex, roughly.
+			<td>The JS copies the data-ssml to aria-grabbed.  This is a misuse of aria-grabbed, but it's enough to get the SSML passed through the API layers and into our add-on's speech filter, where we can use it.  Firefox only.  To the text content of each element with data-ssml, the JS adds an invisible "start marker" and "end marker".  
 		</tr>
 		<tr>
 			<th scope="row">Left/right arrow nav sees junk characters
 			<td>The worst technique.  The JS adds many silent junk characters.  Number of junk characters is approximately equal to the length of the data-ssml attribute value x 2.  That's at the start of the element that has the data-ssml attribute.  And at the end of the element: the JS adds 2 more. 
-			<td>The middle technique.  The JS adds approx. 2 junk characters at the start of the element.  And again 2 at the end.  At the start: those 2 characters take 4 right-arrow-key-presses to get through.  I don't know why.  TO DO: figure that out. 
+			<td>The third-best technique.  The JS adds approx. 2 junk characters at the start of the element.  And again 2 at the end.  At the start: those 2 characters take 4 right-arrow-key-presses to get through.  I don't know why.  
 			<td>The best technique.  The JS adds no junk characters here.
+			<td>The second-best technique.  The JS adds approx. one junk character at the start of the element, and one at the end.  Each of those takes one right-arrow-key-press to get through.  
 		</tr>
 		<tr>
 			<th scope="row">Up/down arrow nav is different due to junk characters 
