@@ -36,6 +36,12 @@ This add-on can be configured to use one of several "techniques", but regardless
 <table>
 	<caption>Technique comparison</caption>
 	<tbody>
+		<colgroup>
+			<col style="width: 12%;">
+			<col style="width: 22%;">
+			<col style="width: 22%;">
+			<col style="width: 22%;">
+		</colgroup>
 		<tr>
 			<td>
 			<th>technique=inline
