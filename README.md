@@ -33,14 +33,10 @@ This add-on can be configured to use one of several "techniques", but regardless
 	- ... a user of VoiceOver / TalkBack: none in the audio.  Some regarding the delimiting of words/sentences.  TO DO: elaborate.  
 	- ... all users, including non-screen-reader users: "clipboard junk".  See table below. 
 
+
+
 <table>
 	<caption>Technique comparison</caption>
-	<colgroup>
-		<col style="width: 12%;">
-		<col style="width: 22%;">
-		<col style="width: 22%;">
-		<col style="width: 22%;">
-	</colgroup>
 	<tbody>
 		<tr>
 			<td>
@@ -70,13 +66,13 @@ This add-on can be configured to use one of several "techniques", but regardless
 			<td>The best technique.  The JS adds no junk characters here.
 		</tr>
 		<tr>
-			<th scope="row">Max length of SSML i.e. max length of the string $SSML in &lt;span data-ssml="$SSML"&gt;$PLAIN_TEXT&lt;/span&gt;
+			<th scope="row">Max length of SSML i.e. max length of the string $SSML in &lt;span data-ssml="$SSML"&gt; <br> $PLAIN_TEXT <br> &lt;/span&gt;
 			<td>The worst technique.  Add-on will only work if len($PLAIN_TEXT) 2*len($SSML) + 2 <= 100 , roughly.  That's for arrow nav and tab, I think.  Table nav (ctrl+alt+arrow_key) gets away with more, for some reason.  At any rate: this max length is easy to exceed with this technique.  e.g SSML = "'{"say-as": {"interpret-as": "characters"}}'" is close to it. 
 			<td>Tied for the best technique.  No max length.
 			<td>Tied for the best technique.  No max length.
 		</tr>
 		<tr>
-			<th scope="row">Max length of plain text i.e. max length of the string $PLAIN_TEXT in &lt;span data-ssml="$SSML"&gt;$PLAIN_TEXT&lt;/span&gt;
+			<th scope="row">Max length of plain text i.e. max length of the string $PLAIN_TEXT in &lt;span data-ssml="$SSML"&gt; <br> $PLAIN_TEXT <br> &lt;/span&gt;
 			<td>The worst technique.  For reasons: see the comment for the row "Max length of SSML".
 			<td>The middle technique.  The max length is approx. 96 characters, which is probably high enough that you won't exceed it in the real world.  It's the same limit that's shown in the formula in the row "Max length of SSML", but with this techique $SSML is an index (i.e. an integer) so len($SSML) = 1 (roughly), so the formula collapses like this: <br>
 			len($PLAIN_TEXT) 2*len($SSML) + 2 <= 100<br>
