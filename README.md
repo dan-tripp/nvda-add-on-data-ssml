@@ -62,14 +62,16 @@ This add-on can be configured to use one of several "techniques", but regardless
 		<tr valign="top">
 			<th scope="row">Up/down arrow nav is different due to junk characters 
 			<td>The worst technique.  Noticeable.
-			<td>The almost-best technique.  I didn't notice it, but there might be cases that I'm missing.
+			<td>Tied for second-test technique.  Might be equivalent to the best technique.  I didn't notice it, but there might be cases that I'm missing.
 			<td>The best technique.  The JS adds no junk characters here.
+			<td>Tied for second-best technique. 
 		</tr>
 		<tr valign="top">
 			<th scope="row">Max length of SSML i.e. max length of the string $SSML in &lt;span data-ssml="$SSML"&gt; <br> $PLAIN_TEXT <br> &lt;/span&gt;
 			<td>The worst technique.  Add-on will only work if len($PLAIN_TEXT) 2*len($SSML) + 2 <= 100 , roughly.  That's for arrow nav and tab, I think.  Table nav (ctrl+alt+arrow_key) gets away with more, for some reason.  At any rate: this max length is easy to exceed with this technique.  e.g SSML = "'{"say-as": {"interpret-as": "characters"}}'" is close to it. 
 			<td>Tied for the best technique.  No max length.
-			<td>Tied for the best technique.  No max length.
+			<td>Tied for the best technique.  
+			<td>Tied for the best technique.  
 		</tr>
 		<tr valign="top">
 			<th scope="row">Max length of plain text i.e. max length of the string $PLAIN_TEXT in &lt;span data-ssml="$SSML"&gt; <br> $PLAIN_TEXT <br> &lt;/span&gt;
@@ -79,36 +81,42 @@ This add-on can be configured to use one of several "techniques", but regardless
 			len($PLAIN_TEXT) 2*1 + 2 <= 100<br>
 			len($PLAIN_TEXT) <= 96<br>
 			<td>The best technique.  Max length is approx. 100. 
+			<td>Tied for middle technique, or nearly so.  Very close to technique=index.
 		</tr>
 		<tr valign="top">
 			<th scope="row">Max number of overrides on a page for a given plain text string
 			<td>Tied for the best technique.  No max.
-			<td>Tied for the best technique.  No max.
+			<td>Tied for the best technique.
 			<td>The worst technique.  Max=1.  This is a serious limitation.
+			<td>Tied for the best technique.
 		</tr>
 		<tr valign="top">
 			<th scope="row">NVDA braille viewer sees junk characters 
 			<td>The worst technique.  Braille viewer sees a lot of junk characters.
-			<td>The middle technique.  Braille viewer sees much fewer characters.  Still the negative user impact of this is significant, I expect.
+			<td>The third-best technique.  Braille viewer sees much fewer junk characters than the worst technique.  But still the negative user impact of this is significant, I expect.
 			<td>The best technique.  Braille viewer sees no junk characters, because the JS didn't add any. 
+			<td>The second-best technique.  Braille viewer sees junk characters.  They show up as spaces, roughly.  When I do "nav by char", there is some strangeness in the braille viewer which I don't understand.
 		</tr>
 		<tr valign="top">
 			<th scope="row">Clipboard junk.  i.e. our encoding characters, even though they're invisible to the eye and silent in the screen reader audio, show up in the clipboard if you select and copy that part of the page.
 			<td>The worst technique.  The JS adds approx 2 characters of clipboard junk per data-ssml character.
-			<td>The middle technique.  The JS adds a roughly-constant 6 characters of clipboard junk, regardless of the length of data-ssml.  4 characters at the start of the element + 2 characters at the end.
+			<td>The third-best technique.  The JS adds a roughly-constant 6 characters of clipboard junk, regardless of the length of data-ssml.  4 characters at the start of the element + 2 characters at the end.
 			<td>The best technique.  The JS adds no clipboard junk.
+			<td>The second-best technique.  The JS adds one character of clipboard junk at the start, and one at the end.
 		</tr>
 		<tr valign="top">
 			<th scope="row">The JS adds somewhat-human-readable junk in DOM root, near the footer of the page
 			<td>The best technique.  No junk here.
 			<td>Tied for the worst technique.  Substantial junk here.
 			<td>Tied for the worst technique.  Same amount of junk, roughly. 
+			<td>The middle technique.  There is some junk, but not much.
 		</tr>
 		<tr valign="top">
 			<th scope="row">Supports SSML on the <i>contents</i> (not label) of a &lt;textarea&gt;
 			<td>Not supported.
 			<td>Not supported.
 			<td>Supported.  Whether supporting this is a good thing or not is another question.
+			<td>Not supported.
 		</tr>
 		<tr valign="top">
 			<th scope="row">SSML "break" instruction
