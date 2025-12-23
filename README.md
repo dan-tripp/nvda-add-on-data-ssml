@@ -62,7 +62,7 @@ This add-on can be configured to use one of several "techniques", but regardless
 		<tr valign="top">
 			<th scope="row">Up/down arrow nav is different due to junk characters 
 			<td>The worst technique.  Noticeable.
-			<td>Tied for second-test technique.  Might be equivalent to the best technique.  I didn't notice it, but there might be cases that I'm missing.
+			<td>Tied for second-test technique.  It's different, in theory, but the difference is not noticeable to me.  But there might be cases that I'm missing.
 			<td>The best technique.  The JS adds no junk characters here.
 			<td>Tied for second-best technique. 
 		</tr>
@@ -98,7 +98,7 @@ This add-on can be configured to use one of several "techniques", but regardless
 			<td>The second-best technique.  Braille viewer sees junk characters.  They show up as spaces, roughly.  When I do "nav by char", there is some strangeness in the braille viewer which I don't understand.
 		</tr>
 		<tr valign="top">
-			<th scope="row">Clipboard junk.  i.e. our encoding characters, even though they're invisible to the eye and silent in the screen reader audio, show up in the clipboard if you select and copy that part of the page.
+			<th scope="row">Clipboard junk.  i.e. our encoding characters, even though they're silent in the screen reader audio and invisible to the eye, show up in the clipboard if you select and copy that part of the page.
 			<td>The worst technique.  The JS adds approx 2 characters of clipboard junk per data-ssml character.
 			<td>The third-best technique.  The JS adds a roughly-constant 6 characters of clipboard junk, regardless of the length of data-ssml.  4 characters at the start of the element + 2 characters at the end.
 			<td>The best technique.  The JS adds no clipboard junk.
