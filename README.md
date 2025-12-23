@@ -105,6 +105,20 @@ This add-on can be configured to use one of several "techniques", but regardless
 			<td>The second-best technique.  The JS adds one character of clipboard junk at the start, and one at the end.
 		</tr>
 		<tr valign="top">
+			<th scope="row">Find-in-page junk (i.e. does it break "Ctrl+F" if your search string's match crosses an SSML start or end marker)
+			<td>All techniques are bad.  Breaks in both Chrome and Firefox.  Chrome breaks less, in a way - the user can work around it by searching for "word1 SPACE SPACE word2".  But that's not very useful.  
+			<td>Tied.
+			<td>Tied.
+			<td>Tied.
+		</tr>
+		<tr valign="top">
+			<th scope="row">Performance (as in: speed) 
+			<td>Tied for best technique.
+			<td>Tied for best technique.
+			<td>Tied for best technique.
+			<td>The worst technique.  Has a performance problem on eg. test page "a-b-c-d-e-f" cases, can take approx. 1 second.
+		</tr>
+		<tr valign="top">
 			<th scope="row">The JS adds somewhat-human-readable junk in DOM root, near the footer of the page
 			<td>The best technique.  No junk here.
 			<td>Tied for the worst technique.  Substantial junk here.
@@ -120,9 +134,17 @@ This add-on can be configured to use one of several "techniques", but regardless
 		</tr>
 		<tr valign="top">
 			<th scope="row">SSML "break" instruction
-			<td>"time" attribute: supported.  eg. data-ssml='{"break":{"time":"500ms"}'  Other spuported "time" values include "500ms", "1s", "0.5s".<br>"strength" attribute (weak, strong, etc.): not supported.  
-			<td>Same as technique=inline (the table cell to the left of this one.)
+			<td>Tied for best technique.  Partial support.  "time" attribute: supported.  eg. data-ssml='{"break":{"time":"500ms"}'  Other supported "time" values include "500ms", "1s", "0.5s".<br>"strength" attribute (weak, strong, etc.): not supported.  
+			<td>Tied for best technique.
 			<td>Not supported.  Reason: "break" is typically used on an element which has no text content, and page-wide relies on that text content: it effectively searches the rest of the page for matching text content.
+			<td>Tied for best technique. 
+		</tr>
+		<tr valign="top">
+			<th scope="row">Browser support
+			<td>Tied for best technique.  Tested and works in Chrome and Firefox.  Safari: n/a because NVDA is Windows-only.  Mobile browsers: same.
+			<td>Tied for best technique.
+			<td>Tied for best technique.
+			<td>The worst technique.  Firefox-only.
 		</tr>
 	</tbody>
 </table>
